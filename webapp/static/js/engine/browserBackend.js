@@ -4,6 +4,7 @@
  */
 
 import { HttpClient } from './http.js';
+import { createEvidenceProvider } from './knockoutEvidence.js';
 import { LocalBackend } from './localApi.js';
 import { RagPhenotypePredictor, createTransformersEmbedder } from './rag.js';
 import { openStore } from './store.js';
@@ -36,7 +37,7 @@ export function createKeggProvider(baseUrl, fetchImpl = (...a) => globalThis.fet
     };
 }
 
-export async function createBrowserBackend({ siteBase, keggBase }) {
+export async function createBrowserBackend({ siteBase, keggBase, evidenceBase }) {
     const store = await openStore();
     const http = new HttpClient({ cache: store.httpCache });
 
@@ -44,6 +45,7 @@ export async function createBrowserBackend({ siteBase, keggBase }) {
         store,
         http,
         keggProvider: createKeggProvider(keggBase),
+        evidenceProvider: evidenceBase ? createEvidenceProvider(evidenceBase) : null,
         async loadOrganisms() {
             const response = await fetch(`${keggBase}organisms.json`);
             if (!response.ok) throw new Error(`organisms.json: HTTP ${response.status}`);

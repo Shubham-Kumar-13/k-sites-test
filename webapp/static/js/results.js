@@ -2,6 +2,8 @@
  * K-Sites Web Application - Results Page JavaScript
  */
 
+const CONTEXT_LABELS = { auto: 'Automatic', cells: 'Cultured cells', organism: 'Whole organism' };
+
 // Global state
 let currentJob = null;
 let resultsData = null;
@@ -39,6 +41,7 @@ function fillJobFields(job) {
         max_genes: job.max_genes,
         max_pleiotropy: job.max_pleiotropy,
         evidence_filter: job.evidence_filter,
+        knockout_context: job.knockout_context === undefined ? undefined : (CONTEXT_LABELS[job.knockout_context] || job.knockout_context),
         predict_phenotypes: job.predict_phenotypes === undefined ? undefined : (job.predict_phenotypes ? 'Enabled' : 'Disabled'),
         selected_databases: job.selected_databases === undefined ? undefined : ((job.selected_databases || []).join(', ') || 'QuickGO'),
         total_genes_found: job.total_genes_found,
@@ -213,15 +216,134 @@ async function loadResults(jobId) {
         }
         
         resultsData = data.results;
-        
+
+        // "Automatic" is shown together with what it turned out to mean for this organism
+        const resolved = resultsData.metadata && resultsData.metadata.knockout_context;
+        if (resolved) {
+            const chosen = (currentJob && currentJob.knockout_context) || 'auto';
+            const label = chosen === 'auto' ? `Automatic (${CONTEXT_LABELS[resolved].toLowerCase()})` : CONTEXT_LABELS[chosen];
+            document.querySelectorAll('[data-job-field="knockout_context"]').forEach(el => { el.textContent = label; });
+        }
+
         renderGenes(resultsData.genes);
+        renderExcluded(resultsData.excluded_genes);
         renderInsufficientData(resultsData.insufficient_data_genes);
+        renderSources(resultsData.metadata);
         renderWarnings(resultsData.warnings);
         renderSummary(resultsData);
         
     } catch (error) {
         console.error('Error loading results:', error);
     }
+}
+
+// ============================================================================
+// Measured knockout evidence
+// ============================================================================
+
+function esc(value) {
+    return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+const CALL_BADGES = {
+    LETHAL: ['bg-danger', 'Lethal'], SUBVIABLE: ['bg-warning text-dark', 'Subviable'], VIABLE: ['bg-success', 'Viable'],
+    ESSENTIAL: ['bg-danger', 'Essential'], SELECTIVE: ['bg-warning text-dark', 'Sometimes essential'],
+    NON_ESSENTIAL: ['bg-success', 'Rarely essential'], UNKNOWN: ['bg-secondary', 'No data'],
+};
+const BASIS_BADGES = {
+    measured: ['bg-success', 'Measured'], ortholog: ['bg-info text-dark', 'Measured in the mouse ortholog'],
+    distant: ['bg-secondary', 'Mouse ortholog only (distant relative)'],
+    predicted: ['bg-warning text-dark', 'Predicted from the literature'], none: ['bg-secondary', 'Not verified'],
+};
+
+function callBadge(call) {
+    const [cls, label] = CALL_BADGES[call] || CALL_BADGES.UNKNOWN;
+    return `<span class="badge ${cls} me-1">${label}</span>`;
+}
+
+function referenceLinks(organism) {
+    const links = (organism.references || []).map(p => `<a href="https://pubmed.ncbi.nlm.nih.gov/${Number(p)}/" target="_blank" rel="noopener">PMID ${Number(p)}</a>`);
+    if (organism.mgi_id) links.push(`<a href="https://www.informatics.jax.org/marker/${esc(organism.mgi_id)}" target="_blank" rel="noopener">MGI</a>`);
+    return links.length ? ` <span class="text-muted">(${links.join(', ')})</span>` : '';
+}
+
+/** Which measurement decides the verdict (mirrors the safety recommender). */
+function verdictDriver(evidence) {
+    const { organism, cells } = evidence;
+    const organismKnown = organism.call !== 'UNKNOWN' && !organism.distant;   // a distant relative is only a hint
+    if (evidence.context === 'cells') return cells.call !== 'UNKNOWN' ? 'cells' : (organismKnown ? 'organism' : '');
+    return organismKnown ? 'organism' : (cells.call === 'ESSENTIAL' ? 'cells' : '');
+}
+
+function evidencePanel(gene) {
+    const safety = gene.safety_recommendation || {};
+    const evidence = gene.knockout_evidence;
+    const [basisClass, basisLabel] = BASIS_BADGES[safety.evidence_basis || 'none'] || BASIS_BADGES.none;
+    const header = `<div class="mb-1"><span class="badge ${basisClass}">${basisLabel}</span>
+        <span class="text-muted small ms-1">What the verdict rests on</span></div>`;
+    const lines = [];
+    const driver = evidence ? verdictDriver(evidence) : '';
+    const decides = '<span class="badge bg-light text-dark border ms-1">decides the verdict</span>';
+    if (evidence && evidence.organism.call !== 'UNKNOWN') {
+        lines.push(`<div class="mb-1">${callBadge(evidence.organism.call)}${esc(evidence.organism.text)}${referenceLinks(evidence.organism)}${driver === 'organism' ? decides : ''}</div>`);
+    }
+    if (evidence && evidence.cells.call !== 'UNKNOWN') {
+        lines.push(`<div class="mb-1">${callBadge(evidence.cells.call)}${esc(evidence.cells.text)}${driver === 'cells' ? decides : ''}</div>`);
+    }
+    if (!lines.length) {
+        lines.push(`<div class="mb-1 text-muted">No measured knockout data for this gene. Check MGI, IMPC or DepMap before committing to a knockout.</div>`);
+        const phenotype = gene.phenotype_prediction;
+        if (phenotype) {
+            const sev = typeof phenotype.severity === 'object' ? phenotype.severity.value : phenotype.severity;
+            lines.push(`<div class="mb-1 text-muted">Predicted from abstracts (low reliability): ${esc(sev)}, confidence ${Number(phenotype.confidence_score).toFixed(2)}</div>`);
+        }
+    }
+    if (evidence && evidence.constraint) lines.push(`<div class="text-muted">${esc(evidence.constraint.text)}</div>`);
+    if (evidence && evidence.expression) lines.push(`<div class="text-muted">${esc(evidence.expression.text)}</div>`);
+    if (evidence && evidence.paralogs) lines.push(`<div class="text-muted">${esc(evidence.paralogs.text)}</div>`);
+    if (evidence && evidence.organism.systems && evidence.organism.systems.length) {
+        const chips = evidence.organism.systems.map(sys => `<span class="badge bg-light text-dark border me-1 mb-1">${esc(sys.replace(/ phenotype$/, ''))}</span>`).join('');
+        lines.push(`<details class="text-muted"><summary>Organ systems with a reported phenotype (${evidence.organism.systems.length})</summary><div class="mt-1">${chips}</div></details>`);
+    }
+    return `<div class="border rounded p-2 mb-3 small bg-light">${header}${lines.join('')}</div>`;
+}
+
+function renderExcluded(entries) {
+    if (!entries || entries.length === 0) return;
+    const container = document.getElementById('genesContainer');
+    const rows = entries.map(entry => {
+        const evidence = entry.knockout_evidence;
+        const measured = evidence && evidence.has_measured;
+        const lines = [];
+        if (evidence && evidence.organism.call !== 'UNKNOWN') lines.push(`${callBadge(evidence.organism.call)}${esc(evidence.organism.text)}${referenceLinks(evidence.organism)}`);
+        if (evidence && evidence.cells.call !== 'UNKNOWN') lines.push(`${callBadge(evidence.cells.call)}${esc(evidence.cells.text)}`);
+        return `<tr><td><strong>${esc(entry.symbol)}</strong></td><td>${esc(entry.detail)}</td>
+            <td>${measured ? lines.join('<br>') : '<span class="text-muted">No measured knockout data</span>'}</td></tr>`;
+    }).join('');
+    container.insertAdjacentHTML('beforeend', `
+        <div class="card mt-4">
+            <div class="card-header"><i class="fas fa-eye-slash me-2"></i>${entries.length} gene(s) assessed but not shown</div>
+            <div class="card-body">
+                <p class="small text-muted">These genes were assessed too. They are not in the ranking above because their pleiotropy score is above the cutoff,
+                or because they rank below the genes shown. Their measured knockout result is listed so that nothing is hidden.</p>
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>Gene</th><th>Why not shown</th><th>Measured knockout evidence</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+        </div>`);
+}
+
+function renderSources(metadata) {
+    const info = metadata && metadata.knockout_evidence_data;
+    if (!info || !info.sources || !info.sources.length) return;
+    const container = document.getElementById('genesContainer');
+    const items = info.sources.map(s => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)}</a>: ${esc(s.what || '')}</li>`).join('');
+    container.insertAdjacentHTML('beforeend', `
+        <div class="small text-muted mt-4">
+            <strong>Data sources</strong> (measured knockout data, version ${esc(info.version)}):
+            <ul class="mb-0">${items}</ul>
+        </div>`);
 }
 
 function safetyLabel(level) {
@@ -233,7 +355,7 @@ function safetyLabel(level) {
 function renderWarnings(warnings) {
     if (!warnings || warnings.length === 0) return;
     const container = document.getElementById('genesContainer');
-    const items = warnings.map(w => `<li>${w}</li>`).join('');
+    const items = warnings.map(w => `<li>${esc(w)}</li>`).join('');
     container.insertAdjacentHTML('afterbegin', `
         <div class="alert alert-warning">
             <strong><i class="fas fa-exclamation-triangle me-2"></i>Warning</strong>
@@ -267,8 +389,11 @@ function renderGenes(genes) {
     
     container.innerHTML = genes.map((gene, index) => {
         const safety = gene.safety_recommendation || {};
-        const concerns = (safety.concerns || []).map(c => `<li>${c}</li>`).join('');
-        const justification = (safety.justification || []).map(j => `<li>${j}</li>`).join('');
+        const concerns = (safety.concerns || []).map(c => `<li>${esc(c)}</li>`).join('');
+        const justification = (safety.justification || []).map(j => `<li>${esc(j)}</li>`).join('');
+        const mitigation = (safety.mitigation_strategies || []).map(m => `<li>${esc(m)}</li>`).join('');
+        const alternatives = (safety.alternative_recommendations || []).length
+            ? ` <span class="text-muted small">(alternatives: ${esc(safety.alternative_recommendations.join('; '))})</span>` : '';
         return `
         <div class="card mb-3">
             <div class="card-body">
@@ -276,9 +401,9 @@ function renderGenes(genes) {
                     <div>
                         <h5 class="mb-1">
                             <span class="badge bg-secondary me-2">#${index + 1}</span>
-                            ${gene.symbol}
+                            ${esc(gene.symbol)}
                         </h5>
-                        <p class="text-muted mb-0 small">${gene.description || 'No description available'}</p>
+                        <p class="text-muted mb-0 small">${esc(gene.description || 'No description available')}</p>
                     </div>
                     <div class="text-end">
                         <div class="mb-1">
@@ -312,9 +437,11 @@ function renderGenes(genes) {
                     </div>
                 </div>
                 
-                ${safety.primary_recommendation ? `<p class="mb-2"><strong>Recommendation:</strong> ${safety.primary_recommendation}</p>` : ''}
+                ${evidencePanel(gene)}
+                ${safety.primary_recommendation ? `<p class="mb-2"><strong>Recommendation:</strong> ${esc(safety.primary_recommendation)}${alternatives}</p>` : ''}
                 ${justification ? `<ul class="small mb-2">${justification}</ul>` : ''}
                 ${concerns ? `<div class="small text-muted">Concerns:<ul class="mb-0">${concerns}</ul></div>` : ''}
+                ${mitigation ? `<details class="small mt-2"><summary>What to do about it</summary><ul class="mb-0 mt-1">${mitigation}</ul></details>` : ''}
             </div>
         </div>`;
     }).join('');
@@ -326,8 +453,8 @@ function renderInsufficientData(genes) {
     const container = document.getElementById('genesContainer');
     const rows = genes.map(g => `
         <tr>
-            <td><strong>${g.symbol}</strong></td>
-            <td>${(g.reasons || []).join('; ') || 'No data'}</td>
+            <td><strong>${esc(g.symbol)}</strong></td>
+            <td>${esc((g.reasons || []).join('; ') || 'No data')}</td>
             <td>${g.lookup_failed ? 'Yes' : 'No'}</td>
         </tr>
     `).join('');
@@ -353,6 +480,16 @@ function renderSummary(data) {
         totalGenes: genes.length,
         avgPleiotropy: genes.reduce((sum, g) => sum + (g.pleiotropy_score || 0), 0) / genes.length || 0
     };
+    const levelCounts = {};
+    genes.forEach(g => { const level = (g.safety_recommendation || {}).safety_level; levelCounts[level] = (levelCounts[level] || 0) + 1; });
+    const levelRows = ['SAFE', 'CAUTION', 'MODERATE_CONCERN', 'HIGH_CONCERN', 'AVOID'].filter(level => levelCounts[level]).map(level => `
+                            <tr>
+                                <td class="text-muted"><span class="badge ${safetyBadgeClass(level)}">${safetyLabel(level)}</span></td>
+                                <td class="fw-bold">${levelCounts[level]}</td>
+                            </tr>`).join('');
+    const stat = data.statistics || {};
+    const measuredCount = (stat.by_evidence_basis || {}).measured || 0;
+    const orthologCount = (stat.by_evidence_basis || {}).ortholog || 0;
     
     container.innerHTML = `
         <div class="row g-4">
@@ -371,6 +508,11 @@ function renderSummary(data) {
                                 <td class="text-muted">Average Pleiotropy:</td>
                                 <td class="fw-bold">${stats.avgPleiotropy.toFixed(2)}</td>
                             </tr>
+                            <tr>
+                                <td class="text-muted">Verdict based on a measurement:</td>
+                                <td class="fw-bold">${measuredCount + orthologCount} of ${stats.totalGenes}</td>
+                            </tr>
+                            ${levelRows}
                         </table>
                     </div>
                 </div>
@@ -384,12 +526,12 @@ function renderSummary(data) {
                     <div class="card-body">
                         <h6 class="text-muted">Highest Specificity Genes</h6>
                         <ul class="list-group list-group-flush mb-3">
-                            ${genes
+                            ${[...genes]
                                 .sort((a, b) => (b.specificity_score || 0) - (a.specificity_score || 0))
                                 .slice(0, 3)
                                 .map(g => `
                                     <li class="list-group-item d-flex justify-content-between">
-                                        ${g.symbol}
+                                        ${esc(g.symbol)}
                                         <span class="badge bg-success">${g.specificity_score?.toFixed(2)}</span>
                                     </li>
                                 `).join('')}

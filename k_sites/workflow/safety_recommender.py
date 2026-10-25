@@ -23,6 +23,10 @@ class SafetyLevel(Enum):
     AVOID = "AVOID"                        # Alternative strategies required
 
 
+# mildest first
+_LEVEL_ORDER = [SafetyLevel.SAFE, SafetyLevel.CAUTION, SafetyLevel.MODERATE_CONCERN, SafetyLevel.HIGH_CONCERN, SafetyLevel.AVOID]
+
+
 class RecommendationType(Enum):
     """Types of safety recommendations."""
     STANDARD_KO = "Standard Knockout"
@@ -52,6 +56,9 @@ class SafetyRecommendation:
     experimental_considerations: List[str]
     confidence_score: float  # 0.0-1.0
     supporting_evidence: Dict[str, Any]
+    # What the verdict rests on: "measured" (knockout / screen data for this gene), "ortholog" (measured in the mouse
+    # ortholog), "predicted" (read from the literature by keywords) or "none" (annotations only)
+    evidence_basis: str = "none"
 
 
 def _enum_text(value) -> str:
@@ -100,18 +107,22 @@ class SafetyRecommender:
         pleiotropy_score: float,
         phenotype_prediction: Optional[Dict] = None,
         cross_species_validation: Optional[Dict] = None,
-        literature_support: Optional[float] = None
+        literature_support: Optional[float] = None,
+        knockout_evidence: Optional[Dict] = None
     ) -> SafetyRecommendation:
         """
         Generate comprehensive safety recommendation for a gene.
-        
+
         Args:
             gene_symbol: Target gene symbol
             pleiotropy_score: Calculated pleiotropy score (0-10)
             phenotype_prediction: Phenotype prediction dict with severity, risk_level, etc.
             cross_species_validation: Cross-species validation data
             literature_support: Literature support score (0-1)
-            
+            knockout_evidence: What was measured about losing this gene (``assess_gene`` result). When it has a
+                measured result for the knockout context, the verdict follows it; otherwise the verdict rests on the
+                annotations and predictions and is never better than CAUTION.
+
         Returns:
             SafetyRecommendation with detailed guidance
         """
@@ -119,32 +130,60 @@ class SafetyRecommender:
         mitigation_strategies = []
         experimental_considerations = []
         justification = []
-        
+
         # Extract phenotype information
         phenotype_severity = None
         phenotype_risk = None
         phenotype_confidence = 0.0
         lethality_stage = None
         compensatory_mechanisms = []
-        
+
         if phenotype_prediction:
             phenotype_severity = _enum_text(phenotype_prediction.get("severity"))
             phenotype_risk = _enum_text(phenotype_prediction.get("risk_level"))
             phenotype_confidence = phenotype_prediction.get("confidence_score", 0.0)
             lethality_stage = phenotype_prediction.get("lethality_stage")
             compensatory_mechanisms = phenotype_prediction.get("compensatory_mechanisms", [])
-        
+
         # Analyze conservation
         conservation_score = cross_species_validation.get("conservation_score", 0.0) if cross_species_validation else 0.0
-        
-        # Determine safety level and recommendations
-        safety_level, primary_rec, alternative_recs = self._determine_safety_level(
-            pleiotropy_score,
-            phenotype_risk,
-            conservation_score,
-            phenotype_confidence
-        )
-        
+
+        measured = self._evidence_verdict(knockout_evidence, pleiotropy_score) if knockout_evidence else None
+        if measured:
+            safety_level, primary_rec, alternative_recs = measured["level"], measured["primary"], measured["alternatives"]
+            evidence_basis = measured["basis"]
+        else:
+            # Determine safety level and recommendations from annotations and predictions
+            safety_level, primary_rec, alternative_recs = self._determine_safety_level(
+                pleiotropy_score,
+                phenotype_risk,
+                conservation_score,
+                phenotype_confidence
+            )
+            evidence_basis = "predicted" if phenotype_prediction else "none"
+
+        # A distant relative (zebrafish, fly, worm, ...) only has its mouse ortholog's knockout as a hint. A hint of
+        # lethality raises the level to MODERATE_CONCERN; nothing in it ever makes a gene safe.
+        distant = None
+        if knockout_evidence and not measured:
+            candidate = knockout_evidence["organism"]
+            if candidate.get("distant") and candidate["call"] != "UNKNOWN":
+                distant = candidate
+                evidence_basis = "distant"
+        distant_risk = bool(distant and (distant["call"] in ("LETHAL", "SUBVIABLE") or distant["counts"]["lethal"] > 0))
+        if distant_risk and _LEVEL_ORDER.index(safety_level) < _LEVEL_ORDER.index(SafetyLevel.MODERATE_CONCERN):
+            safety_level = SafetyLevel.MODERATE_CONCERN
+            primary_rec = RecommendationType.HETEROZYGOUS_KO
+            alternative_recs = [RecommendationType.CONDITIONAL_KO, RecommendationType.VALIDATED_KO]
+
+        # Without a measurement nothing shows that the knockout is safe: the verdict is never better than CAUTION,
+        # and every such gene says that its lethality has not been measured
+        unverified = bool(knockout_evidence) and not measured
+        if unverified and safety_level == SafetyLevel.SAFE:
+            safety_level = SafetyLevel.CAUTION
+            primary_rec = RecommendationType.VALIDATED_KO
+            alternative_recs = [RecommendationType.STANDARD_KO]
+
         # Build justification
         justification = self._build_justification(
             pleiotropy_score,
@@ -154,7 +193,16 @@ class SafetyRecommender:
             literature_support,
             phenotype_confidence
         )
-        
+        if measured:
+            # the measurement replaces the prediction; keep the lines about pleiotropy, conservation and literature
+            justification = measured["justification"] + [
+                line for line in justification if not line.startswith(("Predicted ", "Low confidence phenotype"))]
+        else:
+            if distant:
+                justification.insert(0, distant["text"])
+            if unverified:
+                justification.insert(0, "No measured knockout data for this gene, so the safety of a knockout is unverified")
+
         # Build concerns list
         concerns = self._identify_concerns(
             pleiotropy_score,
@@ -163,7 +211,7 @@ class SafetyRecommender:
             conservation_score,
             compensatory_mechanisms
         )
-        
+
         # Build mitigation strategies
         mitigation_strategies = self._suggest_mitigation_strategies(
             safety_level,
@@ -171,21 +219,36 @@ class SafetyRecommender:
             phenotype_risk,
             compensatory_mechanisms
         )
-        
+
         # Build experimental considerations
         experimental_considerations = self._suggest_experimental_considerations(
             phenotype_severity,
             lethality_stage,
             primary_rec
         )
-        
+        if unverified:
+            concerns = [c for c in concerns if c != "No major concerns identified"]
+            concerns.insert(0, "Lethality has not been measured: check MGI, IMPC or DepMap before committing to a knockout")
+        if distant_risk:
+            concerns = [c for c in concerns if c != "No major concerns identified"]
+            concerns.insert(0, "The mouse ortholog is needed for survival and essential genes are usually conserved, "
+                               "so this gene may be essential here too, but that has not been tested")
+
+        if measured:
+            concerns = measured["concerns"] + [
+                c for c in concerns if c not in ("No major concerns identified",)
+                and not c.startswith(("Predicted ", "Potential lethality"))]
+            mitigation_strategies = measured["mitigation"] + [
+                s for s in mitigation_strategies if s != "Standard validation sufficient"]
+            experimental_considerations = measured["considerations"] + experimental_considerations
+
         # Calculate confidence score
-        confidence_score = self._calculate_confidence(
+        confidence_score = (measured["confidence"] if measured else self._calculate_confidence(
             phenotype_confidence,
             literature_support,
             bool(cross_species_validation)
-        )
-        
+        ))
+
         # Compile supporting evidence
         supporting_evidence = {
             "pleiotropy_score": pleiotropy_score,
@@ -195,7 +258,7 @@ class SafetyRecommender:
             "compensatory_mechanisms": compensatory_mechanisms,
             "literature_support": literature_support
         }
-        
+
         return SafetyRecommendation(
             gene_symbol=gene_symbol,
             safety_level=safety_level,
@@ -206,8 +269,229 @@ class SafetyRecommender:
             mitigation_strategies=mitigation_strategies,
             experimental_considerations=experimental_considerations,
             confidence_score=confidence_score,
-            supporting_evidence=supporting_evidence
+            supporting_evidence=supporting_evidence,
+            evidence_basis=evidence_basis
         )
+
+    # ------------------------------------------------------------------------------------------------
+    # verdicts from measured knockout evidence
+    # ------------------------------------------------------------------------------------------------
+
+    def _evidence_verdict(self, evidence: Dict, pleiotropy_score: float) -> Optional[Dict[str, Any]]:
+        """
+        The verdict implied by what was measured, or None when nothing measured applies to the knockout context.
+
+        Context 'cells' (cultured cells, the default for human): DepMap decides. Context 'organism' (animal, plant,
+        yeast): the viability of the knockout organism decides. Where the context's own measurement is missing but
+        the other one exists, it is used as a weaker indicator.
+        """
+        organism, cells = evidence["organism"], evidence["cells"]
+        context = evidence.get("context", "organism")
+        # a distant relative's mouse ortholog is a hint, never a measurement
+        usable = organism["call"] != "UNKNOWN" and not organism.get("distant")
+        if context == "cells":
+            if cells["call"] != "UNKNOWN":
+                return self._cells_verdict(evidence, pleiotropy_score)
+            if usable:
+                return self._cells_verdict_from_organism(evidence, pleiotropy_score)
+            return None
+        if usable:
+            return self._organism_verdict(evidence, pleiotropy_score)
+        if cells["call"] == "ESSENTIAL":
+            return self._organism_verdict_from_cells(evidence)
+        return None
+
+    @staticmethod
+    def _extra_findings(evidence: Dict) -> List[str]:
+        """Context lines that never change the verdict: gene constraint, and the mouse result for cell work."""
+        lines = []
+        constraint = evidence.get("constraint")
+        if constraint and constraint["label"] == "highly constrained":
+            lines.append(f"Highly constrained in people (gnomAD LOEUF {constraint['loeuf']:g}): loss of one copy is rarely tolerated")
+        return lines
+
+    @staticmethod
+    def _paralog_concern(evidence: Dict) -> Optional[str]:
+        """A close paralog may take over the work of the knocked-out gene and hide its phenotype."""
+        paralogs = evidence.get("paralogs")
+        if not paralogs or not paralogs["close"]:
+            return None
+        names = ", ".join(paralogs["close"])
+        if len(paralogs["close"]) == 1:
+            return f"The close paralog {names} may take over its work and hide the phenotype: consider a double knockout"
+        return f"The close paralogs {names} may take over its work and hide the phenotype: consider a double knockout"
+
+    @staticmethod
+    def _tissue_mitigation(evidence: Dict) -> Optional[str]:
+        """A gene needed for survival but expressed mainly in a few tissues can be removed in those tissues only."""
+        expression = evidence.get("expression")
+        if not expression or expression["label"] not in ("tissue-specific", "tissue-enriched") or not expression["top_tissues"]:
+            return None
+        where = ", ".join(expression["top_tissues"][:2])
+        return f"Expression is concentrated in {where}: a tissue-specific conditional knockout may avoid the lethal effect"
+
+    @staticmethod
+    def _organism_basis(organism: Dict) -> str:
+        return "measured" if organism["basis"] == "direct" else "ortholog"
+
+    @staticmethod
+    def _organism_confidence(organism: Dict) -> float:
+        counts = organism["counts"]
+        total = sum(counts.values())
+        if organism["basis"] == "direct":
+            confidence = 0.7 if organism["mixed"] else (0.9 if total >= 2 else 0.8)
+        else:
+            confidence = 0.55 if organism["ortholog"]["relation"] != "1:1" else (0.75 if total >= 2 else 0.7)
+            if organism["mixed"]:
+                confidence -= 0.1
+        return round(confidence, 2)
+
+    def _organism_verdict(self, evidence: Dict, pleiotropy_score: float) -> Dict[str, Any]:
+        organism = evidence["organism"]
+        call, mixed, counts = organism["call"], organism["mixed"], organism["counts"]
+        yeast = evidence["taxid"] in ("559292", "4932")
+        ortholog_note = organism["basis"] == "ortholog" and organism["ortholog"]["relation"] != "1:1"
+        stage = organism["stage_text"] if organism["stage"] not in (None, "U") else None
+        justification = [organism["text"]]
+        concerns, mitigation, considerations = [], [], []
+
+        if call == "LETHAL":
+            level = SafetyLevel.AVOID
+            if ortholog_note:
+                level = SafetyLevel.HIGH_CONCERN
+                concerns.append("The mouse ortholog is not a one-to-one match, so confirm the lethality in your organism")
+            primary = RecommendationType.CONDITIONAL_KO
+            alternatives = [RecommendationType.CRISPRI, RecommendationType.TEMPORAL_CONTROL, RecommendationType.ALTERNATIVE_MODEL]
+            if yeast:
+                concerns.insert(0, "The deletion is inviable: a haploid knockout strain cannot be kept")
+                mitigation += ["Use a conditional allele (degron tag or repressible promoter) or a heterozygous diploid",
+                               "Study a temperature-sensitive allele instead of a deletion"]
+            else:
+                concerns.insert(0, "Homozygous knockouts do not survive, so a complete knockout line cannot be kept")
+                mitigation += ["Use a conditional (Cre-lox) or inducible allele so the gene is lost only after the critical stage",
+                               "Knock the gene down (CRISPRi, RNAi) to keep some function instead of knocking it out",
+                               "Maintain the line from heterozygotes"]
+            if stage:
+                considerations.append(f"Death occurs {stage}: collect samples before that stage")
+            tissue = self._tissue_mitigation(evidence)
+            if tissue:
+                mitigation.append(tissue)
+        elif call == "SUBVIABLE":
+            level = SafetyLevel.HIGH_CONCERN
+            primary = RecommendationType.CONDITIONAL_KO
+            alternatives = [RecommendationType.HETEROZYGOUS_KO, RecommendationType.CRISPRI]
+            concerns.append("Fewer homozygous knockouts survive than expected, so experiments need more breeding")
+            mitigation.append("Use a conditional allele, or plan larger crosses to obtain enough homozygotes")
+            tissue = self._tissue_mitigation(evidence)
+            if tissue:
+                mitigation.append(tissue)
+        else:
+            lethal_n = counts["lethal"]
+            if mixed and lethal_n:
+                level = SafetyLevel.HIGH_CONCERN
+                primary = RecommendationType.CONDITIONAL_KO
+                alternatives = [RecommendationType.VALIDATED_KO, RecommendationType.CRISPRI]
+                concerns.append("Some knockout lines are lethal, so lethality depends on the strain or the allele")
+                mitigation.append("Check which strain and allele were lethal and use a conditional allele if yours is similar")
+            elif mixed:
+                level = SafetyLevel.CAUTION
+                primary = RecommendationType.VALIDATED_KO
+                alternatives = [RecommendationType.CONDITIONAL_KO]
+                concerns.append("Some knockout lines survive in reduced numbers: the outcome depends on the strain or the allele")
+            else:
+                level = SafetyLevel.SAFE
+                primary = RecommendationType.STANDARD_KO
+                alternatives = []
+            if organism["reduced_lifespan"]:
+                level = max(level, SafetyLevel.CAUTION, key=_LEVEL_ORDER.index)
+                if primary == RecommendationType.STANDARD_KO:
+                    primary, alternatives = RecommendationType.VALIDATED_KO, [RecommendationType.CONDITIONAL_KO]
+                concerns.append("A shortened lifespan was reported for the viable knockouts")
+                considerations.append("Plan ageing cohorts and watch the animals for early death")
+            if organism["infertile"]:
+                level = max(level, SafetyLevel.CAUTION, key=_LEVEL_ORDER.index)
+                if primary == RecommendationType.STANDARD_KO:
+                    primary, alternatives = RecommendationType.VALIDATED_KO, [RecommendationType.CONDITIONAL_KO]
+                concerns.append("Infertility was reported, so the knockout line must be kept from heterozygotes")
+            if level == SafetyLevel.SAFE and pleiotropy_score > 5:
+                level, primary, alternatives = SafetyLevel.CAUTION, RecommendationType.VALIDATED_KO, [RecommendationType.STANDARD_KO]
+                concerns.append("The knockout is viable, but the gene has many annotated roles, so expect broad phenotypes")
+            paralog = self._paralog_concern(evidence)
+            if paralog:
+                concerns.append(paralog)
+        justification += self._extra_findings(evidence)
+        return {"level": level, "primary": primary, "alternatives": alternatives, "basis": self._organism_basis(organism),
+                "justification": justification, "concerns": concerns, "mitigation": mitigation,
+                "considerations": considerations, "confidence": self._organism_confidence(organism)}
+
+    def _organism_verdict_from_cells(self, evidence: Dict) -> Dict[str, Any]:
+        cells = evidence["cells"]
+        return {"level": SafetyLevel.HIGH_CONCERN, "primary": RecommendationType.CONDITIONAL_KO,
+                "alternatives": [RecommendationType.CRISPRI, RecommendationType.TEMPORAL_CONTROL], "basis": "measured",
+                "justification": [cells["text"]],
+                "concerns": ["The gene is essential in human cells, so a whole-organism knockout is likely lethal"],
+                "mitigation": ["Use a conditional or inducible allele instead of a complete knockout"],
+                "considerations": [], "confidence": 0.6}
+
+    def _cells_verdict(self, evidence: Dict, pleiotropy_score: float) -> Dict[str, Any]:
+        cells, organism = evidence["cells"], evidence["organism"]
+        call, percent = cells["call"], cells["percent"]
+        justification = [cells["text"]]
+        concerns, mitigation, considerations = [], [], []
+        if call == "ESSENTIAL":
+            level = SafetyLevel.AVOID
+            primary = RecommendationType.CRISPRI
+            alternatives = [RecommendationType.TEMPORAL_CONTROL, RecommendationType.CONDITIONAL_KO, RecommendationType.ALTERNATIVE_MODEL]
+            concerns.append("A complete knockout is expected to kill the cells")
+            mitigation += ["Use an inducible knockout, a degron tag or CRISPRi so the cells survive until the gene is switched off",
+                           "Check your own cell line in DepMap before starting"]
+            considerations.append("Include a rescue construct to show that the phenotype comes from this gene")
+        elif call == "SELECTIVE":
+            if percent >= 25:
+                level, primary, alternatives = SafetyLevel.MODERATE_CONCERN, RecommendationType.CRISPRI, [RecommendationType.VALIDATED_KO]
+            else:
+                level, primary, alternatives = SafetyLevel.CAUTION, RecommendationType.VALIDATED_KO, [RecommendationType.CRISPRI]
+            concerns.append("The gene is essential in some cell types: confirm that yours is not one of them")
+            mitigation.append("Look up your cell line in DepMap and keep a knockdown as a fallback")
+        else:
+            level, primary, alternatives = SafetyLevel.SAFE, RecommendationType.STANDARD_KO, []
+            if pleiotropy_score > 5:
+                level, primary, alternatives = SafetyLevel.CAUTION, RecommendationType.VALIDATED_KO, [RecommendationType.STANDARD_KO]
+                concerns.append("The gene is not essential in cell lines, but it has many annotated roles, so expect broad phenotypes")
+        if call != "ESSENTIAL":
+            paralog = self._paralog_concern(evidence)
+            if paralog:
+                concerns.append(paralog)
+        if organism["call"] in ("LETHAL", "SUBVIABLE"):
+            justification.append(organism["text"])
+            concerns.append("The knockout is not viable in mice: cultured cells can tolerate it, but a whole-animal knockout cannot be made")
+        justification += self._extra_findings(evidence)
+        confidence = 0.9 if (call == "ESSENTIAL" and cells["common_essential"]) or (call == "NON_ESSENTIAL" and percent < 5) else 0.75
+        return {"level": level, "primary": primary, "alternatives": alternatives, "basis": "measured",
+                "justification": justification, "concerns": concerns, "mitigation": mitigation,
+                "considerations": considerations, "confidence": confidence}
+
+    def _cells_verdict_from_organism(self, evidence: Dict, pleiotropy_score: float) -> Dict[str, Any]:
+        """Cell work, but no cell-line screen result: the knockout of the whole organism is the only measurement."""
+        organism = evidence["organism"]
+        justification = [organism["text"], "No cell-line screen result for this gene, so essentiality in cells is unknown"]
+        concerns, mitigation = [], []
+        if organism["call"] in ("LETHAL", "SUBVIABLE") or organism["mixed"]:
+            level, primary, alternatives = SafetyLevel.CAUTION, RecommendationType.VALIDATED_KO, [RecommendationType.CRISPRI]
+            concerns.append("The gene is needed for the survival of the organism, so it may also be needed in cells")
+            mitigation.append("Check the gene in DepMap or test a knockdown first")
+        else:
+            level, primary, alternatives = SafetyLevel.SAFE, RecommendationType.STANDARD_KO, []
+            if pleiotropy_score > 5:
+                level, primary, alternatives = SafetyLevel.CAUTION, RecommendationType.VALIDATED_KO, [RecommendationType.STANDARD_KO]
+                concerns.append("The knockout organism is viable, but the gene has many annotated roles, so expect broad phenotypes")
+            paralog = self._paralog_concern(evidence)
+            if paralog:
+                concerns.append(paralog)
+        justification += self._extra_findings(evidence)
+        return {"level": level, "primary": primary, "alternatives": alternatives, "basis": self._organism_basis(organism),
+                "justification": justification, "concerns": concerns, "mitigation": mitigation,
+                "considerations": [], "confidence": round(self._organism_confidence(organism) - 0.1, 2)}
     
     def _determine_safety_level(
         self,
@@ -471,7 +755,8 @@ class SafetyRecommender:
                     pleiotropy_score=gene_data.get("pleiotropy_score", 10),
                     phenotype_prediction=gene_data.get("phenotype_prediction"),
                     cross_species_validation=gene_data.get("cross_species_validation"),
-                    literature_support=gene_data.get("literature_support")
+                    literature_support=gene_data.get("literature_support"),
+                    knockout_evidence=gene_data.get("knockout_evidence")
                 )
                 recommendations.append(rec)
             except Exception as e:
@@ -536,7 +821,8 @@ def get_safety_recommendation(
     pleiotropy_score: float,
     phenotype_prediction: Optional[Dict] = None,
     cross_species_validation: Optional[Dict] = None,
-    literature_support: Optional[float] = None
+    literature_support: Optional[float] = None,
+    knockout_evidence: Optional[Dict] = None
 ) -> SafetyRecommendation:
     """Get safety recommendation for a single gene."""
     recommender = SafetyRecommender()
@@ -545,5 +831,6 @@ def get_safety_recommendation(
         pleiotropy_score=pleiotropy_score,
         phenotype_prediction=phenotype_prediction,
         cross_species_validation=cross_species_validation,
-        literature_support=literature_support
+        literature_support=literature_support,
+        knockout_evidence=knockout_evidence
     )

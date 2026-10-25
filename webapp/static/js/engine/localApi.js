@@ -13,6 +13,7 @@ import { comprehensiveCsv, excelWorkbook, geneSummaryCsv, htmlReport } from './r
 
 export const VERSION = '1.2.1';
 const EVIDENCE_FILTERS = ['experimental', 'computational', 'all'];
+const KNOCKOUT_CONTEXTS = ['auto', 'cells', 'organism'];
 
 const DATABASES = [
     { id: 'quickgo', name: 'QuickGO', description: 'Gene Ontology annotations from EBI (always used)', enabled: true, required: true },
@@ -79,6 +80,7 @@ export class LocalBackend {
             if (route === '/api/health') return jsonResponse({ status: 'ok', mode: 'browser', hosted: false, version: VERSION });
             if (route === '/api/auth/check') return jsonResponse({ ok: true, hosted: false });
             if (route === '/api/databases') return jsonResponse({ databases: DATABASES });
+            if (route === '/api/evidence/coverage') return jsonResponse(await this.evidenceCoverage(params.get('taxid')));
 
             if (route === '/api/organisms/kingdoms') return jsonResponse({ kingdoms: KINGDOMS });
             if (route === '/api/organisms/by-kingdom') {
@@ -121,6 +123,25 @@ export class LocalBackend {
         }
     }
 
+    /** Whether measured knockout data exist for an organism (shown before the run). */
+    async evidenceCoverage(taxid) {
+        const provider = this.d.evidenceProvider;
+        if (!provider) return { taxid, available: false, covered: false };
+        try {
+            const index = await provider.index();
+            const organism = await provider.organism(String(taxid || ''));
+            if (!organism) return { taxid, available: true, covered: false, version: index.built ?? null };
+            const info = organism.info || {};
+            return {
+                taxid, available: true, covered: true, name: info.name, genes: info.genes ?? Object.keys(organism.genes).length,
+                measured: info.measured ?? null,
+                layers: info.layers || [], distant: !!info.distant, version: index.built ?? null,
+            };
+        } catch (error) {
+            return { taxid, available: false, covered: false };
+        }
+    }
+
     async _getOrganisms() {
         if (!this._organisms) {
             let list = null;
@@ -148,6 +169,7 @@ export class LocalBackend {
         const cutoff = Number(maxPleiotropy);
         if (!Number.isInteger(cutoff) || cutoff < 0 || cutoff > 10) errors.push('Max pleiotropy must be between 0 and 10');
         if (!EVIDENCE_FILTERS.includes(evidenceFilter)) errors.push('Evidence filter must be experimental, computational or all');
+        if (data.knockout_context !== undefined && !KNOCKOUT_CONTEXTS.includes(data.knockout_context)) errors.push('Knockout context must be auto, cells or organism');
         if (!(maxGenes >= 1)) errors.push('Maximum genes must be at least 1');
         else if (maxGenes > 500) errors.push('Genes to report must be at most 500');
 
@@ -164,7 +186,7 @@ export class LocalBackend {
             } else if (maxGenes > total) {
                 warnings.push(`Only ${total} genes available. The report will include all of them.`);
             } else if (total > maxGenes) {
-                warnings.push(`${total} genes found. All are scored; the report shows the top ${maxGenes} by composite score.`);
+                warnings.push(`${total} genes found. All are assessed; the report shows the ${maxGenes} safest by measured knockout evidence and composite score, and lists the rest as not shown.`);
             }
 
             const seconds = estimateSeconds(total, !!data.predict_phenotypes);
@@ -190,6 +212,7 @@ export class LocalBackend {
             organism: job.organism ?? '', taxid: job.taxid ?? '', go_term: job.go_term ?? '', go_term_name: job.go_term_name ?? '',
             max_genes: job.max_genes ?? null, max_pleiotropy: job.max_pleiotropy ?? null, evidence_filter: job.evidence_filter ?? 'experimental',
             predict_phenotypes: !!job.predict_phenotypes,
+            knockout_context: job.knockout_context || 'auto',
             selected_databases: job.selected_databases || [],
             total_genes_found: job.total_genes_found ?? null, genes_processed: job.genes_processed ?? null,
             results_path: null, error_message: job.error_message || null,
@@ -213,6 +236,7 @@ export class LocalBackend {
             max_pleiotropy: Math.max(0, Math.min(10, parseInt(data.max_pleiotropy ?? 5, 10) || 0)),
             evidence_filter: EVIDENCE_FILTERS.includes(data.evidence_filter) ? data.evidence_filter : 'experimental',
             predict_phenotypes: !!data.predict_phenotypes,
+            knockout_context: KNOCKOUT_CONTEXTS.includes(data.knockout_context) ? data.knockout_context : 'auto',
             selected_databases: data.databases || ['quickgo'],
             user_email: data.user_email || null,
         };
@@ -329,15 +353,26 @@ export class LocalBackend {
             const taxid = await resolveTaxid(this.d.http, job.organism, job.taxid);
             await this._update(job, { taxid, current_step: 'Fetching GO genes', progress_percent: 15 }, true);
 
-            let predictor = null;
-            if (job.predict_phenotypes) {
-                await this._update(job, { current_step: 'Loading the phenotype model (about 90 MB, downloaded once)' }, true);
+            // The measured knockout data; if it cannot be read the analysis still runs, and says so
+            let evidenceProvider = this.d.evidenceProvider || null;
+            let evidenceWarning = null;
+            if (evidenceProvider) {
                 try {
-                    predictor = await this.d.createPredictor((message) => this._update(job, { current_step: message }, true));
+                    await evidenceProvider.index();
                 } catch (error) {
-                    predictor = null;
-                    job.model_error = `The phenotype model could not be loaded: ${error.message}`;
+                    evidenceProvider = null;
+                    evidenceWarning = 'Measured knockout data could not be loaded, so every verdict rests on annotations and '
+                        + `predictions alone and none is rated better than CAUTION. (${error.message})`;
                 }
+            }
+
+            // The phenotype model (about 90 MB) is only loaded when a gene has no measured knockout result
+            let predictorLoader = null;
+            if (job.predict_phenotypes) {
+                predictorLoader = async () => {
+                    await this._update(job, { current_step: 'Loading the phenotype model (about 90 MB, downloaded once)' }, true);
+                    return this.d.createPredictor((message) => this._update(job, { current_step: message }, true));
+                };
             }
 
             const apiKey = this.d.getNcbiApiKey ? this.d.getNcbiApiKey() : '';
@@ -345,7 +380,8 @@ export class LocalBackend {
 
             const ctx = {
                 http: this.d.http, keggProvider: this.d.keggProvider, ncbiApiKey: apiKey,
-                ncbiEmail: job.user_email || '', phenotypePredictor: predictor,
+                ncbiEmail: job.user_email || '', evidenceProvider, evidenceExpected: !!this.d.evidenceProvider,
+                getPhenotypePredictor: predictorLoader,
             };
             const onProgress = (stage, done, total) => {
                 const [base, span] = PROGRESS_RANGES[stage] || [30, 0];
@@ -356,14 +392,27 @@ export class LocalBackend {
             const results = await runKSitesPipeline(ctx, {
                 goTerm: job.go_term, organism: job.organism, taxid, scientificName: job.organism,
                 maxPleiotropy: job.max_pleiotropy, evidenceFilter: job.evidence_filter,
-                predictPhenotypes: job.predict_phenotypes, databases: job.selected_databases, onProgress,
+                predictPhenotypes: job.predict_phenotypes, databases: job.selected_databases,
+                knockoutContext: job.knockout_context || 'auto', onProgress,
             });
-            if (job.model_error) results.warnings.push(job.model_error);
+            if (evidenceWarning) results.warnings.push(evidenceWarning);
 
             await this._update(job, { current_step: 'Generating reports', progress_percent: 90 }, true);
 
-            // the report shows the top genes by composite score; every gene was scored first
-            if (results.genes.length > job.max_genes) results.genes = results.genes.slice(0, job.max_genes);
+            // the report shows the safest genes first; every gene was assessed, and the ones beyond the limit are
+            // listed as "not shown" so that none disappears silently
+            if (results.genes.length > job.max_genes) {
+                const hidden = results.genes.slice(job.max_genes);
+                results.genes = results.genes.slice(0, job.max_genes);
+                for (const gene of hidden) {
+                    results.excluded_genes.push({
+                        symbol: gene.symbol, description: gene.description, reason: 'ranked',
+                        detail: `Ranked below the ${job.max_genes} genes shown (${gene.safety_recommendation.safety_level.replace('_', ' ')})`,
+                        pleiotropy_score: gene.pleiotropy_score, composite_score: gene.composite_score,
+                        knockout_evidence: gene.knockout_evidence,
+                    });
+                }
+            }
 
             await this.d.store.putResults(job.id, results);
             await this._update(job, {

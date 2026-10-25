@@ -113,8 +113,10 @@ Visit `/help` for detailed explanations of:
 - `GET /api/go-terms/by-category?category=X&q=Y` - Get terms in category
 
 ### Analysis
+- `GET /api/evidence/coverage?taxid=X` - Whether measured knockout data exist for an organism
 - `POST /api/analyze/validate` - Validate parameters with gene count
-- `POST /api/analyze/start` - Start new job (returns job_id)
+- `POST /api/analyze/start` - Start new job (returns job_id); `knockout_context` (`auto`, `cells`, `organism`) chooses
+  whether the verdict follows cell-line screens or the knockout organism
 - `GET /api/jobs/{id}/status` - Get job status with progress
 - `GET /api/jobs/{id}/results` - Get completed results
 - `GET /api/jobs/{id}/download/{format}` - Download HTML/JSON

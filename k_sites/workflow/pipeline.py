@@ -8,6 +8,7 @@ This module orchestrates the complete K-Sites workflow by integrating all compon
 - Safety recommendation for gene knockout
 """
 
+import collections
 import logging
 from typing import Callable, Dict, List, Any, Optional
 from datetime import datetime
@@ -15,6 +16,9 @@ import traceback
 
 # Set up logging
 logger = logging.getLogger(__name__)
+
+# Genes are listed safest first
+SAFETY_TIER = {"SAFE": 0, "CAUTION": 1, "MODERATE_CONCERN": 2, "HIGH_CONCERN": 3, "AVOID": 4}
 
 
 def run_k_sites_pipeline(
@@ -26,7 +30,10 @@ def run_k_sites_pipeline(
     predict_phenotypes: bool = False,
     databases: List[str] = None,
     max_annotations: int = 2000,
-    progress_callback: Optional[Callable[[str, int, int], None]] = None
+    progress_callback: Optional[Callable[[str, int, int], None]] = None,
+    knockout_context: str = "auto",
+    evidence_provider: Any = None,
+    use_measured_evidence: bool = True
 ) -> Dict[str, Any]:
     """
     Execute the complete K-Sites pipeline.
@@ -44,6 +51,11 @@ def run_k_sites_pipeline(
             If the limit stops the read early, ``warnings`` says how much was read.
         progress_callback: Optional ``callback(stage, done, total)`` for long runs; stages are
             'Reading GO annotations', 'Scoring genes' and 'Assessing genes'
+        knockout_context: What is being knocked out: "cells" (cultured cells), "organism" (whole animal, plant or
+            yeast) or "auto" (cells for human, organism otherwise). It decides which measurement the verdict follows.
+        evidence_provider: Source of the measured knockout data (``k_sites.knockout_evidence.EvidenceProvider``);
+            by default the files named by KSITES_EVIDENCE_DIR / KSITES_EVIDENCE_URL.
+        use_measured_evidence: Set False to ignore measured knockout data and rely on annotations and predictions.
         
     Returns:
         Dictionary with pipeline results:
@@ -100,6 +112,23 @@ def run_k_sites_pipeline(
         organism_info = resolve_organism(organism)
         taxid = organism_info["taxid"]
         logger.info(f"Resolved organism: {organism_info['scientific_name']} (TaxID: {taxid})")
+
+        from k_sites.knockout_evidence import (
+            EvidenceUnavailable, assess_gene, default_provider, evidence_disabled, resolve_context)
+        provider = None
+        if use_measured_evidence:
+            provider = evidence_provider if evidence_provider is not None else default_provider()
+        context = resolve_context(taxid, knockout_context)
+        # Measured evidence was asked for (and not switched off): without it no gene is rated better than CAUTION
+        evidence_expected = use_measured_evidence and not (provider is None and evidence_disabled())
+        organism_covered = False
+        if provider is not None:
+            try:
+                organism_covered = provider.organism(taxid) is not None
+            except EvidenceUnavailable as error:
+                # the analysis still runs, and says that its verdicts are not backed by measurements
+                logger.warning(f"Measured knockout data for this organism could not be loaded: {error}")
+                provider = None
         
         # Step 2: Map GO term to genes with evidence filtering
         logger.info(f"Step 2: Mapping GO term to genes with {evidence_filter} evidence...")
@@ -112,6 +141,14 @@ def run_k_sites_pipeline(
         warnings = []
         if annotation_coverage.get("message"):
             warnings.append(annotation_coverage["message"])
+        if evidence_expected and provider is None:
+            warnings.append(
+                "Measured knockout data could not be loaded, so every verdict rests on annotations and predictions "
+                "alone and none is rated better than CAUTION.")
+        elif provider is not None and not organism_covered:
+            warnings.append(
+                f"K-Sites has no measured knockout data for {organism_info['scientific_name']}, so every verdict rests on "
+                "annotations and predictions alone and none is rated better than CAUTION.")
         logger.info(f"Found {len(genes)} genes associated with GO term {go_term} with {evidence_filter} evidence")
         
         # Step 3: Rank genes by specificity using multi-database integration
@@ -142,17 +179,23 @@ def run_k_sites_pipeline(
         processed_genes = []
         logger.info(f"Step 4: Processing {len(scored_genes)} scored genes...")
 
-        # Initialize phenotype predictor if needed
+        # The phenotype predictor (a language model) is only loaded when a gene has no measured knockout data
         phenotype_predictor = None
-        if predict_phenotypes:
-            try:
-                from k_sites.rag_system.literature_context import RAGPhenotypePredictor
-                phenotype_predictor = RAGPhenotypePredictor()
-                logger.info("Initialized RAG-based phenotype predictor")
-            except ImportError as e:
-                logger.warning(f"Could not initialize phenotype predictor: {e}")
-                predict_phenotypes = False  # Disable if dependencies missing
-        
+        predictions_skipped = 0
+        excluded_genes = []
+
+        def get_phenotype_predictor():
+            nonlocal phenotype_predictor, predict_phenotypes
+            if phenotype_predictor is None and predict_phenotypes:
+                try:
+                    from k_sites.rag_system.literature_context import RAGPhenotypePredictor
+                    phenotype_predictor = RAGPhenotypePredictor()
+                    logger.info("Initialized RAG-based phenotype predictor")
+                except ImportError as e:
+                    logger.warning(f"Could not initialize phenotype predictor: {e}")
+                    predict_phenotypes = False  # Disable if dependencies missing
+            return phenotype_predictor
+
         for i, gene_info in enumerate(scored_genes):
             gene_symbol = gene_info.get("symbol", "unknown")
             logger.info(f"Processing gene {i+1}/{len(scored_genes)}: {gene_symbol}")
@@ -163,9 +206,20 @@ def run_k_sites_pipeline(
                 # a. Pleiotropy score from the ranking step (computed once, from the same data)
                 pleiotropy_score = gene_info["pleiotropy_score"]
 
-                # b. Skip if score exceeds threshold (before any further lookups)
+                # b. Skip if score exceeds threshold (before any further lookups); the gene stays on the
+                # "not shown" list with the measured knockout result, so nothing disappears silently
+                evidence = assess_gene(provider, taxid, gene_symbol, context) if (provider is not None or evidence_expected) else None
                 if pleiotropy_score > max_pleiotropy:
                     logger.info(f"Skipping {gene_symbol} (pleiotropy score {pleiotropy_score} > {max_pleiotropy})")
+                    excluded_genes.append({
+                        "symbol": gene_symbol,
+                        "description": gene_info.get("description", ""),
+                        "reason": "pleiotropy",
+                        "detail": f"Pleiotropy score {pleiotropy_score:.1f} is above the cutoff of {max_pleiotropy}",
+                        "pleiotropy_score": pleiotropy_score,
+                        "composite_score": gene_info.get("composite_score"),
+                        "knockout_evidence": evidence,
+                    })
                     continue
 
                 # c. Perform cross-species validation if requested
@@ -177,9 +231,12 @@ def run_k_sites_pipeline(
                         gene_symbol, go_term, species_validation
                     )
 
-                # d. Predict phenotype if requested
+                # d. Predict phenotype if requested, but only for genes without a measured knockout result:
+                # a measurement is better than a guess from abstracts, and skipping the guess saves most of the time
                 phenotype_prediction = None
-                if predict_phenotypes and phenotype_predictor:
+                if predict_phenotypes and evidence and evidence["has_measured"]:
+                    predictions_skipped += 1
+                elif predict_phenotypes and get_phenotype_predictor():
                     logger.debug(f"Predicting knockout phenotype for {gene_symbol}...")
                     try:
                         # the protein name is how many papers refer to the gene ("DNA polymerase beta")
@@ -197,7 +254,8 @@ def run_k_sites_pipeline(
                     pleiotropy_score=pleiotropy_score,
                     phenotype_prediction=phenotype_prediction.__dict__ if phenotype_prediction else None,
                     cross_species_validation=cross_species_validation,
-                    literature_support=gene_info.get("literature_score", 0.5)
+                    literature_support=gene_info.get("literature_score", 0.5),
+                    knockout_evidence=evidence
                 )
                 
                 logger.info(f"Safety recommendation for {gene_symbol}: {safety_rec.safety_level.value} - {safety_rec.primary_recommendation.value}")
@@ -221,7 +279,9 @@ def run_k_sites_pipeline(
                     "iea_evidence_count": gene_info.get("iea_evidence_count", 0),
                     "cross_species_validation": cross_species_validation,
                     "phenotype_prediction": phenotype_prediction.__dict__ if phenotype_prediction else None,
+                    "knockout_evidence": evidence,
                     "safety_recommendation": {
+                        "evidence_basis": safety_rec.evidence_basis,
                         "safety_level": safety_rec.safety_level.value,
                         "primary_recommendation": safety_rec.primary_recommendation.value,
                         "alternative_recommendations": [alt.value for alt in safety_rec.alternative_recommendations],
@@ -247,6 +307,10 @@ def run_k_sites_pipeline(
         if progress_callback:
             progress_callback("Assessing genes", len(scored_genes), len(scored_genes))
 
+        # Safest genes first (measured evidence decides the tier), then by composite score as before
+        processed_genes.sort(key=lambda g: (SAFETY_TIER.get(g["safety_recommendation"]["safety_level"], len(SAFETY_TIER)),
+                                            -(g.get("composite_score") or 0)))
+
         # Step 5: Aggregate results
         logger.info("Step 5: Aggregating results...")
         end_time = datetime.now()
@@ -257,6 +321,10 @@ def run_k_sites_pipeline(
             "total_genes_screened": len(ranked_genes),
             "genes_passed_filter": len(processed_genes),
             "genes_insufficient_data": len(insufficient_genes),
+            "genes_above_pleiotropy_cutoff": len(excluded_genes),
+            "by_safety_level": dict(collections.Counter(g["safety_recommendation"]["safety_level"] for g in processed_genes)),
+            "by_evidence_basis": dict(collections.Counter(g["safety_recommendation"]["evidence_basis"] for g in processed_genes)),
+            "phenotype_predictions_skipped": predictions_skipped,
             "avg_pleiotropy": 0.0,
             "most_specific_gene": None,
             "least_specific_gene": None
@@ -283,9 +351,17 @@ def run_k_sites_pipeline(
                 "species_validation": species_validation,
                 "predict_phenotypes": predict_phenotypes,
                 "databases": databases or ['all'],
-                "annotation_coverage": annotation_coverage
+                "annotation_coverage": annotation_coverage,
+                "knockout_context": context,
+                "knockout_evidence_data": {
+                    "available": provider is not None,
+                    "organism_covered": organism_covered,
+                    "version": provider.index.get("built") if provider is not None else None,
+                    "sources": provider.index.get("sources", []) if provider is not None else [],
+                },
             },
             "genes": processed_genes,
+            "excluded_genes": excluded_genes,
             "insufficient_data_genes": [
                 {
                     "symbol": g.get("symbol", ""),

@@ -114,6 +114,8 @@
                         </div>
                     </div>
                     
+                    <div id="evidenceCoverageNote" class="alert alert-light border small" style="display: none;"></div>
+
                     <input type="hidden" id="organism" name="organism" required>
                     <input type="hidden" id="taxid" name="taxid">
                 </div>
@@ -242,7 +244,7 @@
                         <div class="col-md-6 mb-3">
                             <label for="max_genes" class="form-label">
                                 <i class="fas fa-list-ol me-2"></i>Genes to Report
-                                <a href="/help#max-genes" class="text-decoration-none" target="_blank">
+                                <a href="/help#faq" class="text-decoration-none" target="_blank">
                                     <i class="fas fa-question-circle text-muted"></i>
                                 </a>
                             </label>
@@ -255,15 +257,17 @@
                                    max="500"
                                    required>
                             <div class="form-text">
-                                How many top-ranked genes to show in the report (1-500). Every gene of the
-                                GO term is scored first, so this does not change the run time.
+                                How many genes to show in the report (1-500), safest first. Every gene of the
+                                GO term is assessed, so this does not change the run time; the others are listed
+                                as "not shown" with their measured knockout result, so nothing is hidden.
+                                <button type="button" class="btn btn-link btn-sm p-0 align-baseline" id="showAllGenes">Show all genes</button>
                             </div>
                         </div>
                         
                         <div class="col-md-6 mb-3">
                             <label for="max_pleiotropy" class="form-label">
                                 <i class="fas fa-filter me-2"></i>Max Pleiotropy Score
-                                <a href="/help#pleiotropy" class="text-decoration-none" target="_blank">
+                                <a href="/help#pleiotropy_score" class="text-decoration-none" target="_blank">
                                     <i class="fas fa-question-circle text-muted"></i>
                                 </a>
                             </label>
@@ -278,7 +282,7 @@
                             <div class="form-text">
                                 Cutoff on the 0-10 pleiotropy score: genes scoring above it are left out.
                                 0 = only the most specific genes, 10 = keep everything.
-                                <a href="/help#pleiotropy" target="_blank">Learn more</a>
+                                <a href="/help#pleiotropy_score" target="_blank">Learn more</a>
                             </div>
                         </div>
                     </div>
@@ -306,13 +310,33 @@
                                 <input class="form-check-input" type="checkbox" id="predict_phenotypes" name="predict_phenotypes">
                                 <label class="form-check-label" for="predict_phenotypes">
                                     <i class="fas fa-brain me-2"></i>Enable RAG Phenotype Prediction
-                                    <a href="/help#rag-prediction" class="text-decoration-none" target="_blank">
+                                    <a href="/help#phenotype_prediction" class="text-decoration-none" target="_blank">
                                         <i class="fas fa-question-circle text-muted"></i>
                                     </a>
                                 </label>
                                 <div class="form-text">
-                                    Literature-based prediction (adds ~1 min/gene)
+                                    Guesses the knockout phenotype from abstracts, only for genes without a measured
+                                    knockout result (adds ~1 min per such gene)
                                 </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="knockout_context" class="form-label">
+                                <i class="fas fa-flask me-2"></i>What will you knock out?
+                                <a href="/help#knockout_context" class="text-decoration-none" target="_blank">
+                                    <i class="fas fa-question-circle text-muted"></i>
+                                </a>
+                            </label>
+                            <select class="form-select" id="knockout_context" name="knockout_context">
+                                <option value="auto" selected>Automatic (cultured cells for human, whole organism otherwise)</option>
+                                <option value="cells">Cultured cells (CRISPR knockout in a cell line)</option>
+                                <option value="organism">Whole organism (animal, plant or yeast)</option>
+                            </select>
+                            <div class="form-text">
+                                Decides which measurement the verdict follows: how often losing the gene kills human
+                                cancer cell lines (DepMap), or whether the knockout animal survives (MGI, IMPC, SGD).
+                                Both are shown for every gene.
                             </div>
                         </div>
 

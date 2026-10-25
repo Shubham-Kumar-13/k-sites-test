@@ -485,7 +485,7 @@ test('CSV quotes commas and quotes, and carries the warning and the new columns'
     const csv = comprehensiveCsv(SAMPLE);
     const lines = csv.split('\n');
 
-    assert.ok(lines.includes('# WARNING: Only 39% of annotations were read (2,000 of 5,120).'));
+    assert.ok(lines.includes('"# WARNING: Only 39% of annotations were read (2,000 of 5,120)."'));   // a comment line with a comma is quoted, as in the Python report
     assert.ok(lines.some((l) => l.startsWith('"A,1","has ""quotes"", commas"')));
     assert.ok(csv.includes('Embryonic'));
     assert.ok(geneSummaryCsv(SAMPLE).split('\n')[1].includes('Heterozygous Knockout'));

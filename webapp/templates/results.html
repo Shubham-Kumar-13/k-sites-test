@@ -214,6 +214,10 @@
                             <td data-job-field="evidence_filter">{{ job.evidence_filter }}</td>
                         </tr>
                         <tr>
+                            <td class="text-muted">Knockout Context:</td>
+                            <td data-job-field="knockout_context">{{ job.knockout_context or 'auto' }}</td>
+                        </tr>
+                        <tr>
                             <td class="text-muted">Phenotype Prediction:</td>
                             <td data-job-field="predict_phenotypes">{{ 'Enabled' if job.predict_phenotypes else 'Disabled' }}</td>
                         </tr>

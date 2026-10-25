@@ -9,7 +9,9 @@ example a Hugging Face Space) through the address given with --api-base.
     python tools/build_static_site.py --out site                                  # analysis in the browser
     python tools/build_static_site.py --api-base https://your-space.hf.space --out site   # separate backend
 
-The browser version also needs the KEGG data files: python tools/build_kegg_data.py --out site/kegg-data
+The browser version also needs the KEGG data files and the measured knockout evidence:
+    python tools/build_kegg_data.py --out site/kegg-data
+    python tools/build_evidence_data.py --out site/evidence-data
 Only Jinja2 is needed; the K-Sites analysis code is not imported.
 """
 
@@ -41,6 +43,7 @@ LINKS = {
     '"/"': '"index.html"',
     '"/jobs"': '"jobs.html"',
     '"/help"': '"help.html"',
+    '"/validation"': '"validation.html"',
     '"/profile"': '"#"',
     '"/logout"': '"login.html"',
 }
@@ -52,6 +55,14 @@ def load_help_content():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def load_markdown_renderer():
+    """webapp/utils/markdown_lite.py has no dependencies, so it is loaded without the Flask app."""
+    spec = importlib.util.spec_from_file_location("markdown_lite", WEBAPP / "utils" / "markdown_lite.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.render
 
 
 def make_environment():
@@ -118,8 +129,16 @@ def build(api_base: str, out: Path) -> list:
         (out / filename).write_text(html, encoding="utf-8")
         written.append(filename)
 
+    # The validation page: VALIDATION.md (how the knockout evidence was checked) as a page of the site
+    report = ROOT / "VALIDATION.md"
+    body = load_markdown_renderer()(report.read_text(encoding="utf-8")) if report.exists() else \
+        "<p>The validation report has not been generated yet (run tools/evaluate_knockout_evidence.py).</p>"
+    context = {"hosted_build": True, "browser_build": browser_mode, "user_name": "", "job": placeholder_job(), "validation_html": body}
+    (out / "validation.html").write_text(rewrite_links(env.get_template("validation.html").render(**context)), encoding="utf-8")
+    written.append("validation.html")
+
     shutil.copytree(WEBAPP / "static", out / "static")
-    config = {"mode": "browser", "keggBase": "kegg-data/"} if browser_mode else {"apiBase": api_base.rstrip("/")}
+    config = {"mode": "browser", "keggBase": "kegg-data/", "evidenceBase": "evidence-data/"} if browser_mode else {"apiBase": api_base.rstrip("/")}
     (out / "config.js").write_text("window.KSITES_CONFIG = " + json.dumps(config) + ";\n", encoding="utf-8")
     (out / ".nojekyll").write_text("", encoding="utf-8")
     (out / "robots.txt").write_text("User-agent: *\nDisallow: /\n", encoding="utf-8")

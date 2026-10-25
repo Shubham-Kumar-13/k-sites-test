@@ -11,6 +11,9 @@ export const SafetyLevel = {
     AVOID: 'AVOID',                        // alternative strategies required
 };
 
+const LEVEL_ORDER = [SafetyLevel.SAFE, SafetyLevel.CAUTION, SafetyLevel.MODERATE_CONCERN, SafetyLevel.HIGH_CONCERN, SafetyLevel.AVOID];
+const atLeast = (level, minimum) => (LEVEL_ORDER.indexOf(level) >= LEVEL_ORDER.indexOf(minimum) ? level : minimum);
+
 export const Recommendation = {
     STANDARD_KO: 'Standard Knockout',
     VALIDATED_KO: 'Standard KO with Validation',
@@ -158,8 +161,244 @@ function calculateConfidence(phenotypeConfidence, literatureSupport, hasValidati
     return scores.reduce((a, b) => a + b, 0) / scores.length;
 }
 
-/** `phenotypePrediction` may be null; `crossSpecies` may be {} or null. */
-export function getSafetyRecommendation({ symbol, pleiotropyScore, phenotypePrediction = null, crossSpecies = null, literatureSupport = null }) {
+// ------------------------------------------------------------------------------------------------
+// verdicts from measured knockout evidence (port of SafetyRecommender._evidence_verdict and friends)
+// ------------------------------------------------------------------------------------------------
+
+function extraFindings(evidence) {
+    const lines = [];
+    const constraint = evidence.constraint;
+    if (constraint && constraint.label === 'highly constrained') {
+        lines.push(`Highly constrained in people (gnomAD LOEUF ${Number(constraint.loeuf)}): loss of one copy is rarely tolerated`);
+    }
+    return lines;
+}
+
+/** A close paralog may take over the work of the knocked-out gene and hide its phenotype. */
+function paralogConcern(evidence) {
+    const paralogs = evidence.paralogs;
+    if (!paralogs || !paralogs.close.length) return null;
+    const names = paralogs.close.join(', ');
+    const noun = paralogs.close.length === 1 ? 'The close paralog' : 'The close paralogs';
+    return `${noun} ${names} may take over its work and hide the phenotype: consider a double knockout`;
+}
+
+/** A gene needed for survival but expressed mainly in a few tissues can be removed in those tissues only. */
+function tissueMitigation(evidence) {
+    const expression = evidence.expression;
+    if (!expression || !['tissue-specific', 'tissue-enriched'].includes(expression.label) || !expression.top_tissues.length) return null;
+    return `Expression is concentrated in ${expression.top_tissues.slice(0, 2).join(', ')}: a tissue-specific conditional knockout may avoid the lethal effect`;
+}
+
+const organismBasis = (organism) => (organism.basis === 'direct' ? 'measured' : 'ortholog');
+const round2 = (value) => Math.round(value * 100) / 100;
+
+function organismConfidence(organism) {
+    const { lethal, subviable, viable } = organism.counts;
+    const total = lethal + subviable + viable;
+    let confidence;
+    if (organism.basis === 'direct') {
+        confidence = organism.mixed ? 0.7 : (total >= 2 ? 0.9 : 0.8);
+    } else {
+        confidence = organism.ortholog.relation !== '1:1' ? 0.55 : (total >= 2 ? 0.75 : 0.7);
+        if (organism.mixed) confidence -= 0.1;
+    }
+    return round2(confidence);
+}
+
+function organismVerdict(evidence, pleiotropy) {
+    const R = Recommendation;
+    const organism = evidence.organism;
+    const { call, mixed, counts } = organism;
+    const yeast = ['559292', '4932'].includes(evidence.taxid);
+    const orthologNote = organism.basis === 'ortholog' && organism.ortholog.relation !== '1:1';
+    const stage = !['U', null, undefined].includes(organism.stage) ? organism.stage_text : null;
+    const justification = [organism.text];
+    const concerns = [];
+    const mitigation = [];
+    const considerations = [];
+    let level;
+    let primary;
+    let alternatives;
+
+    if (call === 'LETHAL') {
+        level = SafetyLevel.AVOID;
+        if (orthologNote) {
+            level = SafetyLevel.HIGH_CONCERN;
+            concerns.push('The mouse ortholog is not a one-to-one match, so confirm the lethality in your organism');
+        }
+        primary = R.CONDITIONAL_KO;
+        alternatives = [R.CRISPRI, R.TEMPORAL_CONTROL, R.ALTERNATIVE_MODEL];
+        if (yeast) {
+            concerns.unshift('The deletion is inviable: a haploid knockout strain cannot be kept');
+            mitigation.push('Use a conditional allele (degron tag or repressible promoter) or a heterozygous diploid',
+                'Study a temperature-sensitive allele instead of a deletion');
+        } else {
+            concerns.unshift('Homozygous knockouts do not survive, so a complete knockout line cannot be kept');
+            mitigation.push('Use a conditional (Cre-lox) or inducible allele so the gene is lost only after the critical stage',
+                'Knock the gene down (CRISPRi, RNAi) to keep some function instead of knocking it out',
+                'Maintain the line from heterozygotes');
+        }
+        if (stage) considerations.push(`Death occurs ${stage}: collect samples before that stage`);
+        const tissue = tissueMitigation(evidence);
+        if (tissue) mitigation.push(tissue);
+    } else if (call === 'SUBVIABLE') {
+        level = SafetyLevel.HIGH_CONCERN;
+        primary = R.CONDITIONAL_KO;
+        alternatives = [R.HETEROZYGOUS_KO, R.CRISPRI];
+        concerns.push('Fewer homozygous knockouts survive than expected, so experiments need more breeding');
+        mitigation.push('Use a conditional allele, or plan larger crosses to obtain enough homozygotes');
+        const tissue = tissueMitigation(evidence);
+        if (tissue) mitigation.push(tissue);
+    } else {
+        if (mixed && counts.lethal) {
+            level = SafetyLevel.HIGH_CONCERN;
+            primary = R.CONDITIONAL_KO;
+            alternatives = [R.VALIDATED_KO, R.CRISPRI];
+            concerns.push('Some knockout lines are lethal, so lethality depends on the strain or the allele');
+            mitigation.push('Check which strain and allele were lethal and use a conditional allele if yours is similar');
+        } else if (mixed) {
+            level = SafetyLevel.CAUTION;
+            primary = R.VALIDATED_KO;
+            alternatives = [R.CONDITIONAL_KO];
+            concerns.push('Some knockout lines survive in reduced numbers: the outcome depends on the strain or the allele');
+        } else {
+            level = SafetyLevel.SAFE;
+            primary = R.STANDARD_KO;
+            alternatives = [];
+        }
+        if (organism.reduced_lifespan) {
+            level = atLeast(level, SafetyLevel.CAUTION);
+            if (primary === R.STANDARD_KO) { primary = R.VALIDATED_KO; alternatives = [R.CONDITIONAL_KO]; }
+            concerns.push('A shortened lifespan was reported for the viable knockouts');
+            considerations.push('Plan ageing cohorts and watch the animals for early death');
+        }
+        if (organism.infertile) {
+            level = atLeast(level, SafetyLevel.CAUTION);
+            if (primary === R.STANDARD_KO) { primary = R.VALIDATED_KO; alternatives = [R.CONDITIONAL_KO]; }
+            concerns.push('Infertility was reported, so the knockout line must be kept from heterozygotes');
+        }
+        if (level === SafetyLevel.SAFE && pleiotropy > 5) {
+            level = SafetyLevel.CAUTION;
+            primary = R.VALIDATED_KO;
+            alternatives = [R.STANDARD_KO];
+            concerns.push('The knockout is viable, but the gene has many annotated roles, so expect broad phenotypes');
+        }
+        const paralog = paralogConcern(evidence);
+        if (paralog) concerns.push(paralog);
+    }
+    justification.push(...extraFindings(evidence));
+    return { level, primary, alternatives, basis: organismBasis(organism), justification, concerns, mitigation,
+        considerations, confidence: organismConfidence(organism) };
+}
+
+function organismVerdictFromCells(evidence) {
+    const R = Recommendation;
+    return {
+        level: SafetyLevel.HIGH_CONCERN, primary: R.CONDITIONAL_KO, alternatives: [R.CRISPRI, R.TEMPORAL_CONTROL], basis: 'measured',
+        justification: [evidence.cells.text],
+        concerns: ['The gene is essential in human cells, so a whole-organism knockout is likely lethal'],
+        mitigation: ['Use a conditional or inducible allele instead of a complete knockout'],
+        considerations: [], confidence: 0.6,
+    };
+}
+
+function cellsVerdict(evidence, pleiotropy) {
+    const R = Recommendation;
+    const { cells, organism } = evidence;
+    const { call, percent } = cells;
+    const justification = [cells.text];
+    const concerns = [];
+    const mitigation = [];
+    const considerations = [];
+    let level;
+    let primary;
+    let alternatives;
+    if (call === 'ESSENTIAL') {
+        level = SafetyLevel.AVOID;
+        primary = R.CRISPRI;
+        alternatives = [R.TEMPORAL_CONTROL, R.CONDITIONAL_KO, R.ALTERNATIVE_MODEL];
+        concerns.push('A complete knockout is expected to kill the cells');
+        mitigation.push('Use an inducible knockout, a degron tag or CRISPRi so the cells survive until the gene is switched off',
+            'Check your own cell line in DepMap before starting');
+        considerations.push('Include a rescue construct to show that the phenotype comes from this gene');
+    } else if (call === 'SELECTIVE') {
+        if (percent >= 25) {
+            level = SafetyLevel.MODERATE_CONCERN; primary = R.CRISPRI; alternatives = [R.VALIDATED_KO];
+        } else {
+            level = SafetyLevel.CAUTION; primary = R.VALIDATED_KO; alternatives = [R.CRISPRI];
+        }
+        concerns.push('The gene is essential in some cell types: confirm that yours is not one of them');
+        mitigation.push('Look up your cell line in DepMap and keep a knockdown as a fallback');
+    } else {
+        level = SafetyLevel.SAFE; primary = R.STANDARD_KO; alternatives = [];
+        if (pleiotropy > 5) {
+            level = SafetyLevel.CAUTION; primary = R.VALIDATED_KO; alternatives = [R.STANDARD_KO];
+            concerns.push('The gene is not essential in cell lines, but it has many annotated roles, so expect broad phenotypes');
+        }
+    }
+    if (call !== 'ESSENTIAL') {
+        const paralog = paralogConcern(evidence);
+        if (paralog) concerns.push(paralog);
+    }
+    if (['LETHAL', 'SUBVIABLE'].includes(organism.call)) {
+        justification.push(organism.text);
+        concerns.push('The knockout is not viable in mice: cultured cells can tolerate it, but a whole-animal knockout cannot be made');
+    }
+    justification.push(...extraFindings(evidence));
+    const confidence = (call === 'ESSENTIAL' && cells.common_essential) || (call === 'NON_ESSENTIAL' && percent < 5) ? 0.9 : 0.75;
+    return { level, primary, alternatives, basis: 'measured', justification, concerns, mitigation, considerations, confidence };
+}
+
+function cellsVerdictFromOrganism(evidence, pleiotropy) {
+    const R = Recommendation;
+    const organism = evidence.organism;
+    const justification = [organism.text, 'No cell-line screen result for this gene, so essentiality in cells is unknown'];
+    const concerns = [];
+    const mitigation = [];
+    let level;
+    let primary;
+    let alternatives;
+    if (['LETHAL', 'SUBVIABLE'].includes(organism.call) || organism.mixed) {
+        level = SafetyLevel.CAUTION; primary = R.VALIDATED_KO; alternatives = [R.CRISPRI];
+        concerns.push('The gene is needed for the survival of the organism, so it may also be needed in cells');
+        mitigation.push('Check the gene in DepMap or test a knockdown first');
+    } else {
+        level = SafetyLevel.SAFE; primary = R.STANDARD_KO; alternatives = [];
+        if (pleiotropy > 5) {
+            level = SafetyLevel.CAUTION; primary = R.VALIDATED_KO; alternatives = [R.STANDARD_KO];
+            concerns.push('The knockout organism is viable, but the gene has many annotated roles, so expect broad phenotypes');
+        }
+        const paralog = paralogConcern(evidence);
+        if (paralog) concerns.push(paralog);
+    }
+    justification.push(...extraFindings(evidence));
+    return { level, primary, alternatives, basis: organismBasis(organism), justification, concerns, mitigation,
+        considerations: [], confidence: round2(organismConfidence(organism) - 0.1) };
+}
+
+/** The verdict implied by what was measured, or null when nothing measured applies to the knockout context. */
+function evidenceVerdict(evidence, pleiotropy) {
+    const { organism, cells } = evidence;
+    const context = evidence.context || 'organism';
+    // a distant relative's mouse ortholog is a hint, never a measurement
+    const usable = organism.call !== 'UNKNOWN' && !organism.distant;
+    if (context === 'cells') {
+        if (cells.call !== 'UNKNOWN') return cellsVerdict(evidence, pleiotropy);
+        if (usable) return cellsVerdictFromOrganism(evidence, pleiotropy);
+        return null;
+    }
+    if (usable) return organismVerdict(evidence, pleiotropy);
+    if (cells.call === 'ESSENTIAL') return organismVerdictFromCells(evidence);
+    return null;
+}
+
+/**
+ * `phenotypePrediction` may be null; `crossSpecies` may be {} or null; `knockoutEvidence` is an `assessGene` result.
+ * With a measured result for the knockout context the verdict follows it; without one it rests on annotations and
+ * predictions and is never better than CAUTION (when evidence was consulted at all).
+ */
+export function getSafetyRecommendation({ symbol, pleiotropyScore, phenotypePrediction = null, crossSpecies = null, literatureSupport = null, knockoutEvidence = null }) {
     let phenotypeSeverity = null;
     let phenotypeRisk = null;
     let phenotypeConfidence = 0.0;
@@ -177,17 +416,83 @@ export function getSafetyRecommendation({ symbol, pleiotropyScore, phenotypePred
     const hasCrossSpecies = !!crossSpecies && Object.keys(crossSpecies).length > 0;
     const conservation = hasCrossSpecies ? (crossSpecies.conservation_score ?? 0.0) : 0.0;
 
-    const [safetyLevel, primary, alternatives] = determineSafetyLevel(pleiotropyScore, phenotypeRisk, conservation, phenotypeConfidence);
+    const measured = knockoutEvidence ? evidenceVerdict(knockoutEvidence, pleiotropyScore) : null;
+    let safetyLevel;
+    let primary;
+    let alternatives;
+    let evidenceBasis;
+    if (measured) {
+        ({ level: safetyLevel, primary, alternatives } = measured);
+        evidenceBasis = measured.basis;
+    } else {
+        [safetyLevel, primary, alternatives] = determineSafetyLevel(pleiotropyScore, phenotypeRisk, conservation, phenotypeConfidence);
+        evidenceBasis = phenotypePrediction ? 'predicted' : 'none';
+    }
+
+    // A distant relative (zebrafish, fly, worm, ...) only has its mouse ortholog's knockout as a hint. A hint of
+    // lethality raises the level to MODERATE_CONCERN; nothing in it ever makes a gene safe.
+    let distant = null;
+    if (knockoutEvidence && !measured) {
+        const candidate = knockoutEvidence.organism;
+        if (candidate.distant && candidate.call !== 'UNKNOWN') {
+            distant = candidate;
+            evidenceBasis = 'distant';
+        }
+    }
+    const distantRisk = !!(distant && (['LETHAL', 'SUBVIABLE'].includes(distant.call) || distant.counts.lethal > 0));
+    if (distantRisk && LEVEL_ORDER.indexOf(safetyLevel) < LEVEL_ORDER.indexOf(SafetyLevel.MODERATE_CONCERN)) {
+        safetyLevel = SafetyLevel.MODERATE_CONCERN;
+        primary = Recommendation.HETEROZYGOUS_KO;
+        alternatives = [Recommendation.CONDITIONAL_KO, Recommendation.VALIDATED_KO];
+    }
+
+    // Without a measurement nothing shows that the knockout is safe: the verdict is never better than CAUTION,
+    // and every such gene says that its lethality has not been measured
+    const unverified = !!knockoutEvidence && !measured;
+    if (unverified && safetyLevel === SafetyLevel.SAFE) {
+        safetyLevel = SafetyLevel.CAUTION;
+        primary = Recommendation.VALIDATED_KO;
+        alternatives = [Recommendation.STANDARD_KO];
+    }
+
+    let justification = buildJustification(pleiotropyScore, phenotypeRisk, conservation, literatureSupport, phenotypeConfidence);
+    if (measured) {
+        justification = [...measured.justification,
+            ...justification.filter((line) => !line.startsWith('Predicted ') && !line.startsWith('Low confidence phenotype'))];
+    } else {
+        if (distant) justification.unshift(distant.text);
+        if (unverified) justification.unshift('No measured knockout data for this gene, so the safety of a knockout is unverified');
+    }
+
+    let concerns = identifyConcerns(pleiotropyScore, phenotypeSeverity, phenotypeRisk, conservation, compensatory);
+    let mitigation = suggestMitigation(safetyLevel, primary, phenotypeRisk, compensatory);
+    let considerations = suggestConsiderations(phenotypeSeverity, lethalityStage, primary);
+    if (unverified) {
+        concerns = concerns.filter((c) => c !== 'No major concerns identified');
+        concerns.unshift('Lethality has not been measured: check MGI, IMPC or DepMap before committing to a knockout');
+    }
+    if (distantRisk) {
+        concerns = concerns.filter((c) => c !== 'No major concerns identified');
+        concerns.unshift('The mouse ortholog is needed for survival and essential genes are usually conserved, '
+            + 'so this gene may be essential here too, but that has not been tested');
+    }
+    if (measured) {
+        concerns = [...measured.concerns, ...concerns.filter((c) => c !== 'No major concerns identified'
+            && !c.startsWith('Predicted ') && !c.startsWith('Potential lethality'))];
+        mitigation = [...measured.mitigation, ...mitigation.filter((s) => s !== 'Standard validation sufficient')];
+        considerations = [...measured.considerations, ...considerations];
+    }
 
     return {
         gene_symbol: symbol,
         safety_level: safetyLevel,
         primary_recommendation: primary,
         alternative_recommendations: alternatives,
-        justification: buildJustification(pleiotropyScore, phenotypeRisk, conservation, literatureSupport, phenotypeConfidence),
-        concerns: identifyConcerns(pleiotropyScore, phenotypeSeverity, phenotypeRisk, conservation, compensatory),
-        mitigation_strategies: suggestMitigation(safetyLevel, primary, phenotypeRisk, compensatory),
-        experimental_considerations: suggestConsiderations(phenotypeSeverity, lethalityStage, primary),
-        confidence_score: calculateConfidence(phenotypeConfidence, literatureSupport, hasCrossSpecies),
+        justification,
+        concerns,
+        mitigation_strategies: mitigation,
+        experimental_considerations: considerations,
+        confidence_score: measured ? measured.confidence : calculateConfidence(phenotypeConfidence, literatureSupport, hasCrossSpecies),
+        evidence_basis: evidenceBasis,
     };
 }

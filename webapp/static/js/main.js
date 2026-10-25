@@ -176,12 +176,49 @@ function selectOrganism(name, taxid, commonName) {
     document.getElementById('selectedOrganismDisplay').style.display = 'block';
     document.getElementById('speciesSection').style.display = 'none';
     
-    // Check gene count
+    // Say what is known about knockouts in this organism, and check the gene count
+    showEvidenceCoverage(taxid);
     checkGeneCount();
+}
+
+/** Tells the user, before the run, whether measured knockout data exist for the organism they picked. */
+async function showEvidenceCoverage(taxid) {
+    const note = document.getElementById('evidenceCoverageNote');
+    if (!note) return;
+    note.style.display = 'none';
+    try {
+        const response = await ksFetch(`/api/evidence/coverage?taxid=${encodeURIComponent(taxid)}`);
+        const data = await response.json();
+        let text;
+        if (!data.available) {
+            text = 'The measured knockout data could not be loaded, so verdicts will rest on annotations alone (nothing is rated better than CAUTION).';
+        } else if (!data.covered) {
+            text = 'There are no measured knockout data for this organism. Verdicts will be marked "Not verified" and rated at most CAUTION; '
+                + 'check MGI, IMPC, FlyBase, WormBase or the literature yourself.';
+        } else if (data.distant) {
+            text = `Only the knockout of the mouse ortholog is known for ${data.name}. It is shown as a hint (a lethal mouse ortholog raises the concern), but verdicts are never better than CAUTION.`;
+        } else {
+            const phrases = {
+                knockout: 'knockout viability', 'ortholog-knockout': "the mouse ortholog's knockout", 'cell-essentiality': 'cell-line screens (DepMap)',
+                constraint: 'tolerance of loss-of-function variants (gnomAD)', paralogs: 'close paralogs',
+                expression: String(taxid) === '9606' ? 'tissue expression (GTEx)' : 'tissue expression of the human ortholog (GTEx)',
+            };
+            const layers = (data.layers || []).map((l) => phrases[l]).filter(Boolean);
+            // genes with a knockout result, not every gene that has a record (human records also hold expression-only genes)
+            const measured = data.measured ?? data.genes;
+            text = `Measured knockout data exist for ${data.name}: ${measured.toLocaleString()} genes` + (layers.length ? `, with ${layers.join(', ')}.` : '.');
+        }
+        note.textContent = text;
+        note.style.display = 'block';
+    } catch (error) {
+        // the note is only a courtesy
+    }
 }
 
 function resetOrganismSelection() {
     selectedOrganism = null;
+    const coverageNote = document.getElementById('evidenceCoverageNote');
+    if (coverageNote) coverageNote.style.display = 'none';
     document.getElementById('selectedOrganismDisplay').style.display = 'none';
     document.getElementById('speciesSection').style.display = 'block';
     document.getElementById('organism').value = '';
@@ -444,6 +481,13 @@ function initializeEventListeners() {
         });
     });
     
+    // Show every gene of the GO term in the report (the limit is 500)
+    document.getElementById('showAllGenes')?.addEventListener('click', () => {
+        const input = document.getElementById('max_genes');
+        input.value = input.max || 500;
+        input.dispatchEvent(new Event('change'));
+    });
+
     // Refresh gene count
     document.getElementById('refreshGeneCount')?.addEventListener('click', checkGeneCount);
     
@@ -585,6 +629,7 @@ function collectFormData() {
         max_genes: parseInt(document.getElementById('max_genes').value) || 10,
         max_pleiotropy: parseInt(document.getElementById('max_pleiotropy').value) || 5,
         evidence_filter: document.getElementById('evidence_filter').value,
+        knockout_context: document.getElementById('knockout_context')?.value || 'auto',
         predict_phenotypes: document.getElementById('predict_phenotypes').checked,
         databases: selectedDatabases
     };

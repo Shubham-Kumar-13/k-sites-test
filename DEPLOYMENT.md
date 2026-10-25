@@ -1,12 +1,15 @@
 # Hosting K-Sites for the lab (free, GitHub Pages only)
 
 The website runs the **whole analysis inside each visitor's browser**. GitHub Pages only hands out
-the page; the browser itself queries QuickGO, UniProt, NCBI, KEGG and PubMed, scores the genes, and
-(optionally) predicts phenotypes with a small language model downloaded once (about 90 MB).
-There is no server to pay for, sign in to, or keep awake.
+the page; the browser itself queries QuickGO, UniProt, NCBI and PubMed, reads the knockout data files
+that are published next to the pages, scores the genes, and (optionally) predicts phenotypes with a small
+language model downloaded once (about 90 MB). There is no server to pay for, sign in to, or keep awake.
 
 ```
-GitHub Pages (static files) ──► your browser ──► QuickGO · UniProt · NCBI · PubMed · KEGG data files
+GitHub Pages (static files) ──► your browser ──► QuickGO · UniProt · NCBI · PubMed
+        │                            ▲
+        ├─ kegg-data/      pathway counts (KEGG)
+        └─ evidence-data/  measured knockout evidence (MGI, IMPC, DepMap, gnomAD, GTEx, SGD, Alliance, Ensembl)
 ```
 
 What this means in practice:
@@ -15,10 +18,14 @@ What this means in practice:
   resumes it (finished steps are remembered).
 - **Jobs and results are stored in that browser only** (IndexedDB). Other computers do not see them
   and clearing site data removes them. Download the files you want to keep.
-- **Phenotype prediction** downloads the model on first use (about 90 MB, cached afterwards) and then
-  runs on the visitor's computer. It is a literature keyword heuristic, not a trained predictor:
-  on 23 known mouse knockouts it called 10 of 11 lethal genes lethal and 11 of 12 viable genes
-  not lethal (see `tools/evaluate_phenotype_prediction.py`). Treat it as a prompt to read the papers.
+- **Measured knockout evidence** (`evidence-data/`) is what the verdicts rest on. The files are built by the
+  workflow from public resources and refreshed monthly; the browser downloads only the file of the organism
+  that is analysed (1 to 5 MB). `VALIDATION.md` shows how the data were checked against published knockouts.
+- **Phenotype prediction** is an experimental fallback for genes without a measured result. It downloads the
+  model on first use (about 90 MB, cached afterwards) and then runs on the visitor's computer. It is a
+  literature keyword heuristic, not a trained predictor: on a random sample of 60 mouse genes it recognised
+  7 of 30 lethal genes and wrongly flagged 4 of 30 viable ones (see `VALIDATION.md`). When every gene of a
+  run has a measured result, the model is never downloaded.
 - **An NCBI API key is optional** (field on the analysis form). Without it the browser stays under
   NCBI's 3 requests/second limit; with it, 10/second.
 - **KEGG pathway counts** come from data files built by the workflow (`kegg-data/`), refreshed monthly.
@@ -34,7 +41,12 @@ What this means in practice:
 4. When it finishes the site is at `https://<user>.github.io/<repository>/`.
 
 The workflow rebuilds the site whenever the pages change and on the 1st of each month (to refresh the
-KEGG data).
+KEGG and knockout data). The first build downloads about 280 MB of source data and takes about 10 minutes (the paralog query alone about 5);
+the downloads are cached for the month.
+
+**Data licences.** Please keep the attribution that the site and every report show. MGI data are CC BY 4.0, DepMap
+24Q4 is CC BY 4.0, HGNC is CC0; for IMPC, the Alliance of Genome Resources, gnomAD, GTEx, SGD and Ensembl check the
+terms linked from the "Data sources" list before you redistribute the files outside this site.
 
 ## Building it yourself
 
@@ -42,6 +54,7 @@ KEGG data).
 pip install jinja2 requests
 python tools/build_static_site.py --out site
 python tools/build_kegg_data.py --out site/kegg-data
+python tools/build_evidence_data.py --out site/evidence-data     # about 10 minutes the first time
 python -m http.server 8001 --directory site      # open http://127.0.0.1:8001/index.html
 ```
 
@@ -57,6 +70,7 @@ cd tests/js && npm install && node --test *.test.mjs   # browser engine, compare
 | Problem | Cause |
 |---|---|
 | Organism list is empty | `kegg-data/organisms.json` was not built; run `tools/build_kegg_data.py` |
+| Every gene says "Not verified" | `evidence-data/` is missing or unreadable; run `tools/build_evidence_data.py` (the results page says so in a warning) |
 | "Only X% of annotations were read" warning | The 2000-annotation safety limit was hit for a very large GO term |
 | Jobs fail with NCBI errors | Rate limit; add an NCBI API key on the form and retry |
 | Phenotype model does not load | Needs access to `cdn.jsdelivr.net` and `huggingface.co`; try another network |

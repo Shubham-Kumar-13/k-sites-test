@@ -168,21 +168,90 @@ ANALYTICAL_TERMS = {
                 </table>
             </div>
             
-            <h6>Risk Factors Considered:</h6>
-            <ul>
-                <li>Pleiotropy score (high = higher risk)</li>
-                <li>Predicted phenotype severity (lethal = critical)</li>
-                <li>Literature evidence of essentiality</li>
-                <li>Cross-species conservation</li>
-            </ul>
+            <h6>What the level rests on:</h6>
+            <ol>
+                <li><strong>Measured knockout evidence</strong> comes first: whether the knockout organism or the
+                    cultured human cells survive (see <a href="#knockout_evidence">Measured knockout evidence</a>).
+                    A gene whose knockout is lethal is never rated safe, however specific it looks.</li>
+                <li>The <strong>pleiotropy score</strong> adds caution to a viable gene that has many annotated roles
+                    (above 5: validate first), because its phenotypes will be broad.</li>
+                <li>Without any measurement the verdict can only rest on annotations and keyword predictions, and it is
+                    <strong>never better than CAUTION</strong>. The report says "Not verified" for such genes.</li>
+            </ol>
+            <p>Genes are listed safest first, then by composite score. Each gene card says which measurement decided
+            the verdict.</p>
         """,
         "reference": "K-Sites integrated safety assessment algorithm"
     },
-    
+
+    "knockout_evidence": {
+        "title": "Measured knockout evidence",
+        "icon": "fa-vial",
+        "short_description": "What has actually been measured when the gene is lost",
+        "detailed_explanation": """
+            <p>K-Sites does not guess how harmful a knockout is where somebody has already measured it. For each gene it
+            looks up:</p>
+            <ul>
+                <li><strong>Whole-organism knockout.</strong> Mouse: the literature curated by MGI (knockout alleles in
+                    homozygous mice) and the systematic IMPC viability screen. Human and rat genes use the knockout of
+                    their one-to-one mouse ortholog (Alliance of Genome Resources). Yeast: SGD deletion phenotypes.
+                    The result is <em>lethal</em> (with the stage of death), <em>subviable</em> (fewer homozygotes than
+                    expected) or <em>viable</em>, with the number of knockout lines behind it and links to the papers.</li>
+                <li><strong>Human cell lines.</strong> The percentage of 1,178 cancer cell lines in which a CRISPR knockout
+                    kills the cells (DepMap 24Q4). <em>Essential</em>: most lines or DepMap's common essentials;
+                    <em>sometimes essential</em>: 10-50%; <em>rarely essential</em>: under 10%.</li>
+                <li><strong>Tolerance in people</strong> (gnomAD LOEUF), <strong>tissue expression</strong> (GTEx; a
+                    tissue-restricted gene can be removed in those tissues only) and <strong>close paralogs</strong>
+                    (Ensembl; they can take over the gene's work and hide the phenotype).</li>
+            </ul>
+            <h6>How to read the label on each gene:</h6>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <tr><td><strong>Measured</strong></td><td>the organism or the cells were tested for this gene</td></tr>
+                    <tr><td><strong>Measured in the mouse ortholog</strong></td><td>the mouse gene was tested; the result is carried over to the human or rat gene</td></tr>
+                    <tr><td><strong>Predicted from the literature</strong></td><td>nothing was measured; a keyword model read abstracts (experimental, see below)</td></tr>
+                    <tr><td><strong>Not verified</strong></td><td>no measurement and no prediction: check MGI, IMPC or DepMap yourself</td></tr>
+                </table>
+            </div>
+            <h6>Things to know:</h6>
+            <ul>
+                <li>When knockout lines disagree (for example a classical null is lethal but a different allele or strain is
+                    viable) the report says so and rates the gene at least HIGH_CONCERN if any line was lethal.</li>
+                <li>"Viable" does not mean "unaffected": the organ systems with a reported phenotype are listed, and
+                    a shortened lifespan or infertility lowers the rating to CAUTION.</li>
+                <li>A mouse-lethal gene can be fine in cultured cells (it is needed for development, not in every cell),
+                    so both results are always shown.</li>
+                <li>The data come from the files published with this site, refreshed monthly. A "Data sources" list with the
+                    version is part of every report.</li>
+            </ul>
+        """,
+        "reference": "MGI, IMPC, Alliance of Genome Resources, SGD, DepMap 24Q4, gnomAD v4.1, GTEx v8, Ensembl Compara; checks on the Validation page"
+    },
+
+    "knockout_context": {
+        "title": "What will you knock out?",
+        "icon": "fa-flask",
+        "short_description": "Cultured cells or a whole organism: it decides which measurement the verdict follows",
+        "detailed_explanation": """
+            <p>The same gene can be harmless to knock out in a cell line and impossible to knock out in an animal.
+            <em>TDG</em> and <em>POLB</em> are good examples: mouse embryos lacking them die, but human cell lines
+            tolerate their loss.</p>
+            <ul>
+                <li><strong>Cultured cells</strong> (the default for human): the verdict follows the DepMap CRISPR screens.
+                    The mouse result is still shown, as a reminder that an animal model would need a conditional allele.</li>
+                <li><strong>Whole organism</strong> (the default for mouse, rat, yeast and everything else): the verdict
+                    follows the knockout organism (or the mouse ortholog).</li>
+            </ul>
+            <p>Both measurements are shown for every gene whichever you choose; the card marks the one that decides
+            the verdict.</p>
+        """,
+        "reference": "DepMap (cell lines); MGI / IMPC / SGD (organisms)"
+    },
+
     "phenotype_prediction": {
-        "title": "RAG Phenotype Prediction",
+        "title": "RAG Phenotype Prediction (experimental)",
         "icon": "fa-brain",
-        "short_description": "AI-powered prediction of knockout phenotypes from literature",
+        "short_description": "A keyword model that guesses the phenotype from abstracts, only where nothing is measured",
         "detailed_explanation": """
             <p><strong>Retrieval-Augmented Generation (RAG)</strong> phenotype prediction uses AI to 
             analyze scientific literature and predict the likely phenotypic consequences of gene knockout.</p>
@@ -206,9 +275,11 @@ ANALYTICAL_TERMS = {
                 </table>
             </div>
             
-            <h6>Limitations:</h6>
-            <p>Prediction quality depends on literature availability. Well-studied genes have more 
-            accurate predictions than poorly characterized genes.</p>
+            <h6>Limitations (measured, not assumed):</h6>
+            <p>It is only used for genes without a <a href="#knockout_evidence">measured knockout result</a>, and it
+            is switched off by default. We tested it on a random sample of 60 mouse genes whose knockout outcome is known:
+            it recognised 7 of the 30 lethal genes, wrongly called 4 of the 30 viable genes lethal, and gave no answer for
+            two thirds of the genes (see the <a href="/validation">Validation page</a>). Treat a prediction as a hint to read the papers, not as a result.</p>
         """,
         "reference": "RAG-based NLP pipeline using PubMed and SentenceTransformers"
     },
@@ -330,19 +401,31 @@ METHODOLOGY_SECTIONS = [
         """
     },
     {
-        "title": "Step 5: Safety Assessment",
+        "title": "Step 5: Measured Knockout Evidence",
+        "icon": "fa-vial",
+        "content": """
+            <p>Every gene is looked up in the published knockout data (mouse and yeast knockouts, human cell-line
+            screens, tolerance of loss-of-function variants, tissue expression and paralogs). See
+            <a href="#knockout_evidence">Measured knockout evidence</a>. Genes above the pleiotropy cutoff are not
+            dropped silently: they are listed as "not shown" together with their measured result.</p>
+        """
+    },
+    {
+        "title": "Step 6: Safety Assessment",
         "icon": "fa-shield-alt",
         "content": """
-            <p>The final step integrates all analyses to provide safety recommendations:</p>
-            
+            <p>The final step turns the evidence into a verdict and advice:</p>
+
             <ul>
-                <li>Combine pleiotropy, phenotype, conservation and literature data</li>
-                <li>Assess risk of essential gene knockout</li>
-                <li>Generate specific experimental recommendations</li>
-                <li>Flag genes requiring additional validation</li>
+                <li>The measured result for your knockout context decides the level (lethal: AVOID; reduced survival or
+                    lethal in some lines: HIGH_CONCERN; viable: SAFE, or CAUTION when the gene has many annotated roles,
+                    a shortened lifespan or infertility has been reported)</li>
+                <li>Where nothing was measured the verdict is never better than CAUTION and is marked "Not verified"</li>
+                <li>Specific advice follows from the finding: a conditional allele for a lethal gene, a double knockout
+                    where a close paralog may compensate, a tissue-specific knockout where expression is restricted</li>
             </ul>
-            
-            <p>Safety levels range from SAFE (safe to proceed) to AVOID (may be lethal/essential).</p>
+
+            <p>Safety levels range from SAFE (safe to proceed) to AVOID (a complete knockout is lethal or kills the cells).</p>
         """
     },
     {
@@ -371,7 +454,23 @@ FAQ_ITEMS = [
     },
     {
         "question": "How accurate is the phenotype prediction?",
-        "answer": "Phenotype prediction accuracy depends on literature availability for the gene. Well-studied genes (like TP53) have highly accurate predictions, while poorly characterized genes may return 'UNKNOWN'. Always validate predictions experimentally."
+        "answer": "Not very, which is why it is only a fallback. On a random sample of 60 mouse genes with a known knockout outcome it recognised 7 of the 30 lethal genes, wrongly called 4 of the 30 viable genes lethal, and gave no answer for two thirds. Genes with a measured knockout result are never predicted. Always validate predictions experimentally."
+    },
+    {
+        "question": "How do I know the lethal / viable calls are right?",
+        "answer": "They are the published measurements, not guesses: the MGI literature curation and the IMPC knockout screen for mouse, SGD for yeast, DepMap for human cell lines. We checked them against the original papers of 16 well-known knockouts (all 16 agree, see the Validation page), and the two mouse sources agree for 92% of the 7,500 genes that both cover. Each gene lists the papers (PubMed links) behind its result."
+    },
+    {
+        "question": "Why is a gene fine in human cells but marked AVOID in the mouse?",
+        "answer": "Because the two measure different things. A gene needed for embryonic development (such as TDG or POLB) kills the mouse embryo, yet cultured cells, which do not have to develop, often manage without it. Choose 'What will you knock out?' to make the verdict follow your system; both results are always shown."
+    },
+    {
+        "question": "What does 'not shown' mean?",
+        "answer": "Every gene of the GO term is assessed. The report shows the safest 'Genes to report' genes; the rest, and the genes above your pleiotropy cutoff, are listed under 'Genes assessed but not shown' with their measured knockout result, so a gene is never hidden without a trace."
+    },
+    {
+        "question": "Why does a gene say 'viable' but still carry a warning?",
+        "answer": "Viable knockouts can still have a shortened lifespan, be infertile, or show phenotypes in many organs; the report lists these. If some knockout lines of the gene were lethal (a different strain or allele) the gene is rated at least HIGH_CONCERN even when most lines were viable."
     },
     {
         "question": "What if my gene has a high pleiotropy score?",

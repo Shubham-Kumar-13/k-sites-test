@@ -7,6 +7,8 @@
 
 A *pleiotropic* gene takes part in many different processes, so deleting it causes side effects everywhere. K-Sites favours genes with a narrow function, well-supported evidence and no known severe knockout phenotype.
 
+**The verdict rests on measurements, not guesses.** For every gene K-Sites looks up what has actually been measured when the gene is lost: the viability of knockout mice (MGI literature curation and the IMPC screen) and yeast (SGD), the effect of a CRISPR knockout on 1,178 human cancer cell lines (DepMap), tolerance of loss-of-function variants in people (gnomAD), tissue expression (GTEx) and close paralogs (Ensembl). A gene whose knockout is lethal is never rated safe, however specific it looks; a gene with no measurement is marked "Not verified" and never rated better than CAUTION. See [VALIDATION.md](VALIDATION.md) for how the data were checked against published knockouts.
+
 > **Scope:** K-Sites selects *which gene* to delete. It does not design guide RNAs or predict off-targets; use a dedicated guide design tool (for example CRISPOR or CHOPCHOP) for the gene you choose.
 
 ---
@@ -21,10 +23,12 @@ GO term + organism
 2. Map GO term to genes (QuickGO)        → candidate genes, filtered by evidence type
 3. Score and rank genes                  → pleiotropy, specificity, evidence quality,
                                            literature support, conservation, composite score
-4. Per gene                              → cross-species check, optional phenotype
-                                           prediction, skip genes above the pleiotropy cutoff
+4. Per gene                              → cross-species check, measured knockout evidence,
+                                           optional phenotype prediction (only where nothing
+                                           is measured); genes above the pleiotropy cutoff
+                                           are listed as "not shown", never dropped silently
 5. Safety recommendation                 → SAFE / CAUTION / MODERATE_CONCERN /
-                                           HIGH_CONCERN / AVOID, with reasons
+                                           HIGH_CONCERN / AVOID, with reasons, listed safest first
 6. Reports                               → HTML, CSV, Excel
 ```
 
@@ -38,7 +42,12 @@ GO term + organism
 | **Literature support (0–1)** | PubMed publication count | More studied genes score higher. |
 | **Conservation (0–1)** | Cross-species check | Whether the gene behaves similarly in other species. |
 | **KEGG pathway count** | KEGG | Number of KEGG pathways the gene belongs to (reported per gene). |
-| **Phenotype prediction** (optional) | PubMed mining (SentenceTransformer + FAISS) | Predicted knockout severity and risk, with a confidence value. |
+| **Knockout viability** | MGI, IMPC (mouse), SGD (yeast); human and rat genes use the one-to-one mouse ortholog | Lethal / subviable / viable, the stage of death, the number of knockout lines, the papers behind it. |
+| **Cell-line essentiality** | DepMap 24Q4 CRISPR screens | In what percentage of 1,178 human cancer cell lines losing the gene kills the cells. |
+| **Loss-of-function tolerance, expression, paralogs** | gnomAD v4.1, GTEx v8, Ensembl Compara | Context for the advice: constrained genes, tissue-restricted genes (tissue-specific knockout), close paralogs (double knockout). |
+| **Phenotype prediction** (optional, experimental) | PubMed mining (SentenceTransformer + FAISS) | Used only for genes without a measured result. In our test it found 7 of 30 lethal genes and wrongly flagged 4 of 30 viable ones ([VALIDATION.md](VALIDATION.md)). |
+
+The safety verdict follows the measurement that matches what you will knock out (`--knockout-context`): **cultured cells** (DepMap decides, the default for human) or a **whole organism** (the knockout animal or yeast decides, the default for everything else). The other measurement is shown too: *TDG* and *POLB* kill the mouse embryo but human cell lines tolerate their loss.
 
 Pleiotropy uses exponential decay: `score = 10 × (1 − exp(−0.3 × other_BP_terms))`, where `other_BP_terms` is the number of Biological Process terms excluding the one you are studying.
 
@@ -106,11 +115,21 @@ k-sites --go-term-search "DNA repair" --organism "Homo sapiens" --output report.
 | `--max-pleiotropy` | Cutoff on the 0–10 pleiotropy score: genes scoring above it are excluded (0 = only the most specific genes, 10 = keep everything) | 10 |
 | `--max-annotations` | Safety limit on GO annotations read for the GO term. If it cuts the read short, the report warns what share was read (e.g. "Only 39% of annotations were read"); raise it to read everything (slower) | 2000 |
 | `--evidence-filter` | Which GO evidence counts: `experimental` (roles proven in lab experiments; strict, but can flatter poorly studied genes), `computational` (predicted roles only) or `all` (every known role; most cautious) | `experimental` |
+| `--knockout-context` | `cells` (cultured cells: DepMap decides), `organism` (whole animal/plant/yeast: the knockout organism decides) or `auto` (cells for human, organism otherwise) | `auto` |
+| `--no-measured-evidence` | Ignore the measured knockout data and rate genes from annotations and predictions alone | off |
 | `--species-validation` | TaxIDs for cross-species validation | pipeline default (human, mouse, rat, fly, worm) |
-| `--predict-phenotypes` | Predict knockout phenotype from PubMed | off |
+| `--predict-phenotypes` | Predict knockout phenotype from PubMed, only for genes with no measured result (experimental) | off |
 | `--rag-report` | Per-gene literature reports (needs `--predict-phenotypes`) | off |
 | `--databases` | `quickgo`, `uniprot`, `ncbi`, `pubmed`, `kegg`, `all` | `all` |
 | `--go-term-search` | Search GO terms by keyword | – |
+
+The measured knockout data are published with the K-Sites website and downloaded once a month into `~/.k_sites/evidence-data`. To use a local copy (or work offline) build the files and point to them:
+
+```bash
+python tools/build_evidence_data.py --out evidence-data     # about 10 minutes, downloads about 280 MB once
+export KSITES_EVIDENCE_DIR=evidence-data
+# KSITES_EVIDENCE_URL=off switches the measured evidence off
+```
 
 ### Python
 
@@ -124,8 +143,15 @@ results = run_k_sites_pipeline(
     max_pleiotropy=5,
     evidence_filter="experimental",
     predict_phenotypes=False,
+    knockout_context="auto",   # "cells", "organism" or "auto"
 )
 generate_html_report(results, "report.html")
+
+# one gene on its own
+from k_sites.knockout_evidence import default_provider, assess_gene
+evidence = assess_gene(default_provider(), "9606", "TDG", context="cells")
+print(evidence["organism"]["text"])   # Knockout is lethal (embryonic / prenatal) in mice (mouse ortholog Tdg, 1:1): 3 of 3 knockout lines
+print(evidence["cells"]["text"])      # Rarely essential: needed in 3.7% of 1,178 human cancer cell lines
 ```
 
 ### Web application
@@ -144,10 +170,10 @@ For `--output report.html`:
 
 | File | Description |
 |---|---|
-| `report.html` | Ranked genes with safety level and recommendation |
-| `report_comprehensive.csv` | All metrics per gene |
+| `report.html` | Ranked genes (safest first) with safety level, measured knockout evidence with links to the papers, recommendation; genes assessed but not shown; data sources |
+| `report_comprehensive.csv` | All metrics per gene, including the knockout evidence columns (`Organism_Knockout`, `Cell_Essentiality`, `Close_Paralogs`, `Knockout_References`, ...) and a table of the genes not shown |
 | `report_gene_summary.csv` | Gene-level summary |
-| `report_comprehensive.xlsx` | Excel workbook (needs `openpyxl`) |
+| `report_comprehensive.xlsx` | Excel workbook with sheets for rankings, safety recommendations, knockout evidence and genes not shown (needs `openpyxl`) |
 | `rag_reports/*.html` | Per-gene literature analysis (with `--rag-report`) |
 
 ---
@@ -177,8 +203,11 @@ demo/
 - Very large GO terms can have more annotations than the safety limit (`--max-annotations`). The tool then warns how much was read, and genes that appear only in the unread part are missing.
 - Scores depend on live queries to QuickGO, UniProt, KEGG and PubMed. A gene whose data cannot be retrieved is listed as "not scored (insufficient data)" instead of being ranked; re-run if the reason says a lookup failed.
 - The evidence type you choose (`--evidence-filter`) changes the result: under `experimental`, a poorly studied gene with few lab-proven roles can look more specific than it is. Compare with `all` when in doubt.
-- Phenotype prediction is keyword-based and often returns `UNKNOWN` for poorly studied genes.
-- Annotation data can say a gene looks safe; it cannot guarantee safety in a particular cell line or animal. Always validate experimentally.
+- Measured results exist for most genes of the common model organisms (about 14,400 mouse genes, 95% of human protein-coding genes through the mouse ortholog or DepMap, 5,700 yeast genes) but not for every gene and not for most other species. A gene without a measurement is marked "Not verified" and rated at most CAUTION.
+- Knockout results depend on the strain and the allele; the report shows how many lines agree and rates a gene at least HIGH_CONCERN when any line was lethal. Mouse results are carried to human and rat genes only through one-to-one orthologs, and a gene needed by the embryo may still be fine in cultured cells (both are shown).
+- Cell-line essentiality comes from 1,178 cancer cell lines (DepMap 24Q4); your cell type may differ. Viable does not mean unaffected: shortened lifespan, infertility and affected organ systems are reported.
+- Phenotype prediction is keyword-based, experimental and only used for genes without a measured result; it often returns `UNKNOWN`. [VALIDATION.md](VALIDATION.md) has its measured accuracy.
+- Annotation data and even measurements cannot guarantee safety in a particular cell line or animal. Always validate experimentally.
 
 ---
 
@@ -203,4 +232,4 @@ MIT License – see [LICENSE](LICENSE).
 
 ## Acknowledgments
 
-Gene Ontology Consortium, UniProt, KEGG and NCBI (PubMed, Entrez) for their open data.
+Gene Ontology Consortium, UniProt, KEGG and NCBI (PubMed, Entrez) for their open data. The measured knockout evidence comes from Mouse Genome Informatics (MGI), the International Mouse Phenotyping Consortium (IMPC), the Alliance of Genome Resources, the Saccharomyces Genome Database (SGD), DepMap (Broad Institute, 24Q4 Public, CC BY 4.0), gnomAD, GTEx, HGNC and Ensembl Compara; please cite those resources when you use the reports.

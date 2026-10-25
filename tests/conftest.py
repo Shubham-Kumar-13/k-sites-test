@@ -7,6 +7,13 @@ from unittest.mock import MagicMock, patch
 import json
 
 
+@pytest.fixture(autouse=True)
+def no_evidence_download(monkeypatch):
+    """Tests never download the measured knockout data; the ones that need it pass a provider explicitly."""
+    monkeypatch.delenv("KSITES_EVIDENCE_DIR", raising=False)
+    monkeypatch.setenv("KSITES_EVIDENCE_URL", "off")
+
+
 @pytest.fixture
 def mock_ncbi_esearch_response():
     """Mock NCBI esearch response for organism resolution."""

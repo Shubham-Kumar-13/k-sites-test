@@ -1,18 +1,27 @@
 /**
- * The full K-Sites analysis: GO term -> genes -> scores -> safety recommendation.
+ * The full K-Sites analysis: GO term -> genes -> scores -> measured knockout evidence -> safety recommendation.
  * Port of k_sites/workflow/pipeline.py. Produces the same result structure.
  */
 
 import { DEFAULT_MAX_ANNOTATIONS, getGenesForGoTermWithCoverage } from './goMapper.js';
-import { DATA_OK, rankGenesBySpecificity, validateAcrossSpecies } from './scorer.js';
+import { DATA_OK, mapLimit, rankGenesBySpecificity, validateAcrossSpecies } from './scorer.js';
 import { getSafetyRecommendation } from './safety.js';
+import { assessGene, resolveContext } from './knockoutEvidence.js';
+
+/** Genes whose evidence and cross-species check are looked up at the same time. */
+const ASSESS_CONCURRENCY = 4;
 
 export const DEFAULT_SPECIES_VALIDATION = ['9606', '10090', '10116', '7227', '6239'];
 
+/** Genes are listed safest first. */
+export const SAFETY_TIER = { SAFE: 0, CAUTION: 1, MODERATE_CONCERN: 2, HIGH_CONCERN: 3, AVOID: 4 };
+
 /**
- * @param ctx   { http, keggProvider, ncbiApiKey, ncbiEmail, phenotypePredictor? }
+ * @param ctx   { http, keggProvider, ncbiApiKey, ncbiEmail,
+ *                evidenceProvider?  (measured knockout data; none = verdicts rest on annotations alone),
+ *                phenotypePredictor? | getPhenotypePredictor?  (the predictor, or a loader called on first use) }
  * @param opts  { goTerm, organism, taxid, scientificName, maxPleiotropy, evidenceFilter,
- *                speciesValidation, predictPhenotypes, databases, maxAnnotations, onProgress }
+ *                speciesValidation, predictPhenotypes, databases, maxAnnotations, knockoutContext, onProgress }
  */
 export async function runKSitesPipeline(ctx, opts) {
     const {
@@ -23,11 +32,16 @@ export async function runKSitesPipeline(ctx, opts) {
         predictPhenotypes = false,
         databases = null,
         maxAnnotations = DEFAULT_MAX_ANNOTATIONS,
+        knockoutContext = 'auto',
         onProgress = null,
         geneLimit = null,        // analyse only the first N genes (used by tests and previews)
     } = opts;
     const speciesValidation = opts.speciesValidation === undefined ? DEFAULT_SPECIES_VALIDATION : opts.speciesValidation;
     const log = ctx.log || (() => {});
+    let provider = ctx.evidenceProvider || null;
+    // Measured evidence was asked for: without it (the files could not be read) no gene is rated better than CAUTION
+    const evidenceExpected = !!(provider || ctx.evidenceExpected);
+    const context = resolveContext(taxid, knockoutContext);
 
     const started = new Date();
     log(`Starting K-Sites analysis for ${goTerm} in ${scientificName} (TaxID ${taxid})`);
@@ -39,6 +53,23 @@ export async function runKSitesPipeline(ctx, opts) {
     const genes = geneLimit ? allGenes.slice(0, geneLimit) : allGenes;
     const warnings = [];
     if (coverage.message) warnings.push(coverage.message);
+    let organismCovered = false;
+    if (provider) {
+        try {
+            await provider.index();
+            organismCovered = (await provider.organism(taxid)) !== null;
+        } catch (error) {
+            // the analysis still runs, and says that its verdicts are not backed by measurements
+            warnings.push('Measured knockout data could not be loaded, so every verdict rests on annotations and predictions '
+                + `alone and none is rated better than CAUTION. (${error.message})`);
+            provider = null;
+        }
+    }
+    const evidenceIndex = provider ? await provider.index() : null;
+    if (provider && !organismCovered) {
+        warnings.push(`K-Sites has no measured knockout data for ${scientificName}, so every verdict rests on annotations and predictions `
+            + 'alone and none is rated better than CAUTION.');
+    }
     log(`Found ${genes.length} genes for ${goTerm} with ${evidenceFilter} evidence`);
 
     // Step 3: score and rank
@@ -58,37 +89,84 @@ export async function runKSitesPipeline(ctx, opts) {
 
     // Step 4: per-gene assessment
     const processed = [];
-    let phenotypePredictor = ctx.phenotypePredictor || null;
-    let phenotypesEnabled = predictPhenotypes;
-    if (predictPhenotypes && !phenotypePredictor) {
-        warnings.push('Phenotype prediction was requested but is not available in this browser, so it was skipped.');
-        phenotypesEnabled = false;
-    }
+    const excluded = [];
+    let predictionsSkipped = 0;
 
-    for (let i = 0; i < scored.length; i++) {
-        const geneInfo = scored[i];
+    // The phenotype predictor (a language model) is only loaded when a gene has no measured knockout result
+    let predictor = ctx.phenotypePredictor || null;
+    let predictorTried = !!predictor;
+    const getPredictor = async () => {
+        if (predictor || predictorTried) return predictor;
+        predictorTried = true;
+        if (ctx.getPhenotypePredictor) {
+            try {
+                predictor = await ctx.getPhenotypePredictor();
+            } catch (error) {
+                if (error && error.name === 'AbortError') throw error;
+                warnings.push(`The phenotype model could not be loaded: ${error.message}`);
+                return null;
+            }
+        }
+        if (!predictor) warnings.push('Phenotype prediction was requested but is not available in this browser, so it was skipped.');
+        return predictor;
+    };
+
+    // Phase 1 (several genes at a time): the measured evidence and the cross-species check of each gene.
+    // They only read databases, so they overlap; the results keep the order of the genes.
+    let looked = 0;
+    const lookups = await mapLimit(scored, ASSESS_CONCURRENCY, async (geneInfo) => {
         const symbol = geneInfo.symbol || 'unknown';
-        if (onProgress) onProgress('Assessing genes', i, scored.length);
+        try {
+            const evidence = provider || evidenceExpected ? await assessGene(provider, taxid, symbol, context) : null;
+            let crossSpecies = {};
+            // genes above the cutoff are left out before the slower lookups
+            if (!(geneInfo.pleiotropy_score > maxPleiotropy) && speciesValidation && speciesValidation.length) {
+                crossSpecies = await validateAcrossSpecies(ctx, symbol, goTerm, speciesValidation);
+            }
+            return { geneInfo, evidence, crossSpecies };
+        } catch (error) {
+            if (error && error.name === 'AbortError') throw error;
+            log(`Failed to look up ${symbol}: ${error.message}`);
+            return { geneInfo, failed: true };
+        } finally {
+            looked += 1;
+            if (onProgress) onProgress('Assessing genes', looked, scored.length);
+        }
+    });
+
+    // Phase 2 (one gene at a time): the phenotype prediction where nothing was measured, then the verdict.
+    for (const lookup of lookups) {
+        const { geneInfo, evidence, crossSpecies } = lookup;
+        const symbol = geneInfo.symbol || 'unknown';
+        if (lookup.failed) continue;
 
         try {
             const pleiotropy = geneInfo.pleiotropy_score;
+            // a gene above the cutoff stays on the "not shown" list, with the measured result, so nothing disappears silently
             if (pleiotropy > maxPleiotropy) {
                 log(`Skipping ${symbol} (pleiotropy score ${pleiotropy} > ${maxPleiotropy})`);
+                excluded.push({
+                    symbol,
+                    description: geneInfo.description || '',
+                    reason: 'pleiotropy',
+                    detail: `Pleiotropy score ${Number(pleiotropy).toFixed(1)} is above the cutoff of ${maxPleiotropy}`,
+                    pleiotropy_score: pleiotropy,
+                    composite_score: geneInfo.composite_score ?? null,
+                    knockout_evidence: evidence,
+                });
                 continue;
             }
 
-            let crossSpecies = {};
-            if (speciesValidation && speciesValidation.length) {
-                crossSpecies = await validateAcrossSpecies(ctx, symbol, goTerm, speciesValidation);
-            }
-
+            // a measurement is better than a guess from abstracts, and skipping the guess saves most of the time
             let phenotype = null;
-            if (phenotypesEnabled && phenotypePredictor) {
+            if (predictPhenotypes && evidence && evidence.has_measured) {
+                predictionsSkipped += 1;
+            } else if (predictPhenotypes && await getPredictor()) {
                 try {
                     // the protein name is how many papers refer to the gene ("DNA polymerase beta")
                     const description = geneInfo.description || '';
                     const aliases = description && !/^(PMID:|GO_REF:)/.test(description) ? [description] : [];
-                    phenotype = await phenotypePredictor.predict(symbol, taxid, true, aliases);
+                    phenotype = await predictor.predict(symbol, taxid, true, aliases);
                 } catch (error) {
                     if (error && error.name === 'AbortError') throw error;
                     log(`Failed to predict phenotype for ${symbol}: ${error.message}`);
@@ -101,6 +179,7 @@ export async function runKSitesPipeline(ctx, opts) {
                 phenotypePrediction: phenotype,
                 crossSpecies,
                 literatureSupport: geneInfo.literature_score ?? 0.5,
+                knockoutEvidence: evidence,
             });
 
             processed.push({
@@ -121,7 +200,9 @@ export async function runKSitesPipeline(ctx, opts) {
                 iea_evidence_count: geneInfo.iea_evidence_count ?? 0,
                 cross_species_validation: crossSpecies,
                 phenotype_prediction: phenotype,
+                knockout_evidence: evidence,
                 safety_recommendation: {
+                    evidence_basis: safety.evidence_basis,
                     safety_level: safety.safety_level,
                     primary_recommendation: safety.primary_recommendation,
                     alternative_recommendations: safety.alternative_recommendations,
@@ -141,11 +222,20 @@ export async function runKSitesPipeline(ctx, opts) {
     }
     if (onProgress) onProgress('Assessing genes', scored.length, scored.length);
 
+    // Safest genes first (measured evidence decides the tier), then by composite score as before
+    const tier = (gene) => SAFETY_TIER[gene.safety_recommendation.safety_level] ?? Object.keys(SAFETY_TIER).length;
+    processed.sort((a, b) => tier(a) - tier(b) || (b.composite_score || 0) - (a.composite_score || 0));
+
     // Step 5: aggregate
+    const count = (key) => processed.reduce((acc, g) => { const k = g.safety_recommendation[key]; acc[k] = (acc[k] || 0) + 1; return acc; }, {});
     const statistics = {
         total_genes_screened: ranked.length,
         genes_passed_filter: processed.length,
         genes_insufficient_data: insufficient.length,
+        genes_above_pleiotropy_cutoff: excluded.length,
+        by_safety_level: count('safety_level'),
+        by_evidence_basis: count('evidence_basis'),
+        phenotype_predictions_skipped: predictionsSkipped,
         avg_pleiotropy: 0.0,
         most_specific_gene: null,
         least_specific_gene: null,
@@ -167,11 +257,19 @@ export async function runKSitesPipeline(ctx, opts) {
             max_pleiotropy: maxPleiotropy,
             evidence_filter: evidenceFilter,
             species_validation: speciesValidation,
-            predict_phenotypes: phenotypesEnabled,
+            predict_phenotypes: predictPhenotypes,
             databases: databases || ['all'],
             annotation_coverage: coverage,
+            knockout_context: context,
+            knockout_evidence_data: {
+                available: !!provider,
+                organism_covered: organismCovered,
+                version: evidenceIndex ? (evidenceIndex.built ?? null) : null,
+                sources: evidenceIndex ? (evidenceIndex.sources || []) : [],
+            },
         },
         genes: processed,
+        excluded_genes: excluded,
         insufficient_data_genes: insufficient.map((g) => ({
             symbol: g.symbol || '',
             description: g.description || '',

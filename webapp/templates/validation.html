@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Validation - K-Sites{% endblock %}
+
+{% block extra_css %}
+<style>
+.validation-report h1 { font-size: 1.8rem; margin-bottom: 1rem; }
+.validation-report h2 { font-size: 1.3rem; margin-top: 2rem; color: var(--primary-color); }
+.validation-report table { font-size: 0.9rem; }
+.validation-report pre { background: #f8f9fa; border-radius: 6px; padding: 12px; overflow-x: auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="card shadow-sm">
+        <div class="card-body validation-report">
+            {{ validation_html|safe }}
+        </div>
+    </div>
+</div>
+{% endblock %}

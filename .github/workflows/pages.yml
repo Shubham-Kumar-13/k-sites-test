@@ -1,6 +1,9 @@
 name: Deploy the K-Sites website to GitHub Pages
 
 # The website runs the whole analysis in each visitor's browser, so Pages is all that is needed.
+# Besides the pages, the build publishes two sets of data files that the browser reads:
+#   kegg-data/       pathway counts per gene (KEGG)
+#   evidence-data/   measured knockout evidence (MGI, IMPC, DepMap, gnomAD, GTEx, SGD, Alliance, Ensembl)
 on:
   push:
     branches: [master, main]
@@ -10,9 +13,11 @@ on:
       - "webapp/utils/help_content.py"
       - "tools/build_static_site.py"
       - "tools/build_kegg_data.py"
+      - "tools/build_evidence_data.py"
+      - "tools/data/**"
       - ".github/workflows/pages.yml"
   schedule:
-    - cron: "0 3 1 * *"   # refresh the KEGG pathway data on the 1st of every month
+    - cron: "0 3 1 * *"   # refresh the KEGG and knockout data on the 1st of every month
   workflow_dispatch:
 
 permissions:
@@ -27,6 +32,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -34,7 +40,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install the site builder
+      - name: Install the builders
         run: pip install jinja2 requests
 
       - name: Build the static site
@@ -42,6 +48,19 @@ jobs:
 
       - name: Download the KEGG pathway data
         run: python tools/build_kegg_data.py --out site/kegg-data
+
+      - name: Note the month (the downloaded knockout sources are kept for a month)
+        id: month
+        run: echo "value=$(date +%Y-%m)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the downloaded knockout data sources
+        uses: actions/cache@v4
+        with:
+          path: .cache/evidence-sources
+          key: evidence-sources-${{ steps.month.outputs.value }}
+
+      - name: Build the measured knockout evidence
+        run: python tools/build_evidence_data.py --out site/evidence-data
 
       - uses: actions/configure-pages@v5
 

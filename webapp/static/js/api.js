@@ -119,7 +119,8 @@
         if (!backendPromise) {
             const engine = new URL('engine/browserBackend.js', scriptUrl).href;
             const keggBase = new URL(config.keggBase || 'kegg-data/', window.location.href).href;
-            backendPromise = import(engine).then((module) => module.createBrowserBackend({ keggBase }));
+            const evidenceBase = new URL(config.evidenceBase || 'evidence-data/', window.location.href).href;
+            backendPromise = import(engine).then((module) => module.createBrowserBackend({ keggBase, evidenceBase }));
         }
         return backendPromise;
     }
@@ -187,6 +188,8 @@
         const emailField = document.getElementById('user_email');
         const emailCard = emailField && emailField.closest('.card');
         if (emailCard) emailCard.remove();
+        // the user-information step is gone, so the steps are numbered from 1 again
+        document.querySelectorAll('.step-number').forEach(function (el, i) { el.textContent = String(i + 1); });
 
         const row = document.getElementById('ncbiKeyRow');
         const input = document.getElementById('ncbi_api_key');

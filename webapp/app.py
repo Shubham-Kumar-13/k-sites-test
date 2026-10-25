@@ -161,6 +161,7 @@ class AnalysisJob(db.Model):
     max_pleiotropy = db.Column(db.Integer, default=5)
     evidence_filter = db.Column(db.String(20), default='experimental')
     predict_phenotypes = db.Column(db.Boolean, default=False)
+    knockout_context = db.Column(db.String(20), default='auto')   # auto, cells or organism
     selected_databases = db.Column(db.Text)
     
     # Results
@@ -188,6 +189,7 @@ class AnalysisJob(db.Model):
             'max_pleiotropy': self.max_pleiotropy,
             'evidence_filter': self.evidence_filter,
             'predict_phenotypes': self.predict_phenotypes,
+            'knockout_context': self.knockout_context or 'auto',
             'selected_databases': json.loads(self.selected_databases) if self.selected_databases else [],
             'total_genes_found': self.total_genes_found,
             'genes_processed': self.genes_processed,
@@ -199,6 +201,15 @@ class AnalysisJob(db.Model):
 # Initialize database
 with app.app_context():
     db.create_all()
+    try:
+        # a database made by an older version lacks the knockout_context column
+        columns = [row[1] for row in db.session.execute(db.text('PRAGMA table_info(analysis_jobs)')).fetchall()]
+        if columns and 'knockout_context' not in columns:
+            db.session.execute(db.text("ALTER TABLE analysis_jobs ADD COLUMN knockout_context VARCHAR(20) DEFAULT 'auto'"))
+            db.session.commit()
+    except Exception as migration_error:
+        db.session.rollback()
+        logger.warning(f"Could not add the knockout_context column: {migration_error}")
     try:
         interrupted = AnalysisJob.query.filter(AnalysisJob.status.in_(['pending', 'running'])).all()
         for stale in interrupted:
@@ -459,6 +470,19 @@ def help_page():
                           faq_items=FAQ_ITEMS)
 
 
+@app.route('/validation')
+@login_required
+def validation_page():
+    """How the measured knockout evidence was checked against published knockouts (VALIDATION.md)."""
+    from utils.markdown_lite import render
+    report = Path(__file__).resolve().parent.parent / 'VALIDATION.md'
+    if report.exists():
+        body = render(report.read_text(encoding='utf-8'))
+    else:
+        body = '<p>The validation report has not been generated yet (run tools/evaluate_knockout_evidence.py).</p>'
+    return render_template('validation.html', validation_html=body)
+
+
 # ============================================================================
 # API Endpoints - Hierarchical Selection
 # ============================================================================
@@ -533,6 +557,29 @@ def search_go_terms_api():
 # API Endpoints - Databases & Configuration
 # ============================================================================
 
+@app.route('/api/evidence/coverage')
+@login_required
+def evidence_coverage():
+    """Whether measured knockout data exist for an organism (shown on the form before the run)."""
+    from k_sites.knockout_evidence import default_provider
+    taxid = str(request.args.get('taxid', ''))
+    try:
+        provider = default_provider()
+        if provider is None:
+            return jsonify({'taxid': taxid, 'available': False, 'covered': False})
+        organism = provider.organism(taxid)
+        if organism is None:
+            return jsonify({'taxid': taxid, 'available': True, 'covered': False, 'version': provider.index.get('built')})
+        info = organism.info
+        return jsonify({'taxid': taxid, 'available': True, 'covered': True, 'name': info.get('name'),
+                        'genes': info.get('genes', len(organism.genes)), 'measured': info.get('measured'),
+                        'layers': info.get('layers', []),
+                        'distant': bool(info.get('distant')), 'version': provider.index.get('built')})
+    except Exception as error:   # the note is only a courtesy
+        logger.warning(f"Could not read the knockout evidence coverage: {error}")
+        return jsonify({'taxid': taxid, 'available': False, 'covered': False})
+
+
 @app.route('/api/databases')
 @login_required
 def get_databases():
@@ -593,6 +640,7 @@ def validate_analysis():
     max_genes = int(data.get('max_genes', 10))
     evidence_filter = data.get('evidence_filter', 'experimental')
     max_pleiotropy = data.get('max_pleiotropy', 5)
+    knockout_context = data.get('knockout_context', 'auto')
     
     errors = []
     warnings = []
@@ -617,6 +665,8 @@ def validate_analysis():
     # Validate evidence type
     if evidence_filter not in ('experimental', 'computational', 'all'):
         errors.append('Evidence filter must be experimental, computational or all')
+    if knockout_context not in ('auto', 'cells', 'organism'):
+        errors.append('Knockout context must be auto, cells or organism')
     
     # Validate max_genes
     if max_genes < 1:
@@ -637,7 +687,8 @@ def validate_analysis():
             elif max_genes > total_genes:
                 warnings.append(f'Only {total_genes} genes available. Analysis will use all available genes.')
             elif total_genes > max_genes:
-                warnings.append(f'{total_genes} genes found. Will process top {max_genes} by specificity.')
+                warnings.append(f'{total_genes} genes found. All are assessed; the report shows the {max_genes} safest by measured '
+                                f'knockout evidence and composite score, and lists the rest as not shown.')
             
             # Estimate time
             estimated_seconds = estimate_analysis_time(max_genes, data.get('predict_phenotypes', False))
@@ -718,6 +769,7 @@ def start_analysis():
             max_pleiotropy=max(0, min(10, int(data.get('max_pleiotropy', 5)))),
             evidence_filter=data.get('evidence_filter', 'experimental'),
             predict_phenotypes=data.get('predict_phenotypes', False),
+            knockout_context=data.get('knockout_context') if data.get('knockout_context') in ('auto', 'cells', 'organism') else 'auto',
             selected_databases=json.dumps(data.get('databases', ['quickgo'])),
             status='pending',
             current_step='Initializing',
@@ -844,6 +896,7 @@ def _run_analysis_job(job_id: str):
                 max_pleiotropy=job.max_pleiotropy,
                 evidence_filter=job.evidence_filter,
                 predict_phenotypes=job.predict_phenotypes,
+                knockout_context=job.knockout_context or 'auto',
                 progress_callback=report_progress
             )
             
@@ -852,9 +905,18 @@ def _run_analysis_job(job_id: str):
             job.progress_percent = 83
             db.session.commit()
             
-            # Limit genes if needed
+            # The report shows the safest genes first; the ones beyond the limit are listed as "not shown"
             if len(pipeline_output.get('genes', [])) > job.max_genes:
+                hidden = pipeline_output['genes'][job.max_genes:]
                 pipeline_output['genes'] = pipeline_output['genes'][:job.max_genes]
+                for gene in hidden:
+                    pipeline_output.setdefault('excluded_genes', []).append({
+                        'symbol': gene['symbol'], 'description': gene.get('description', ''), 'reason': 'ranked',
+                        'detail': f"Ranked below the {job.max_genes} genes shown "
+                                  f"({gene['safety_recommendation']['safety_level'].replace('_', ' ')})",
+                        'pleiotropy_score': gene.get('pleiotropy_score'), 'composite_score': gene.get('composite_score'),
+                        'knockout_evidence': gene.get('knockout_evidence'),
+                    })
             
             # Step 4: Generate outputs
             job.current_step = 'Generating reports'

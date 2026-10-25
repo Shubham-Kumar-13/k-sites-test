@@ -166,3 +166,4 @@ class TestLocalModeUnchanged:
         client.post("/login", data={"name": "A", "email": "a@lab.org", "institute": "L", "country": "C"})
         assert client.get("/api/jobs").status_code == 200
         assert "K-Sites" in client.get("/help").get_data(as_text=True)
+        assert "Validation of the measured knockout evidence" in client.get("/validation").get_data(as_text=True)

@@ -1,0 +1,1115 @@
+{
+ "excluded_genes": [
+  {
+   "composite_score": 0.49,
+   "description": "PARP1 protein",
+   "detail": "Pleiotropy score 9.9 is above the cutoff of 7",
+   "knockout_evidence": {
+    "cells": {
+     "call": "NON_ESSENTIAL",
+     "common_essential": false,
+     "lines": 1178,
+     "percent": 3.9,
+     "source": "depmap",
+     "text": "Rarely essential: needed in 3.9% of 1,178 human cancer cell lines"
+    },
+    "constraint": {
+     "label": "constrained",
+     "loeuf": 0.454,
+     "text": "Loss-of-function variants are rare in people (gnomAD LOEUF 0.454, constrained)"
+    },
+    "context": "cells",
+    "covered": true,
+    "data_version": "2026-10-25",
+    "expression": {
+     "label": "tissue-specific",
+     "tau": 0.82,
+     "text": "Tissue-specific: expressed in 54 of 54 tissues (tau 0.82); highest in Cells - EBV-transformed lymphocytes",
+     "tissues_expressed": 54,
+     "top_tissues": [
+      "Cells - EBV-transformed lymphocytes"
+     ]
+    },
+    "found": true,
+    "has_measured": true,
+    "organism": {
+     "basis": "ortholog",
+     "call": "VIABLE",
+     "counts": {
+      "lethal": 0,
+      "subviable": 3,
+      "viable": 7
+     },
+     "distant": false,
+     "infertile": false,
+     "mgi_id": "MGI:1340806",
+     "mixed": true,
+     "ortholog": {
+      "relation": "1:1",
+      "symbol": "Parp1"
+     },
+     "reduced_lifespan": false,
+     "references": [
+      7698643,
+      11097843,
+      15554929
+     ],
+     "sources": [
+      "mgi",
+      "impc",
+      "alliance"
+     ],
+     "species": "Mus musculus",
+     "stage": null,
+     "stage_text": null,
+     "systems": [
+      "behavior/neurological phenotype",
+      "cellular phenotype",
+      "endocrine/exocrine gland phenotype",
+      "growth/size/body region phenotype",
+      "hearing/vestibular/ear phenotype",
+      "hematopoietic system phenotype",
+      "homeostasis/metabolism phenotype",
+      "immune system phenotype",
+      "integument phenotype",
+      "nervous system phenotype",
+      "renal/urinary system phenotype",
+      "reproductive system phenotype",
+      "vision/eye phenotype"
+     ],
+     "text": "Knockout is viable in mice (mouse ortholog Parp1, 1:1): 7 of 10 knockout lines; 3 subviable in other lines (strain or allele dependent)"
+    },
+    "paralogs": null,
+    "sources": [
+     {
+      "id": "mgi",
+      "name": "Mouse Genome Informatics (MGI)",
+      "url": "https://www.informatics.jax.org/downloads/reports/"
+     },
+     {
+      "id": "impc",
+      "name": "International Mouse Phenotyping Consortium (IMPC)",
+      "url": "https://ftp.ebi.ac.uk/pub/databases/impc/all-data-releases/latest/results/"
+     },
+     {
+      "id": "alliance",
+      "name": "Alliance of Genome Resources",
+      "url": "https://www.alliancegenome.org/downloads"
+     },
+     {
+      "id": "depmap",
+      "name": "DepMap 24Q4 Public (Broad Institute)",
+      "url": "https://doi.org/10.6084/m9.figshare.27993248"
+     },
+     {
+      "id": "gnomad",
+      "name": "gnomAD v4.1 constraint",
+      "url": "https://gnomad.broadinstitute.org/downloads#v4-constraint"
+     },
+     {
+      "id": "gtex",
+      "name": "GTEx v8",
+      "url": "https://gtexportal.org/home/downloads/adult-gtex/bulk_tissue_expression"
+     }
+    ],
+    "symbol": "PARP1",
+    "taxid": "9606"
+   },
+   "pleiotropy_score": 9.93,
+   "reason": "pleiotropy",
+   "symbol": "PARP1"
+  },
+  {
+   "composite_score": 0.48,
+   "description": "FEN1 protein",
+   "detail": "Ranked below the 6 genes shown (AVOID)",
+   "knockout_evidence": {
+    "cells": {
+     "call": "ESSENTIAL",
+     "common_essential": true,
+     "lines": 1178,
+     "percent": 83.5,
+     "source": "depmap",
+     "text": "Essential in 83.5% of 1,178 human cancer cell lines; DepMap common essential"
+    },
+    "constraint": {
+     "label": "not constrained",
+     "loeuf": 1.071,
+     "text": "Loss-of-function variants are tolerated in people (gnomAD LOEUF 1.071, not constrained)"
+    },
+    "context": "cells",
+    "covered": true,
+    "data_version": "2026-10-25",
+    "expression": {
+     "label": "tissue-specific",
+     "tau": 0.91,
+     "text": "Tissue-specific: expressed in 54 of 54 tissues (tau 0.91); highest in Cells - EBV-transformed lymphocytes",
+     "tissues_expressed": 54,
+     "top_tissues": [
+      "Cells - EBV-transformed lymphocytes"
+     ]
+    },
+    "found": true,
+    "has_measured": true,
+    "organism": {
+     "basis": "ortholog",
+     "call": "LETHAL",
+     "counts": {
+      "lethal": 3,
+      "subviable": 0,
+      "viable": 0
+     },
+     "distant": false,
+     "infertile": false,
+     "mgi_id": "MGI:102779",
+     "mixed": false,
+     "ortholog": {
+      "relation": "1:1",
+      "symbol": "Fen1"
+     },
+     "reduced_lifespan": false,
+     "references": [
+      12861020,
+      16978612,
+      12119409
+     ],
+     "sources": [
+      "mgi",
+      "alliance"
+     ],
+     "species": "Mus musculus",
+     "stage": "E",
+     "stage_text": "embryonic / prenatal",
+     "systems": [
+      "cellular phenotype",
+      "embryo phenotype",
+      "homeostasis/metabolism phenotype"
+     ],
+     "text": "Knockout is lethal (embryonic / prenatal) in mice (mouse ortholog Fen1, 1:1): 3 of 3 knockout lines"
+    },
+    "paralogs": null,
+    "sources": [
+     {
+      "id": "mgi",
+      "name": "Mouse Genome Informatics (MGI)",
+      "url": "https://www.informatics.jax.org/downloads/reports/"
+     },
+     {
+      "id": "alliance",
+      "name": "Alliance of Genome Resources",
+      "url": "https://www.alliancegenome.org/downloads"
+     },
+     {
+      "id": "depmap",
+      "name": "DepMap 24Q4 Public (Broad Institute)",
+      "url": "https://doi.org/10.6084/m9.figshare.27993248"
+     },
+     {
+      "id": "gnomad",
+      "name": "gnomAD v4.1 constraint",
+      "url": "https://gnomad.broadinstitute.org/downloads#v4-constraint"
+     },
+     {
+      "id": "gtex",
+      "name": "GTEx v8",
+      "url": "https://gtexportal.org/home/downloads/adult-gtex/bulk_tissue_expression"
+     }
+    ],
+    "symbol": "FEN1",
+    "taxid": "9606"
+   },
+   "pleiotropy_score": 5.5,
+   "reason": "ranked",
+   "symbol": "FEN1"
+  }
+ ],
+ "genes": [
+  {
+   "bp_term_count": 3,
+   "composite_score": 0.667,
+   "computational_evidence_count": 2,
+   "conservation_score": 0.5,
+   "cross_species_validation": {},
+   "data_issues": [],
+   "description": "SMUG1 protein",
+   "entrez_id": "",
+   "evidence_quality": 0.65,
+   "experimental_evidence_count": 1,
+   "iea_evidence_count": 0,
+   "kegg_pathway_count": 2,
+   "knockout_evidence": {
+    "cells": {
+     "call": "NON_ESSENTIAL",
+     "common_essential": false,
+     "lines": 1178,
+     "percent": 1.5,
+     "source": "depmap",
+     "text": "Rarely essential: needed in 1.5% of 1,178 human cancer cell lines"
+    },
+    "constraint": {
+     "label": "not constrained",
+     "loeuf": 0.819,
+     "text": "Loss-of-function variants are tolerated in people (gnomAD LOEUF 0.819, not constrained)"
+    },
+    "context": "cells",
+    "covered": true,
+    "data_version": "2026-10-25",
+    "expression": {
+     "label": "broadly expressed",
+     "tau": 0.36,
+     "text": "Broadly expressed: expressed in 54 of 54 tissues (tau 0.36); highest in Nerve - Tibial, Ovary, Prostate",
+     "tissues_expressed": 54,
+     "top_tissues": [
+      "Nerve - Tibial",
+      "Ovary",
+      "Prostate"
+     ]
+    },
+    "found": true,
+    "has_measured": true,
+    "organism": {
+     "basis": "ortholog",
+     "call": "VIABLE",
+     "counts": {
+      "lethal": 0,
+      "subviable": 0,
+      "viable": 2
+     },
+     "distant": false,
+     "infertile": false,
+     "mgi_id": "MGI:1918976",
+     "mixed": false,
+     "ortholog": {
+      "relation": "1:1",
+      "symbol": "Smug1"
+     },
+     "reduced_lifespan": false,
+     "references": [
+      22447450
+     ],
+     "sources": [
+      "mgi",
+      "alliance"
+     ],
+     "species": "Mus musculus",
+     "stage": null,
+     "stage_text": null,
+     "systems": [
+      "cellular phenotype",
+      "homeostasis/metabolism phenotype"
+     ],
+     "text": "Knockout is viable in mice (mouse ortholog Smug1, 1:1): 2 of 2 knockout lines"
+    },
+    "paralogs": null,
+    "sources": [
+     {
+      "id": "mgi",
+      "name": "Mouse Genome Informatics (MGI)",
+      "url": "https://www.informatics.jax.org/downloads/reports/"
+     },
+     {
+      "id": "alliance",
+      "name": "Alliance of Genome Resources",
+      "url": "https://www.alliancegenome.org/downloads"
+     },
+     {
+      "id": "depmap",
+      "name": "DepMap 24Q4 Public (Broad Institute)",
+      "url": "https://doi.org/10.6084/m9.figshare.27993248"
+     },
+     {
+      "id": "gnomad",
+      "name": "gnomAD v4.1 constraint",
+      "url": "https://gnomad.broadinstitute.org/downloads#v4-constraint"
+     },
+     {
+      "id": "gtex",
+      "name": "GTEx v8",
+      "url": "https://gtexportal.org/home/downloads/adult-gtex/bulk_tissue_expression"
+     }
+    ],
+    "symbol": "SMUG1",
+    "taxid": "9606"
+   },
+   "literature_score": 0.5,
+   "literature_support": 0.5,
+   "phenotype_prediction": null,
+   "pleiotropy_score": 2.61,
+   "pubmed_count": 41,
+   "safety_recommendation": {
+    "alternative_recommendations": [],
+    "concerns": [],
+    "confidence_score": 0.9,
+    "evidence_basis": "measured",
+    "experimental_considerations": [
+     "Include appropriate controls (wild-type and non-targeting controls)",
+     "Plan for phenotypic scoring at multiple developmental stages"
+    ],
+    "justification": [
+     "Rarely essential: needed in 1.5% of 1,178 human cancer cell lines",
+     "Low pleiotropy score (2.6) indicates specific function"
+    ],
+    "mitigation_strategies": [],
+    "primary_recommendation": "Standard Knockout",
+    "safety_level": "SAFE"
+   },
+   "specificity_score": 0.739,
+   "symbol": "SMUG1"
+  },
+  {
+   "bp_term_count": 3,
+   "composite_score": 0.659,
+   "computational_evidence_count": 2,
+   "conservation_score": 0.5,
+   "cross_species_validation": {},
+   "data_issues": [],
+   "description": "NEIL2 protein",
+   "entrez_id": "",
+   "evidence_quality": 0.65,
+   "experimental_evidence_count": 1,
+   "iea_evidence_count": 0,
+   "kegg_pathway_count": 2,
+   "knockout_evidence": {
+    "cells": {
+     "call": "NON_ESSENTIAL",
+     "common_essential": false,
+     "lines": 1178,
+     "percent": 0.1,
+     "source": "depmap",
+     "text": "Rarely essential: needed in 0.1% of 1,178 human cancer cell lines"
+    },
+    "constraint": {
+     "label": "not constrained",
+     "loeuf": 1.565,
+     "text": "Loss-of-function variants are tolerated in people (gnomAD LOEUF 1.565, not constrained)"
+    },
+    "context": "cells",
+    "covered": true,
+    "data_version": "2026-10-25",
+    "expression": {
+     "label": "tissue-enriched",
+     "tau": 0.67,
+     "text": "Tissue-enriched: expressed in 54 of 54 tissues (tau 0.67); highest in Testis, Adrenal Gland, Pituitary",
+     "tissues_expressed": 54,
+     "top_tissues": [
+      "Testis",
+      "Adrenal Gland",
+      "Pituitary"
+     ]
+    },
+    "found": true,
+    "has_measured": true,
+    "organism": {
+     "basis": "ortholog",
+     "call": "VIABLE",
+     "counts": {
+      "lethal": 0,
+      "subviable": 0,
+      "viable": 3
+     },
+     "distant": false,
+     "infertile": false,
+     "mgi_id": "MGI:2686058",
+     "mixed": false,
+     "ortholog": {
+      "relation": "1:1",
+      "symbol": "Neil2"
+     },
+     "reduced_lifespan": false,
+     "references": [
+      26245904
+     ],
+     "sources": [
+      "mgi",
+      "impc",
+      "alliance"
+     ],
+     "species": "Mus musculus",
+     "stage": null,
+     "stage_text": null,
+     "systems": [
+      "behavior/neurological phenotype",
+      "cellular phenotype",
+      "hematopoietic system phenotype",
+      "homeostasis/metabolism phenotype",
+      "immune system phenotype",
+      "respiratory system phenotype"
+     ],
+     "text": "Knockout is viable in mice (mouse ortholog Neil2, 1:1): 3 of 3 knockout lines"
+    },
+    "paralogs": null,
+    "sources": [
+     {
+      "id": "mgi",
+      "name": "Mouse Genome Informatics (MGI)",
+      "url": "https://www.informatics.jax.org/downloads/reports/"
+     },
+     {
+      "id": "impc",
+      "name": "International Mouse Phenotyping Consortium (IMPC)",
+      "url": "https://ftp.ebi.ac.uk/pub/databases/impc/all-data-releases/latest/results/"
+     },
+     {
+      "id": "alliance",
+      "name": "Alliance of Genome Resources",
+      "url": "https://www.alliancegenome.org/downloads"
+     },
+     {
+      "id": "depmap",
+      "name": "DepMap 24Q4 Public (Broad Institute)",
+      "url": "https://doi.org/10.6084/m9.figshare.27993248"
+     },
+     {
+      "id": "gnomad",
+      "name": "gnomAD v4.1 constraint",
+      "url": "https://gnomad.broadinstitute.org/downloads#v4-constraint"
+     },
+     {
+      "id": "gtex",
+      "name": "GTEx v8",
+      "url": "https://gtexportal.org/home/downloads/adult-gtex/bulk_tissue_expression"
+     }
+    ],
+    "symbol": "NEIL2",
+    "taxid": "9606"
+   },
+   "literature_score": 0.5,
+   "literature_support": 0.5,
+   "phenotype_prediction": null,
+   "pleiotropy_score": 0.05,
+   "pubmed_count": 41,
+   "safety_recommendation": {
+    "alternative_recommendations": [],
+    "concerns": [],
+    "confidence_score": 0.9,
+    "evidence_basis": "measured",
+    "experimental_considerations": [
+     "Include appropriate controls (wild-type and non-targeting controls)",
+     "Plan for phenotypic scoring at multiple developmental stages"
+    ],
+    "justification": [
+     "Rarely essential: needed in 0.1% of 1,178 human cancer cell lines",
+     "Low pleiotropy score (0.1) indicates specific function"
+    ],
+    "mitigation_strategies": [],
+    "primary_recommendation": "Standard Knockout",
+    "safety_level": "SAFE"
+   },
+   "specificity_score": 0.995,
+   "symbol": "NEIL2"
+  },
+  {
+   "bp_term_count": 3,
+   "composite_score": 0.614,
+   "computational_evidence_count": 2,
+   "conservation_score": 0.5,
+   "cross_species_validation": {},
+   "data_issues": [],
+   "description": "TDG protein",
+   "entrez_id": "",
+   "evidence_quality": 0.65,
+   "experimental_evidence_count": 1,
+   "iea_evidence_count": 0,
+   "kegg_pathway_count": 2,
+   "knockout_evidence": {
+    "cells": {
+     "call": "NON_ESSENTIAL",
+     "common_essential": false,
+     "lines": 1178,
+     "percent": 3.7,
+     "source": "depmap",
+     "text": "Rarely essential: needed in 3.7% of 1,178 human cancer cell lines"
+    },
+    "constraint": {
+     "label": "not constrained",
+     "loeuf": 0.811,
+     "text": "Loss-of-function variants are tolerated in people (gnomAD LOEUF 0.811, not constrained)"
+    },
+    "context": "cells",
+    "covered": true,
+    "data_version": "2026-10-25",
+    "expression": {
+     "label": "tissue-enriched",
+     "tau": 0.67,
+     "text": "Tissue-enriched: expressed in 54 of 54 tissues (tau 0.67); highest in Cells - EBV-transformed lymphocytes, Esophagus - Mucosa, Cervix - Endocervix",
+     "tissues_expressed": 54,
+     "top_tissues": [
+      "Cells - EBV-transformed lymphocytes",
+      "Esophagus - Mucosa",
+      "Cervix - Endocervix"
+     ]
+    },
+    "found": true,
+    "has_measured": true,
+    "organism": {
+     "basis": "ortholog",
+     "call": "LETHAL",
+     "counts": {
+      "lethal": 3,
+      "subviable": 0,
+      "viable": 0
+     },
+     "distant": false,
+     "infertile": false,
+     "mgi_id": "MGI:108247",
+     "mixed": false,
+     "ortholog": {
+      "relation": "1:1",
+      "symbol": "Tdg"
+     },
+     "reduced_lifespan": false,
+     "references": [
+      21722948,
+      21278727
+     ],
+     "sources": [
+      "mgi",
+      "alliance"
+     ],
+     "species": "Mus musculus",
+     "stage": "E",
+     "stage_text": "embryonic / prenatal",
+     "systems": [
+      "cardiovascular system phenotype",
+      "cellular phenotype",
+      "craniofacial phenotype",
+      "embryo phenotype",
+      "homeostasis/metabolism phenotype",
+      "limbs/digits/tail phenotype",
+      "liver/biliary system phenotype",
+      "muscle phenotype",
+      "nervous system phenotype"
+     ],
+     "text": "Knockout is lethal (embryonic / prenatal) in mice (mouse ortholog Tdg, 1:1): 3 of 3 knockout lines"
+    },
+    "paralogs": null,
+    "sources": [
+     {
+      "id": "mgi",
+      "name": "Mouse Genome Informatics (MGI)",
+      "url": "https://www.informatics.jax.org/downloads/reports/"
+     },
+     {
+      "id": "alliance",
+      "name": "Alliance of Genome Resources",
+      "url": "https://www.alliancegenome.org/downloads"
+     },
+     {
+      "id": "depmap",
+      "name": "DepMap 24Q4 Public (Broad Institute)",
+      "url": "https://doi.org/10.6084/m9.figshare.27993248"
+     },
+     {
+      "id": "gnomad",
+      "name": "gnomAD v4.1 constraint",
+      "url": "https://gnomad.broadinstitute.org/downloads#v4-constraint"
+     },
+     {
+      "id": "gtex",
+      "name": "GTEx v8",
+      "url": "https://gtexportal.org/home/downloads/adult-gtex/bulk_tissue_expression"
+     }
+    ],
+    "symbol": "TDG",
+    "taxid": "9606"
+   },
+   "literature_score": 0.5,
+   "literature_support": 0.5,
+   "phenotype_prediction": null,
+   "pleiotropy_score": 6.99,
+   "pubmed_count": 41,
+   "safety_recommendation": {
+    "alternative_recommendations": [
+     "Standard Knockout"
+    ],
+    "concerns": [
+     "The gene is not essential in cell lines, but it has many annotated roles, so expect broad phenotypes",
+     "The knockout is not viable in mice: cultured cells can tolerate it, but a whole-animal knockout cannot be made"
+    ],
+    "confidence_score": 0.9,
+    "evidence_basis": "measured",
+    "experimental_considerations": [
+     "Include appropriate controls (wild-type and non-targeting controls)",
+     "Plan for phenotypic scoring at multiple developmental stages"
+    ],
+    "justification": [
+     "Rarely essential: needed in 3.7% of 1,178 human cancer cell lines",
+     "Knockout is lethal (embryonic / prenatal) in mice (mouse ortholog Tdg, 1:1): 3 of 3 knockout lines",
+     "High pleiotropy score (7.0) suggests multiple roles"
+    ],
+    "mitigation_strategies": [],
+    "primary_recommendation": "Standard KO with Validation",
+    "safety_level": "CAUTION"
+   },
+   "specificity_score": 0.301,
+   "symbol": "TDG"
+  },
+  {
+   "bp_term_count": 3,
+   "composite_score": 0.501,
+   "computational_evidence_count": 2,
+   "conservation_score": 0.5,
+   "cross_species_validation": {},
+   "data_issues": [],
+   "description": "XRCC1 protein",
+   "entrez_id": "",
+   "evidence_quality": 0.65,
+   "experimental_evidence_count": 1,
+   "iea_evidence_count": 0,
+   "kegg_pathway_count": 2,
+   "knockout_evidence": {
+    "cells": {
+     "call": "SELECTIVE",
+     "common_essential": false,
+     "lines": 1178,
+     "percent": 16.0,
+     "source": "depmap",
+     "text": "Essential in 16% of 1,178 human cancer cell lines; check that your cell type is not one of them"
+    },
+    "constraint": {
+     "label": "not constrained",
+     "loeuf": 0.773,
+     "text": "Loss-of-function variants are tolerated in people (gnomAD LOEUF 0.773, not constrained)"
+    },
+    "context": "cells",
+    "covered": true,
+    "data_version": "2026-10-25",
+    "expression": {
+     "label": "tissue-enriched",
+     "tau": 0.55,
+     "text": "Tissue-enriched: expressed in 54 of 54 tissues (tau 0.55); highest in Pituitary, Ovary, Cervix - Ectocervix",
+     "tissues_expressed": 54,
+     "top_tissues": [
+      "Pituitary",
+      "Ovary",
+      "Cervix - Ectocervix"
+     ]
+    },
+    "found": true,
+    "has_measured": true,
+    "organism": {
+     "basis": "ortholog",
+     "call": "LETHAL",
+     "counts": {
+      "lethal": 1,
+      "subviable": 0,
+      "viable": 0
+     },
+     "distant": false,
+     "infertile": false,
+     "mgi_id": "MGI:99137",
+     "mixed": false,
+     "ortholog": {
+      "relation": "1:1",
+      "symbol": "Xrcc1"
+     },
+     "reduced_lifespan": false,
+     "references": [
+      10191063
+     ],
+     "sources": [
+      "mgi",
+      "alliance"
+     ],
+     "species": "Mus musculus",
+     "stage": "E",
+     "stage_text": "embryonic / prenatal",
+     "systems": [
+      "embryo phenotype",
+      "growth/size/body region phenotype"
+     ],
+     "text": "Knockout is lethal (embryonic / prenatal) in mice (mouse ortholog Xrcc1, 1:1): 1 of 1 knockout line"
+    },
+    "paralogs": null,
+    "sources": [
+     {
+      "id": "mgi",
+      "name": "Mouse Genome Informatics (MGI)",
+      "url": "https://www.informatics.jax.org/downloads/reports/"
+     },
+     {
+      "id": "alliance",
+      "name": "Alliance of Genome Resources",
+      "url": "https://www.alliancegenome.org/downloads"
+     },
+     {
+      "id": "depmap",
+      "name": "DepMap 24Q4 Public (Broad Institute)",
+      "url": "https://doi.org/10.6084/m9.figshare.27993248"
+     },
+     {
+      "id": "gnomad",
+      "name": "gnomAD v4.1 constraint",
+      "url": "https://gnomad.broadinstitute.org/downloads#v4-constraint"
+     },
+     {
+      "id": "gtex",
+      "name": "GTEx v8",
+      "url": "https://gtexportal.org/home/downloads/adult-gtex/bulk_tissue_expression"
+     }
+    ],
+    "symbol": "XRCC1",
+    "taxid": "9606"
+   },
+   "literature_score": 0.5,
+   "literature_support": 0.5,
+   "phenotype_prediction": null,
+   "pleiotropy_score": 9.33,
+   "pubmed_count": 41,
+   "safety_recommendation": {
+    "alternative_recommendations": [
+     "CRISPR Interference (CRISPRi)"
+    ],
+    "concerns": [
+     "The gene is essential in some cell types: confirm that yours is not one of them",
+     "The knockout is not viable in mice: cultured cells can tolerate it, but a whole-animal knockout cannot be made",
+     "High pleiotropy may confound phenotype interpretation"
+    ],
+    "confidence_score": 0.75,
+    "evidence_basis": "measured",
+    "experimental_considerations": [
+     "Include appropriate controls (wild-type and non-targeting controls)",
+     "Plan for phenotypic scoring at multiple developmental stages"
+    ],
+    "justification": [
+     "Essential in 16% of 1,178 human cancer cell lines; check that your cell type is not one of them",
+     "Knockout is lethal (embryonic / prenatal) in mice (mouse ortholog Xrcc1, 1:1): 1 of 1 knockout line",
+     "Very high pleiotropy score (9.3) indicates multiple biological functions"
+    ],
+    "mitigation_strategies": [
+     "Look up your cell line in DepMap and keep a knockdown as a fallback"
+    ],
+    "primary_recommendation": "Standard KO with Validation",
+    "safety_level": "CAUTION"
+   },
+   "specificity_score": 0.067,
+   "symbol": "XRCC1"
+  },
+  {
+   "bp_term_count": 3,
+   "composite_score": 0.4,
+   "computational_evidence_count": 2,
+   "conservation_score": 0.5,
+   "cross_species_validation": {},
+   "data_issues": [],
+   "description": "NOSUCHGENE protein",
+   "entrez_id": "",
+   "evidence_quality": 0.65,
+   "experimental_evidence_count": 1,
+   "iea_evidence_count": 0,
+   "kegg_pathway_count": 2,
+   "knockout_evidence": {
+    "cells": {
+     "call": "UNKNOWN",
+     "common_essential": false,
+     "lines": null,
+     "percent": null,
+     "source": "depmap",
+     "text": "No human cell-line screen data for this gene"
+    },
+    "constraint": null,
+    "context": "cells",
+    "covered": true,
+    "data_version": "2026-10-25",
+    "expression": null,
+    "found": false,
+    "has_measured": false,
+    "organism": {
+     "basis": "none",
+     "call": "UNKNOWN",
+     "counts": {
+      "lethal": 0,
+      "subviable": 0,
+      "viable": 0
+     },
+     "distant": false,
+     "infertile": false,
+     "mgi_id": null,
+     "mixed": false,
+     "ortholog": null,
+     "reduced_lifespan": false,
+     "references": [],
+     "sources": [],
+     "species": null,
+     "stage": null,
+     "stage_text": null,
+     "systems": [],
+     "text": "No measured knockout data for this gene"
+    },
+    "paralogs": null,
+    "sources": [],
+    "symbol": "NOSUCHGENE",
+    "taxid": "9606"
+   },
+   "literature_score": 0.5,
+   "literature_support": 0.5,
+   "phenotype_prediction": null,
+   "pleiotropy_score": 1.05,
+   "pubmed_count": 41,
+   "safety_recommendation": {
+    "alternative_recommendations": [
+     "Standard Knockout"
+    ],
+    "concerns": [
+     "Lethality has not been measured: check MGI, IMPC or DepMap before committing to a knockout"
+    ],
+    "confidence_score": 0.39999999999999997,
+    "evidence_basis": "none",
+    "experimental_considerations": [
+     "Include appropriate controls (wild-type and non-targeting controls)",
+     "Plan for phenotypic scoring at multiple developmental stages"
+    ],
+    "justification": [
+     "No measured knockout data for this gene, so the safety of a knockout is unverified",
+     "Low pleiotropy score (1.1) indicates specific function"
+    ],
+    "mitigation_strategies": [
+     "Standard validation sufficient"
+    ],
+    "primary_recommendation": "Standard KO with Validation",
+    "safety_level": "CAUTION"
+   },
+   "specificity_score": 0.895,
+   "symbol": "NOSUCHGENE"
+  },
+  {
+   "bp_term_count": 3,
+   "composite_score": 0.45,
+   "computational_evidence_count": 2,
+   "conservation_score": 0.5,
+   "cross_species_validation": {},
+   "data_issues": [],
+   "description": "PCNA protein",
+   "entrez_id": "",
+   "evidence_quality": 0.65,
+   "experimental_evidence_count": 1,
+   "iea_evidence_count": 0,
+   "kegg_pathway_count": 2,
+   "knockout_evidence": {
+    "cells": {
+     "call": "ESSENTIAL",
+     "common_essential": true,
+     "lines": 1178,
+     "percent": 99.9,
+     "source": "depmap",
+     "text": "Essential in 99.9% of 1,178 human cancer cell lines; DepMap common essential"
+    },
+    "constraint": {
+     "label": "constrained",
+     "loeuf": 0.42,
+     "text": "Loss-of-function variants are rare in people (gnomAD LOEUF 0.42, constrained)"
+    },
+    "context": "cells",
+    "covered": true,
+    "data_version": "2026-10-25",
+    "expression": {
+     "label": "tissue-specific",
+     "tau": 0.9,
+     "text": "Tissue-specific: expressed in 54 of 54 tissues (tau 0.90); highest in Cells - EBV-transformed lymphocytes",
+     "tissues_expressed": 54,
+     "top_tissues": [
+      "Cells - EBV-transformed lymphocytes"
+     ]
+    },
+    "found": true,
+    "has_measured": true,
+    "organism": {
+     "basis": "ortholog",
+     "call": "LETHAL",
+     "counts": {
+      "lethal": 1,
+      "subviable": 0,
+      "viable": 0
+     },
+     "distant": false,
+     "infertile": false,
+     "mgi_id": "MGI:97503",
+     "mixed": false,
+     "ortholog": {
+      "relation": "1:1",
+      "symbol": "Pcna"
+     },
+     "reduced_lifespan": false,
+     "references": [
+      18854411
+     ],
+     "sources": [
+      "mgi",
+      "alliance"
+     ],
+     "species": "Mus musculus",
+     "stage": "E",
+     "stage_text": "embryonic / prenatal",
+     "systems": [],
+     "text": "Knockout is lethal (embryonic / prenatal) in mice (mouse ortholog Pcna, 1:1): 1 of 1 knockout line"
+    },
+    "paralogs": null,
+    "sources": [
+     {
+      "id": "mgi",
+      "name": "Mouse Genome Informatics (MGI)",
+      "url": "https://www.informatics.jax.org/downloads/reports/"
+     },
+     {
+      "id": "alliance",
+      "name": "Alliance of Genome Resources",
+      "url": "https://www.alliancegenome.org/downloads"
+     },
+     {
+      "id": "depmap",
+      "name": "DepMap 24Q4 Public (Broad Institute)",
+      "url": "https://doi.org/10.6084/m9.figshare.27993248"
+     },
+     {
+      "id": "gnomad",
+      "name": "gnomAD v4.1 constraint",
+      "url": "https://gnomad.broadinstitute.org/downloads#v4-constraint"
+     },
+     {
+      "id": "gtex",
+      "name": "GTEx v8",
+      "url": "https://gtexportal.org/home/downloads/adult-gtex/bulk_tissue_expression"
+     }
+    ],
+    "symbol": "PCNA",
+    "taxid": "9606"
+   },
+   "literature_score": 0.5,
+   "literature_support": 0.5,
+   "phenotype_prediction": null,
+   "pleiotropy_score": 9.87,
+   "pubmed_count": 41,
+   "safety_recommendation": {
+    "alternative_recommendations": [
+     "Temporal Control (Tet-ON/OFF)",
+     "Conditional Knockout (Cre-Lox)",
+     "Alternative Model System"
+    ],
+    "concerns": [
+     "A complete knockout is expected to kill the cells",
+     "The knockout is not viable in mice: cultured cells can tolerate it, but a whole-animal knockout cannot be made",
+     "High pleiotropy may confound phenotype interpretation"
+    ],
+    "confidence_score": 0.9,
+    "evidence_basis": "measured",
+    "experimental_considerations": [
+     "Include a rescue construct to show that the phenotype comes from this gene",
+     "Optimize dCas9-KRAB expression levels",
+     "Verify knockdown efficiency at mRNA and protein levels",
+     "Include appropriate controls (wild-type and non-targeting controls)",
+     "Plan for phenotypic scoring at multiple developmental stages"
+    ],
+    "justification": [
+     "Essential in 99.9% of 1,178 human cancer cell lines; DepMap common essential",
+     "Knockout is lethal (embryonic / prenatal) in mice (mouse ortholog Pcna, 1:1): 1 of 1 knockout line",
+     "Very high pleiotropy score (9.9) indicates multiple biological functions"
+    ],
+    "mitigation_strategies": [
+     "Use an inducible knockout, a degron tag or CRISPRi so the cells survive until the gene is switched off",
+     "Check your own cell line in DepMap before starting",
+     "Use partial knockdown to study dose-dependent effects",
+     "Compare results with RNAi data if available",
+     "Phenotype Analysis of Stems cells & CRISPR-engineered (PASC) approach",
+     "Phenotype Suppression Screening to identify genetic interactors"
+    ],
+    "primary_recommendation": "CRISPR Interference (CRISPRi)",
+    "safety_level": "AVOID"
+   },
+   "specificity_score": 0.013,
+   "symbol": "PCNA"
+  }
+ ],
+ "insufficient_data_genes": [],
+ "metadata": {
+  "evidence_filter": "all",
+  "execution_duration": 12.5,
+  "go_term": "GO:0006284",
+  "knockout_context": "cells",
+  "knockout_evidence_data": {
+   "available": true,
+   "organism_covered": true,
+   "sources": [
+    {
+     "id": "mgi",
+     "license": "CC BY 4.0",
+     "name": "Mouse Genome Informatics (MGI)",
+     "url": "https://www.informatics.jax.org/downloads/reports/",
+     "what": "knockout phenotypes curated from the literature"
+    },
+    {
+     "id": "impc",
+     "license": "",
+     "name": "International Mouse Phenotyping Consortium (IMPC)",
+     "url": "https://ftp.ebi.ac.uk/pub/databases/impc/all-data-releases/latest/results/",
+     "what": "systematic knockout viability and phenotyping screen"
+    },
+    {
+     "id": "alliance",
+     "license": "",
+     "name": "Alliance of Genome Resources",
+     "url": "https://www.alliancegenome.org/downloads",
+     "what": "orthologs between human, mouse, rat, zebrafish, fly, worm and yeast"
+    },
+    {
+     "id": "hgnc",
+     "license": "CC0",
+     "name": "HGNC (HUGO Gene Nomenclature Committee)",
+     "url": "https://www.genenames.org/download/",
+     "what": "approved human gene symbols and their older names"
+    },
+    {
+     "id": "depmap",
+     "license": "CC BY 4.0",
+     "name": "DepMap 24Q4 Public (Broad Institute)",
+     "url": "https://doi.org/10.6084/m9.figshare.27993248",
+     "what": "CRISPR knockout screens in 1,178 human cancer cell lines"
+    },
+    {
+     "id": "gnomad",
+     "license": "",
+     "name": "gnomAD v4.1 constraint",
+     "url": "https://gnomad.broadinstitute.org/downloads#v4-constraint",
+     "what": "how rarely loss-of-function variants are seen in people"
+    },
+    {
+     "id": "gtex",
+     "license": "",
+     "name": "GTEx v8",
+     "url": "https://gtexportal.org/home/downloads/adult-gtex/bulk_tissue_expression",
+     "what": "gene expression in 54 human tissues"
+    },
+    {
+     "id": "ensembl",
+     "license": "",
+     "name": "Ensembl Compara (via BioMart)",
+     "url": "https://www.ensembl.org/biomart/",
+     "what": "paralogs: genes of the same species descended from the same ancestor gene"
+    },
+    {
+     "id": "sgd",
+     "license": "",
+     "name": "Saccharomyces Genome Database (SGD)",
+     "url": "https://www.yeastgenome.org/",
+     "what": "yeast deletion phenotypes (viable / inviable)"
+    }
+   ],
+   "version": "2026-10-25"
+  },
+  "max_pleiotropy": 7,
+  "organism": "Homo sapiens",
+  "resolved_organism": {
+   "scientific_name": "Homo sapiens",
+   "taxid": "9606"
+  },
+  "timestamp": "2026-10-25T12:00:00.000Z"
+ },
+ "statistics": {
+  "avg_pleiotropy": 5.0,
+  "genes_insufficient_data": 0,
+  "genes_passed_filter": 6,
+  "total_genes_screened": 8
+ },
+ "warnings": [
+  "Example warning, with a comma"
+ ]
+}

@@ -157,6 +157,8 @@ def run_k_sites_analysis(args):
             'predict_phenotypes': getattr(args, 'predict_phenotypes', False),  # Default to False
             'databases': getattr(args, 'databases', ['all']),  # Databases to query
             'max_annotations': getattr(args, 'max_annotations', 2000),  # Safety limit on annotations read
+            'knockout_context': getattr(args, 'knockout_context', 'auto'),  # cells or whole organism
+            'use_measured_evidence': not getattr(args, 'no_measured_evidence', False),
             'progress_callback': make_progress_printer()
         }
         
@@ -175,6 +177,13 @@ def run_k_sites_analysis(args):
             print(f"- Total genes screened: {stats.get('total_genes_screened', 0)}")
             print(f"- Genes passed filter: {stats.get('genes_passed_filter', 0)}")
             print(f"- Genes not scored (insufficient data): {stats.get('genes_insufficient_data', 0)}")
+            print(f"- Genes above the pleiotropy cutoff (listed as not shown): {stats.get('genes_above_pleiotropy_cutoff', 0)}")
+            levels = stats.get('by_safety_level') or {}
+            if levels:
+                print("- Safety levels: " + ", ".join(f"{level}: {count}" for level, count in levels.items()))
+            basis = stats.get('by_evidence_basis') or {}
+            if basis:
+                print("- Verdict rests on: " + ", ".join(f"{name}: {count}" for name, count in basis.items()))
             print(f"- Average pleiotropy score: {stats.get('avg_pleiotropy', 0):.2f}")
             most_specific = stats.get('most_specific_gene', {})
             if most_specific:
@@ -304,6 +313,22 @@ Note:
              '(default: experimental)'
     )
     
+    parser.add_argument(
+        '--knockout-context',
+        choices=['auto', 'cells', 'organism'],
+        default='auto',
+        help='What you will knock out: cells = cultured cells (the verdict follows the DepMap CRISPR screens), '
+             'organism = a whole animal, plant or yeast (it follows the knockout organism), auto = cells for '
+             'human and organism otherwise (default: auto)'
+    )
+
+    parser.add_argument(
+        '--no-measured-evidence',
+        action='store_true',
+        help='Ignore the measured knockout data (MGI, IMPC, DepMap, ...) and rate genes from annotations and '
+             'predictions alone. The data come from KSITES_EVIDENCE_DIR or KSITES_EVIDENCE_URL.'
+    )
+
     parser.add_argument(
         '--species-validation',
         nargs='+',

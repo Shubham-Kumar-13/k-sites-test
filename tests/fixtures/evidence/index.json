@@ -1,0 +1,244 @@
+{
+ "built": "2026-10-25",
+ "format": 1,
+ "organisms": {
+  "10090": {
+   "file": "10090.json",
+   "genes": 29,
+   "layers": [
+    "knockout",
+    "expression",
+    "paralogs"
+   ],
+   "measured": 29,
+   "name": "Mus musculus"
+  },
+  "10116": {
+   "file": "10116.json",
+   "genes": 28,
+   "layers": [
+    "ortholog-knockout"
+   ],
+   "measured": 28,
+   "name": "Rattus norvegicus"
+  },
+  "559292": {
+   "file": "559292.json",
+   "genes": 5,
+   "layers": [
+    "knockout"
+   ],
+   "measured": 5,
+   "name": "Saccharomyces cerevisiae S288C"
+  },
+  "6239": {
+   "distant": true,
+   "file": "6239.json",
+   "genes": 12,
+   "layers": [
+    "ortholog-knockout"
+   ],
+   "measured": 12,
+   "name": "Caenorhabditis elegans"
+  },
+  "7227": {
+   "distant": true,
+   "file": "7227.json",
+   "genes": 12,
+   "layers": [
+    "ortholog-knockout"
+   ],
+   "measured": 12,
+   "name": "Drosophila melanogaster"
+  },
+  "7955": {
+   "distant": true,
+   "file": "7955.json",
+   "genes": 12,
+   "layers": [
+    "ortholog-knockout"
+   ],
+   "measured": 12,
+   "name": "Danio rerio"
+  },
+  "8364": {
+   "distant": true,
+   "file": "8364.json",
+   "genes": 12,
+   "layers": [
+    "ortholog-knockout"
+   ],
+   "measured": 12,
+   "name": "Xenopus tropicalis"
+  },
+  "9606": {
+   "file": "9606.json",
+   "genes": 30,
+   "layers": [
+    "ortholog-knockout",
+    "cell-essentiality",
+    "constraint",
+    "expression",
+    "paralogs"
+   ],
+   "measured": 30,
+   "name": "Homo sapiens"
+  }
+ },
+ "sources": [
+  {
+   "id": "mgi",
+   "license": "CC BY 4.0",
+   "name": "Mouse Genome Informatics (MGI)",
+   "url": "https://www.informatics.jax.org/downloads/reports/",
+   "what": "knockout phenotypes curated from the literature"
+  },
+  {
+   "id": "impc",
+   "license": "",
+   "name": "International Mouse Phenotyping Consortium (IMPC)",
+   "url": "https://ftp.ebi.ac.uk/pub/databases/impc/all-data-releases/latest/results/",
+   "what": "systematic knockout viability and phenotyping screen"
+  },
+  {
+   "id": "alliance",
+   "license": "",
+   "name": "Alliance of Genome Resources",
+   "url": "https://www.alliancegenome.org/downloads",
+   "what": "orthologs between human, mouse, rat, zebrafish, fly, worm and yeast"
+  },
+  {
+   "id": "hgnc",
+   "license": "CC0",
+   "name": "HGNC (HUGO Gene Nomenclature Committee)",
+   "url": "https://www.genenames.org/download/",
+   "what": "approved human gene symbols and their older names"
+  },
+  {
+   "id": "depmap",
+   "license": "CC BY 4.0",
+   "name": "DepMap 24Q4 Public (Broad Institute)",
+   "url": "https://doi.org/10.6084/m9.figshare.27993248",
+   "what": "CRISPR knockout screens in 1,178 human cancer cell lines"
+  },
+  {
+   "id": "gnomad",
+   "license": "",
+   "name": "gnomAD v4.1 constraint",
+   "url": "https://gnomad.broadinstitute.org/downloads#v4-constraint",
+   "what": "how rarely loss-of-function variants are seen in people"
+  },
+  {
+   "id": "gtex",
+   "license": "",
+   "name": "GTEx v8",
+   "url": "https://gtexportal.org/home/downloads/adult-gtex/bulk_tissue_expression",
+   "what": "gene expression in 54 human tissues"
+  },
+  {
+   "id": "ensembl",
+   "license": "",
+   "name": "Ensembl Compara (via BioMart)",
+   "url": "https://www.ensembl.org/biomart/",
+   "what": "paralogs: genes of the same species descended from the same ancestor gene"
+  },
+  {
+   "id": "sgd",
+   "license": "",
+   "name": "Saccharomyces Genome Database (SGD)",
+   "url": "https://www.yeastgenome.org/",
+   "what": "yeast deletion phenotypes (viable / inviable)"
+  }
+ ],
+ "stages": {
+  "E": "embryonic / prenatal",
+  "J": "after birth, before adulthood",
+  "P": "perinatal / neonatal",
+  "U": "age not stated",
+  "W": "before weaning"
+ },
+ "systems": [
+  "adipose tissue phenotype",
+  "behavior/neurological phenotype",
+  "cardiovascular system phenotype",
+  "cellular phenotype",
+  "craniofacial phenotype",
+  "digestive/alimentary phenotype",
+  "embryo phenotype",
+  "endocrine/exocrine gland phenotype",
+  "growth/size/body region phenotype",
+  "hearing/vestibular/ear phenotype",
+  "hematopoietic system phenotype",
+  "homeostasis/metabolism phenotype",
+  "immune system phenotype",
+  "integument phenotype",
+  "limbs/digits/tail phenotype",
+  "liver/biliary system phenotype",
+  "muscle phenotype",
+  "neoplasm",
+  "nervous system phenotype",
+  "pigmentation phenotype",
+  "renal/urinary system phenotype",
+  "reproductive system phenotype",
+  "respiratory system phenotype",
+  "skeleton phenotype",
+  "taste/olfaction phenotype",
+  "vision/eye phenotype"
+ ],
+ "tissues": [
+  "Adipose - Subcutaneous",
+  "Adipose - Visceral (Omentum)",
+  "Adrenal Gland",
+  "Artery - Aorta",
+  "Artery - Coronary",
+  "Artery - Tibial",
+  "Bladder",
+  "Brain - Amygdala",
+  "Brain - Anterior cingulate cortex (BA24)",
+  "Brain - Caudate (basal ganglia)",
+  "Brain - Cerebellar Hemisphere",
+  "Brain - Cerebellum",
+  "Brain - Cortex",
+  "Brain - Frontal Cortex (BA9)",
+  "Brain - Hippocampus",
+  "Brain - Hypothalamus",
+  "Brain - Nucleus accumbens (basal ganglia)",
+  "Brain - Putamen (basal ganglia)",
+  "Brain - Spinal cord (cervical c-1)",
+  "Brain - Substantia nigra",
+  "Breast - Mammary Tissue",
+  "Cells - Cultured fibroblasts",
+  "Cells - EBV-transformed lymphocytes",
+  "Cervix - Ectocervix",
+  "Cervix - Endocervix",
+  "Colon - Sigmoid",
+  "Colon - Transverse",
+  "Esophagus - Gastroesophageal Junction",
+  "Esophagus - Mucosa",
+  "Esophagus - Muscularis",
+  "Fallopian Tube",
+  "Heart - Atrial Appendage",
+  "Heart - Left Ventricle",
+  "Kidney - Cortex",
+  "Kidney - Medulla",
+  "Liver",
+  "Lung",
+  "Minor Salivary Gland",
+  "Muscle - Skeletal",
+  "Nerve - Tibial",
+  "Ovary",
+  "Pancreas",
+  "Pituitary",
+  "Prostate",
+  "Skin - Not Sun Exposed (Suprapubic)",
+  "Skin - Sun Exposed (Lower leg)",
+  "Small Intestine - Terminal Ileum",
+  "Spleen",
+  "Stomach",
+  "Testis",
+  "Thyroid",
+  "Uterus",
+  "Vagina",
+  "Whole Blood"
+ ]
+}

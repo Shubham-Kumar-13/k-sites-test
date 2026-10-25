@@ -158,7 +158,7 @@ class TestBrowserSite:
         for page in ("index.html", "jobs.html", "help.html", "results.html", "config.js"):
             assert (browser_site / page).exists(), page
         assert not (browser_site / "login.html").exists()
-        for module in ("pipeline.js", "rag.js", "browserBackend.js", "localApi.js", "store.js"):
+        for module in ("pipeline.js", "rag.js", "browserBackend.js", "localApi.js", "store.js", "knockoutEvidence.js"):
             assert (browser_site / "static" / "js" / "engine" / module).exists(), module
 
     def test_config_selects_browser_mode_and_the_kegg_data_folder(self, browser_site):
@@ -166,6 +166,15 @@ class TestBrowserSite:
 
         assert '"mode": "browser"' in config
         assert '"keggBase": "kegg-data/"' in config
+        assert '"evidenceBase": "evidence-data/"' in config
+
+    def test_validation_page_shows_the_report_and_is_linked(self, browser_site):
+        page = (browser_site / "validation.html").read_text(encoding="utf-8")
+
+        assert "Validation of the measured knockout evidence" in page and "<table" in page
+        assert "{{" not in page and "{%" not in page and "|---" not in page
+        for linking in ("index.html", "help.html", "jobs.html", "validation.html"):
+            assert 'href="validation.html"' in (browser_site / linking).read_text(encoding="utf-8"), linking
 
     def test_footer_says_nothing_is_sent_to_a_server(self, browser_site):
         assert "nothing is sent to a K-Sites server" in (browser_site / "index.html").read_text(encoding="utf-8")

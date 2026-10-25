@@ -13,8 +13,14 @@ from typing import Dict, Any, List
 from io import StringIO
 import logging
 
+from k_sites.reporting.evidence_columns import (
+    BASIS_LABELS, EVIDENCE_HEADERS, EXCLUDED_HEADERS, evidence_cells, evidence_summary, excluded_cells,
+)
+
 # Set up logging
 logger = logging.getLogger(__name__)
+
+CONTEXT_LABELS = {"cells": "cultured cells", "organism": "whole organism"}
 
 
 def generate_html_report(pipeline_output: dict, output_path: str) -> None:
@@ -34,18 +40,20 @@ def generate_html_report(pipeline_output: dict, output_path: str) -> None:
         insufficient_genes = pipeline_output.get("insufficient_data_genes", [])
         warnings = pipeline_output.get("warnings", [])
         statistics = pipeline_output.get("statistics", {})
+        excluded_genes = pipeline_output.get("excluded_genes", [])
 
         # Count statistics
         total_genes_screened = statistics.get("total_genes_screened", len(genes))
-        
+
         # Generate the HTML report
         html_content = _generate_report_html(
-            metadata, 
-            genes, 
+            metadata,
+            genes,
             total_genes_screened,
             output_path,
             insufficient_genes,
-            warnings
+            warnings,
+            excluded_genes
         )
         
         # Write to file
@@ -113,21 +121,27 @@ def _generate_csv_report(pipeline_output: dict, csv_path: str) -> None:
         rows.append([f"# Timestamp: {metadata.get('timestamp', 'N/A')}"])
         rows.append([f"# Evidence Filter: {metadata.get('evidence_filter', 'N/A')}"])
         rows.append([f"# Pleiotropy cutoff (0-10): {metadata.get('max_pleiotropy', 'N/A')}"])
+        data_info = metadata.get("knockout_evidence_data") or {}
+        if metadata.get("knockout_context"):
+            rows.append([f"# Knockout context: {CONTEXT_LABELS.get(metadata['knockout_context'], metadata['knockout_context'])}"])
+        if data_info.get("available"):
+            rows.append([f"# Measured knockout data version: {data_info.get('version')}; sources: "
+                         + "; ".join(s["name"] for s in data_info.get("sources", []))])
         for warning in pipeline_output.get("warnings", []):
             rows.append([f"# WARNING: {warning}"])
         rows.append(["#"])
-        
+
         # Add header row
         header = [
-            "Gene_Symbol", "Gene_Description", "Entrez_ID", "Pleiotropy_Score", 
-            "Specificity_Score", "Evidence_Quality", "Literature_Score", 
+            "Gene_Symbol", "Gene_Description", "Entrez_ID", "Pleiotropy_Score",
+            "Specificity_Score", "Evidence_Quality", "Literature_Score",
             "Conservation_Score", "Composite_Score", "BP_Term_Count",
-            "Experimental_Evidence_Count", "Computational_Evidence_Count", 
+            "Experimental_Evidence_Count", "Computational_Evidence_Count",
             "IEA_Evidence_Count", "KEGG_Pathway_Count", "PubMed_Count",
             "Phenotype_Severity", "Phenotype_Risk_Level", "Phenotype_Confidence",
             "Phenotype_Lethality_Stage", "Safety_Level", "Safety_Recommendation",
             "Safety_Justification"
-        ]
+        ] + EVIDENCE_HEADERS
         rows.append(header)
         
         # Add data rows
@@ -159,8 +173,8 @@ def _generate_csv_report(pipeline_output: dict, csv_path: str) -> None:
             safety_rec = gene.get("safety_recommendation", {}) or {}
             safety_level = safety_rec.get("safety_level", "")
             primary_rec = safety_rec.get("primary_recommendation", "")
-            safety_justification = safety_rec.get("justification", "")
-            
+            safety_justification = _excel_text(safety_rec.get("justification", ""))
+
             rows.append([
                 gene_symbol, gene_description, entrez_id, pleiotropy_score,
                 specificity_score, evidence_quality, literature_score,
@@ -168,8 +182,16 @@ def _generate_csv_report(pipeline_output: dict, csv_path: str) -> None:
                 exp_count, comp_count, iea_count, kegg_count, pubmed_count,
                 phenotype_severity, phenotype_risk, phenotype_confidence,
                 phenotype_stage, safety_level, primary_rec, safety_justification
-            ])
-        
+            ] + evidence_cells(gene))
+
+        # Genes that were assessed but are not in the table above
+        excluded = pipeline_output.get("excluded_genes", [])
+        if excluded:
+            rows.append([])
+            rows.append(["# Genes not shown above (above the pleiotropy cutoff, or ranked below the genes shown)"])
+            rows.append(EXCLUDED_HEADERS)
+            rows.extend(excluded_cells(entry) for entry in excluded)
+
         # Write CSV file
         with open(csv_path, 'w', newline='', encoding='utf-8') as csvfile:
             writer = csv.writer(csvfile)
@@ -201,9 +223,9 @@ def _generate_gene_summary_csv(pipeline_output: dict, csv_path: str) -> None:
                 'bp_term_count', 'experimental_evidence_count', 
                 'computational_evidence_count', 'iea_evidence_count',
                 'kegg_pathway_count', 'pubmed_count',
-                'phenotype_severity', 'phenotype_risk_level', 
+                'phenotype_severity', 'phenotype_risk_level',
                 'safety_level', 'safety_recommendation', 'safety_justification'
-            ]
+            ] + [name.lower() for name in EVIDENCE_HEADERS]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             
             writer.writeheader()
@@ -231,7 +253,8 @@ def _generate_gene_summary_csv(pipeline_output: dict, csv_path: str) -> None:
                     'phenotype_risk_level': _extract_enum_value(phenotype_pred.get('risk_level', '')),
                     'safety_level': safety_rec.get('safety_level', ''),
                     'safety_recommendation': safety_rec.get('primary_recommendation', ''),
-                    'safety_justification': safety_rec.get('justification', '')
+                    'safety_justification': _excel_text(safety_rec.get('justification', '')),
+                    **{name.lower(): value for name, value in zip(EVIDENCE_HEADERS, evidence_cells(gene))}
                 })
         
         logger.info(f"Generated gene summary CSV at {csv_path}")
@@ -301,6 +324,15 @@ def _generate_excel_report(pipeline_output: dict, excel_path: str) -> None:
         ws_summary['B11'] = statistics.get('genes_passed_filter', 0)
         ws_summary['A12'] = "Average Pleiotropy:"
         ws_summary['B12'] = f"{statistics.get('avg_pleiotropy', 0):.2f}"
+        summary_row = 13
+        if metadata.get("knockout_context"):
+            ws_summary.cell(row=summary_row, column=1, value="Knockout context:")
+            ws_summary.cell(row=summary_row, column=2, value=CONTEXT_LABELS.get(metadata["knockout_context"], metadata["knockout_context"]))
+            summary_row += 1
+        for warning in pipeline_output.get("warnings", []):
+            ws_summary.cell(row=summary_row, column=1, value="WARNING:")
+            ws_summary.cell(row=summary_row, column=2, value=warning)
+            summary_row += 1
         
         # ===== Sheet 2: Gene Rankings =====
         ws_genes = wb.create_sheet("Gene Rankings")
@@ -309,7 +341,7 @@ def _generate_excel_report(pipeline_output: dict, excel_path: str) -> None:
         gene_headers = [
             "Rank", "Gene Symbol", "Pleiotropy Score", "Specificity Score",
             "Composite Score", "Evidence Quality", "Literature Score",
-            "Conservation Score", "BP Term Count", "Safety Level"
+            "Conservation Score", "BP Term Count", "Safety Level", "Evidence Basis"
         ]
         
         for col, header in enumerate(gene_headers, 1):
@@ -331,6 +363,7 @@ def _generate_excel_report(pipeline_output: dict, excel_path: str) -> None:
             
             safety_rec = gene.get('safety_recommendation', {}) or {}
             ws_genes.cell(row=row, column=10, value=safety_rec.get('safety_level', ''))
+            ws_genes.cell(row=row, column=11, value=safety_rec.get('evidence_basis', ''))
         
         # ===== Sheet 3: Safety Recommendations =====
         ws_safety = wb.create_sheet("Safety Recommendations")
@@ -354,8 +387,32 @@ def _generate_excel_report(pipeline_output: dict, excel_path: str) -> None:
             ws_safety.cell(row=row, column=5, value='; '.join(safety_rec.get('concerns', [])))
             ws_safety.cell(row=row, column=6, value='; '.join(safety_rec.get('mitigation_strategies', [])))
         
+        # ===== Sheet 4: Measured knockout evidence =====
+        ws_evidence = wb.create_sheet("Knockout Evidence")
+        for col, header in enumerate(["Gene Symbol"] + EVIDENCE_HEADERS, 1):
+            cell = ws_evidence.cell(row=1, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+        for row, gene in enumerate(genes, 2):
+            for col, value in enumerate([gene.get('symbol', '')] + evidence_cells(gene), 1):
+                ws_evidence.cell(row=row, column=col, value=_excel_text(value))
+
+        # ===== Sheet 5: Genes assessed but not shown =====
+        sheets = [ws_summary, ws_genes, ws_safety, ws_evidence]
+        excluded = pipeline_output.get("excluded_genes", [])
+        if excluded:
+            ws_excluded = wb.create_sheet("Genes Not Shown")
+            for col, header in enumerate(EXCLUDED_HEADERS, 1):
+                cell = ws_excluded.cell(row=1, column=col, value=header)
+                cell.font = header_font
+                cell.fill = header_fill
+            for row, entry in enumerate(excluded, 2):
+                for col, value in enumerate(excluded_cells(entry), 1):
+                    ws_excluded.cell(row=row, column=col, value=_excel_text(value))
+            sheets.append(ws_excluded)
+
         # Auto-adjust column widths
-        for ws in [ws_summary, ws_genes, ws_safety]:
+        for ws in sheets:
             for column in ws.columns:
                 max_length = 0
                 # column[0] can be a merged cell (title row), which has no column_letter
@@ -413,17 +470,45 @@ def _extract_enum_value(value) -> str:
     return str(value) if value else ""
 
 
+def _evidence_html(entry: dict) -> str:
+    """The measured knockout evidence of a gene (or of a gene left out of the ranking) as report HTML."""
+    evidence = entry.get("knockout_evidence")
+    basis = (entry.get("safety_recommendation") or {}).get("evidence_basis")
+    if basis is None and evidence:
+        # genes left out of the ranking carry no verdict, so the basis is read from the evidence itself
+        basis = "none"
+        if evidence["has_measured"]:
+            basis = "measured" if evidence["organism"]["basis"] == "direct" or evidence["cells"]["call"] != "UNKNOWN" else "ortholog"
+        elif evidence["organism"]["call"] != "UNKNOWN" and evidence["organism"]["distant"]:
+            basis = "distant"
+    basis = basis or "none"
+    parts = [f'<span class="basis basis-{html.escape(basis)}">{html.escape(BASIS_LABELS.get(basis, basis))}</span>']
+    if evidence:
+        organism, cells = evidence["organism"], evidence["cells"]
+        for part in (organism, cells):
+            if part["call"] != "UNKNOWN":
+                parts.append(f'<div class="evidence-line">{html.escape(part["text"])}</div>')
+        links = [f'<a href="https://pubmed.ncbi.nlm.nih.gov/{int(p)}/">PMID {int(p)}</a>' for p in organism["references"]]
+        if organism["mgi_id"]:
+            links.append(f'<a href="https://www.informatics.jax.org/marker/{html.escape(organism["mgi_id"])}">MGI</a>')
+        if links:
+            parts.append(f'<div class="evidence-refs">{" | ".join(links)}</div>')
+    return "".join(parts)
+
+
 def _generate_report_html(
     metadata: Dict[str, Any], 
     genes: list, 
     total_genes_screened: int,
     output_path: str,
     insufficient_genes: list = None,
-    warnings: list = None
+    warnings: list = None,
+    excluded_genes: list = None
 ) -> str:
     """
     Generate the complete HTML report.
     """
+    excluded_genes = excluded_genes or []
     # Escape metadata values for safety
     escaped_go_term = html.escape(str(metadata.get("go_term", "Unknown")))
     escaped_organism = html.escape(str(metadata.get("organism", "Unknown")))
@@ -435,6 +520,9 @@ def _generate_report_html(
     max_pleiotropy = metadata.get("max_pleiotropy", 10)
     
     insufficient_genes = insufficient_genes or []
+    knockout_context = metadata.get("knockout_context")
+    context_html = (f" | Knockout context: <strong>{html.escape(CONTEXT_LABELS.get(knockout_context, str(knockout_context)))}</strong>"
+                    if knockout_context else "")
     warnings_html = "".join(
         f'<div class="report-warning"><strong>Warning:</strong> {html.escape(str(w))}</div>'
         for w in (warnings or [])
@@ -634,7 +722,17 @@ def _generate_report_html(
             margin-top: 5px;
             border-left: 3px solid var(--secondary-color);
         }}
-        
+
+        .basis {{ display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75em; font-weight: bold; margin-bottom: 4px; }}
+        .basis-measured {{ background: #d4edda; color: #155724; }}
+        .basis-ortholog {{ background: #d1ecf1; color: #0c5460; }}
+        .basis-predicted {{ background: #fff3cd; color: #856404; }}
+        .basis-distant {{ background: #e2e3e5; color: #41464b; }}
+        .basis-none {{ background: #e2e3e5; color: #41464b; }}
+        .evidence-line {{ font-size: 0.88em; margin-top: 3px; }}
+        .evidence-refs {{ font-size: 0.8em; color: var(--text-light); margin-top: 3px; }}
+        .sources-list {{ font-size: 0.9em; color: var(--text-light); }}
+
         @media (max-width: 768px) {{
             body {{ padding: 10px; }}
             .summary-grid {{ grid-template-columns: 1fr; }}
@@ -652,8 +750,8 @@ def _generate_report_html(
                 Generated: {timestamp}
             </div>
             <div class="subtitle">
-                Evidence Filter: <strong>{evidence_filter}</strong> | 
-                Pleiotropy cutoff (0-10): <strong>{max_pleiotropy}</strong>
+                Evidence Filter: <strong>{evidence_filter}</strong> |
+                Pleiotropy cutoff (0-10): <strong>{max_pleiotropy}</strong>{context_html}
             </div>
         </header>
 
@@ -702,6 +800,7 @@ def _generate_report_html(
                         <th>Visual</th>
                         <th>Composite Score</th>
                         <th>Safety Level</th>
+                        <th>Measured Knockout Evidence</th>
                         <th>KEGG Pathways</th>
                         <th>Recommendation</th>
                     </tr>
@@ -740,7 +839,10 @@ def _generate_report_html(
         safety_class = _safety_class(safety_level)
         
         kegg_count = gene.get("kegg_pathway_count", "N/A")
-        
+        if isinstance(safety_justification, (list, tuple)):
+            safety_justification = "; ".join(str(line) for line in safety_justification)
+        evidence_html = _evidence_html(gene)
+
         html_content += f"""
                     <tr>
                         <td>{rank}</td>
@@ -755,6 +857,7 @@ def _generate_report_html(
                         </td>
                         <td>{composite_score:.3f}</td>
                         <td><span class="safety-level {safety_class}">{html.escape(_safety_label(safety_level))}</span></td>
+                        <td>{evidence_html}</td>
                         <td>{kegg_count}</td>
                         <td>
                             {primary_rec}
@@ -796,6 +899,47 @@ def _generate_report_html(
         html_content += """
                 </tbody>
             </table>
+        </div>
+"""
+
+    if excluded_genes:
+        html_content += """
+        <div class="section">
+            <h2 class="section-title">Genes Assessed but Not Shown</h2>
+            <p style="margin-bottom: 15px; color: var(--text-light);">
+                These genes were assessed too, but are not in the ranking above: either their pleiotropy score is above the
+                cutoff, or they rank below the genes shown. Their measured knockout result is listed so that nothing is hidden.
+            </p>
+            <table>
+                <thead>
+                    <tr><th>Gene Symbol</th><th>Why Not Shown</th><th>Measured Knockout Evidence</th></tr>
+                </thead>
+                <tbody>
+"""
+        for entry in excluded_genes:
+            html_content += f"""
+                    <tr>
+                        <td><strong>{html.escape(str(entry.get("symbol", "")))}</strong></td>
+                        <td>{html.escape(str(entry.get("detail", "")))}</td>
+                        <td>{_evidence_html(entry)}</td>
+                    </tr>
+"""
+        html_content += """
+                </tbody>
+            </table>
+        </div>
+"""
+
+    data_info = metadata.get("knockout_evidence_data") or {}
+    if data_info.get("sources"):
+        items = "".join(
+            f'<li><a href="{html.escape(s["url"])}">{html.escape(s["name"])}</a>: {html.escape(s.get("what", ""))}</li>'
+            for s in data_info["sources"])
+        html_content += f"""
+        <div class="section">
+            <h2 class="section-title">Data Sources</h2>
+            <p class="sources-list">Measured knockout data version {html.escape(str(data_info.get("version")))}.</p>
+            <ul class="sources-list">{items}</ul>
         </div>
 """
 

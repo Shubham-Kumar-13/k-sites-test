@@ -1,0 +1,21 @@
+{
+  "description": "Mouse knockout outcomes taken from the abstracts of the original papers (read through PubMed). 'lethal': homozygous knockouts do not survive; 'viable': they do. Used to check the measured-evidence data and the verdicts against published results.",
+  "genes": [
+    {"gene": "Polb", "expected": "lethal", "stage": "P", "pmids": [10716939], "doi": "10.1093/emboj/19.6.1397", "citation": "Sugo et al. 2000, EMBO J", "finding": "died of respiratory failure immediately after birth"},
+    {"gene": "Tdg", "expected": "lethal", "stage": "E", "pmids": [21278727, 21722948], "doi": "10.1038/nature09672", "citation": "Cortazar et al. 2011, Nature; Cortellino et al. 2011, Cell", "finding": "essential for embryonic development; knockout is embryonic lethal"},
+    {"gene": "Xrcc1", "expected": "lethal", "stage": "E", "pmids": [10191063], "doi": "10.1006/dbio.1999.9232", "citation": "Tebbs et al. 1999, Dev Biol", "finding": "mutant embryos arrest at embryonic day 6.5"},
+    {"gene": "Lig4", "expected": "lethal", "stage": "E", "pmids": [9889105], "doi": "10.1016/s0960-9822(98)00021-9", "citation": "Barnes et al. 1998, Curr Biol", "finding": "lethality in embryonic mice with apoptosis in the central nervous system"},
+    {"gene": "Fen1", "expected": "lethal", "stage": "E", "pmids": [12861020], "doi": "10.1128/MCB.23.15.5346-5353.2003", "citation": "Larsen et al. 2003, Mol Cell Biol", "finding": "complete depletion causes early embryonic lethality"},
+    {"gene": "Apex1", "expected": "lethal", "stage": "E", "pmids": [8799128], "doi": "10.1073/pnas.93.17.8919", "citation": "Xanthoudakis et al. 1996, PNAS", "finding": "homozygous mutants die during embryonic development, shortly after implantation"},
+    {"gene": "Lig3", "expected": "lethal", "stage": "E", "pmids": [16648486], "doi": "10.1128/MCB.26.10.3935-3941.2006", "citation": "Puebla-Osorio et al. 2006, Mol Cell Biol", "finding": "early embryonic lethality; development stops at 8.5 days"},
+    {"gene": "Pcna", "expected": "lethal", "stage": "E", "pmids": [18854411], "doi": "10.1073/pnas.0808182105", "citation": "Roa et al. 2008, PNAS", "finding": "Pcna knockout mice were embryonic lethal"},
+    {"gene": "Sirt6", "expected": "lethal", "stage": "J", "pmids": [16439206], "doi": "10.1016/j.cell.2005.11.044", "citation": "Mostoslavsky et al. 2006, Cell", "finding": "born small, eventually dying at about 4 weeks"},
+    {"gene": "Ogg1", "expected": "viable", "pmids": [10557315], "doi": "10.1073/pnas.96.23.13300", "citation": "Klungland et al. 1999, PNAS", "finding": "viable, no malignancies, no marked pathology"},
+    {"gene": "Ung", "expected": "viable", "pmids": [12934097], "doi": "10.1038/sj.onc.1206860", "citation": "Nilsen et al. 2003, Oncogene", "finding": "no overt phenotype to about 12 months; B-cell lymphomas in old mice"},
+    {"gene": "Neil1", "expected": "viable", "pmids": [16446448], "doi": "10.1073/pnas.0507444103", "citation": "Vartanian et al. 2006, PNAS", "finding": "viable but develop obesity, dyslipidemia and fatty liver (metabolic syndrome)"},
+    {"gene": "Parp1", "expected": "viable", "pmids": [7698643], "doi": "10.1101/gad.9.5.509", "citation": "Wang et al. 1995, Genes Dev", "finding": "healthy and fertile; some skin disease in old mice"},
+    {"gene": "Xpa", "expected": "viable", "pmids": [7675086], "doi": "10.1038/377169a0", "citation": "de Vries et al. 1995, Nature", "finding": "appear normal to 13 months; very susceptible to UV-induced tumours"},
+    {"gene": "Smug1", "expected": "viable", "pmids": [22447450], "doi": "10.1093/nar/gks259", "citation": "Kemmerich et al. 2012, Nucleic Acids Res", "finding": "breed normally and remain apparently healthy beyond 1 year"},
+    {"gene": "Nthl1", "expected": "viable", "pmids": [12093749], "doi": "10.1093/emboj/cdf350", "citation": "Takao et al. 2002, EMBO J", "finding": "no detectable phenotypical abnormality"}
+  ]
+}

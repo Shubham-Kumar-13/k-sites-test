@@ -3,11 +3,15 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 
 import { LocalBackend, estimateSeconds, formatDuration } from '../../webapp/static/js/engine/localApi.js';
 import { MemoryStore } from '../../webapp/static/js/engine/store.js';
 import { HttpClient } from '../../webapp/static/js/engine/http.js';
-import { keggFromRecording, keyFromUrl, loadPythonResult, loadRecording, offlineClient, replayFetch } from './helpers.mjs';
+import { EvidenceProvider } from '../../webapp/static/js/engine/knockoutEvidence.js';
+import { SAFETY_TIER } from '../../webapp/static/js/engine/pipeline.js';
+import { ROOT, keggFromRecording, keyFromUrl, loadPythonResult, loadRecording, offlineClient, replayFetch } from './helpers.mjs';
 
 const recording = loadRecording();
 const { input, result: python } = loadPythonResult();
@@ -38,7 +42,8 @@ function makeBackend(overrides = {}) {
         http: overrides.http || offlineClient(fetchForSixGenes(misses), { cache: null }),
         keggProvider: keggFromRecording(recording),
         loadOrganisms: async () => ORGS,
-        createPredictor: async () => null,
+        evidenceProvider: overrides.evidenceProvider || null,
+        createPredictor: overrides.createPredictor || (async () => null),
         getNcbiApiKey: () => '',
         locks: overrides.locks || null,
         now: () => Date.now(),
@@ -121,7 +126,7 @@ test('validation counts the genes and estimates the time', async () => {
     assert.equal(result.gene_count, 6);
     assert.equal(result.taxid, '9606');
     assert.equal(result.estimated_time_seconds, estimateSeconds(6, false));
-    assert.ok(result.warnings.some((w) => w.includes('6 genes found') && w.includes('top 3')));
+    assert.ok(result.warnings.some((w) => w.includes('6 genes found') && w.includes('3 safest')));
     assert.equal(estimateSeconds(10, true) > estimateSeconds(10, false), true);
     assert.equal(formatDuration(45), '45 seconds');
     assert.equal(formatDuration(600), '10 minutes');
@@ -201,7 +206,7 @@ test('every download type works, with a file name and the right content type', a
     assert.match(await (await get('summary')).text(), /gene_symbol,gene_description/);
     const xlsx = await get('xlsx');
     assert.match(xlsx.headers.get('Content-Type'), /spreadsheetml/);
-    assert.deepEqual(JSON.parse(new TextDecoder().decode(await xlsx.arrayBuffer())), ['Summary', 'Gene Rankings', 'Safety Recommendations']);
+    assert.deepEqual(JSON.parse(new TextDecoder().decode(await xlsx.arrayBuffer())), ['Summary', 'Gene Rankings', 'Safety Recommendations', 'Knockout Evidence']);
     assert.equal((await get('exe')).status, 400);
     delete globalThis.XLSX;
 });
@@ -293,4 +298,123 @@ test('a missing KEGG data file only removes the pathway count, it does not stop 
     const results = (await call(backend, `/api/jobs/${started.job_id}/results`)).body.results;
     assert.ok(results.genes.every((g) => g.kegg_pathway_count === 0));
     assert.ok(results.genes.length > 0);
+});
+
+// ------------------------------------------------------------------ measured knockout evidence
+
+/** The small copy of the real evidence files (tests/fixtures/evidence): it knows UNG, POLB, POLQ and PARP1, not LIG1 or RPA2. */
+const evidenceProvider = () => new EvidenceProvider(async (name) => JSON.parse(
+    fs.readFileSync(path.join(ROOT, 'tests', 'fixtures', 'evidence', name), 'utf8')));
+
+async function runJob(backend, job) {
+    const started = (await post(backend, '/api/analyze/start', job)).body;
+    await waitFor(async () => ['completed', 'failed'].includes((await call(backend, `/api/jobs/${started.job_id}/status`)).body.status));
+    return (await call(backend, `/api/jobs/${started.job_id}/results`)).body.results;
+}
+
+test('a job uses the measured knockout evidence, lists the safest genes first and says what the verdicts rest on', async () => {
+    const { backend } = makeBackend({ evidenceProvider: evidenceProvider() });
+
+    const results = await runJob(backend, JOB);
+
+    assert.equal(results.metadata.knockout_context, 'cells');                     // human genes: cultured cells
+    assert.equal(results.metadata.knockout_evidence_data.available, true);
+    const tiers = results.genes.map((g) => SAFETY_TIER[g.safety_recommendation.safety_level]);
+    assert.deepEqual(tiers, [...tiers].sort((a, b) => a - b));
+    const bySymbol = Object.fromEntries(results.genes.map((g) => [g.symbol, g]));
+    assert.equal(bySymbol.POLB.knockout_evidence.organism.call, 'LETHAL');         // the mouse knockout dies at birth
+    assert.equal(bySymbol.POLB.knockout_evidence.cells.call, 'NON_ESSENTIAL');     // but human cells do not need it
+    assert.equal(bySymbol.POLB.safety_recommendation.evidence_basis, 'measured');
+    assert.equal(bySymbol.LIG1.knockout_evidence.has_measured, false);             // not in the small test copy
+    assert.equal(bySymbol.LIG1.safety_recommendation.safety_level, 'CAUTION');     // never better than CAUTION without a measurement
+    assert.deepEqual(results.statistics.by_evidence_basis, { measured: 4, none: 2 });
+});
+
+test('the same genes read as a whole organism follow the mouse knockout instead', async () => {
+    const { backend } = makeBackend({ evidenceProvider: evidenceProvider() });
+
+    const results = await runJob(backend, { ...JOB, knockout_context: 'organism' });
+
+    assert.equal(results.metadata.knockout_context, 'organism');
+    const polb = results.genes.find((g) => g.symbol === 'POLB');
+    assert.equal(polb.safety_recommendation.safety_level, 'AVOID');
+    assert.equal(results.genes[results.genes.length - 1].safety_recommendation.safety_level, 'AVOID');   // the worst come last
+});
+
+test('genes beyond the report size and genes above the cutoff are listed as not shown, with their measured result', async () => {
+    const { backend } = makeBackend({ evidenceProvider: evidenceProvider() });
+
+    const results = await runJob(backend, { ...JOB, max_genes: 2 });
+
+    assert.equal(results.genes.length, 2);
+    const hidden = results.excluded_genes.filter((g) => g.reason === 'ranked');
+    assert.equal(hidden.length, python.genes.length - 2);
+    assert.ok(hidden.every((g) => /Ranked below the 2 genes shown/.test(g.detail)));
+    assert.ok(hidden.some((g) => g.knockout_evidence.organism.call !== 'UNKNOWN'));
+
+    const strict = await runJob(makeBackend({ evidenceProvider: evidenceProvider() }).backend, { ...JOB, max_pleiotropy: 3 });
+    const cut = strict.excluded_genes.filter((g) => g.reason === 'pleiotropy');
+    assert.ok(cut.length > 0 && cut.every((g) => /above the cutoff of 3/.test(g.detail)));
+    assert.equal(strict.statistics.genes_above_pleiotropy_cutoff, cut.length);
+});
+
+test('the phenotype model is only loaded for genes without a measured result', async () => {
+    let loaded = 0;
+    const predictions = [];
+    const createPredictor = async () => {
+        loaded += 1;
+        return { predict: async (symbol) => { predictions.push(symbol); return null; } };
+    };
+    const { backend } = makeBackend({ evidenceProvider: evidenceProvider(), createPredictor });
+
+    const results = await runJob(backend, { ...JOB, predict_phenotypes: true });
+
+    assert.equal(loaded, 1);
+    assert.deepEqual(predictions.sort(), ['LIG1', 'RPA2']);
+    assert.equal(results.statistics.phenotype_predictions_skipped, 4);
+
+    // with every gene measured the 90 MB model is never downloaded
+    loaded = 0;
+    const measuredOnly = makeBackend({ evidenceProvider: evidenceProvider(), createPredictor });
+    const allMeasured = await runJob(measuredOnly.backend, { ...JOB, predict_phenotypes: true, max_pleiotropy: 10 });
+    assert.ok(allMeasured.genes.length > 0);
+});
+
+test('if the evidence files cannot be read the job still runs, says so, and rates nothing better than CAUTION', async () => {
+    const broken = new EvidenceProvider(async () => { throw new Error('HTTP 404'); });
+    const { backend } = makeBackend({ evidenceProvider: broken });
+
+    const results = await runJob(backend, JOB);
+
+    assert.ok(results.warnings.some((w) => /Measured knockout data could not be loaded/.test(w) && /HTTP 404/.test(w)));
+    assert.equal(results.metadata.knockout_evidence_data.available, false);
+    assert.ok(results.genes.length > 0);
+    assert.ok(results.genes.every((g) => g.knockout_evidence && g.knockout_evidence.has_measured === false));
+    assert.ok(results.genes.every((g) => g.safety_recommendation.safety_level !== 'SAFE'));      // as the warning says: nothing better than CAUTION
+});
+
+test('an organism without evidence files is reported', async () => {
+    const odd = new EvidenceProvider(async (name) => (name === 'index.json'
+        ? { format: 1, built: '2026-01-01', organisms: {}, sources: [] } : {}));
+    const { backend } = makeBackend({ evidenceProvider: odd });
+
+    const results = await runJob(backend, JOB);
+
+    assert.ok(results.warnings.some((w) => /no measured knockout data for Homo sapiens/.test(w)));
+    assert.equal(results.metadata.knockout_evidence_data.organism_covered, false);
+});
+
+test('an organism file that cannot be read is reported and no gene is rated safe', async () => {
+    const index = { format: 1, built: '2026-01-01', sources: [], organisms: { 9606: { file: '9606.json', name: 'Homo sapiens', layers: [] } } };
+    const provider = new EvidenceProvider(async (name) => {
+        if (name === 'index.json') return index;
+        throw new Error('HTTP 404');
+    });
+    const { backend } = makeBackend({ evidenceProvider: provider });
+
+    const results = await runJob(backend, JOB);
+
+    assert.ok(results.warnings.some((w) => /Measured knockout data could not be loaded/.test(w) && /HTTP 404/.test(w)));
+    assert.equal(results.metadata.knockout_evidence_data.available, false);
+    assert.ok(results.genes.length > 0 && results.genes.every((g) => g.safety_recommendation.safety_level !== 'SAFE'));
 });
