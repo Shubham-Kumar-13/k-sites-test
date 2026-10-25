@@ -1,13 +1,13 @@
 """
-K-Sites: AI-Powered CRISPR Guide RNA Design Platform
+K-Sites: Safe Gene Selection for Knockout
 
-A comprehensive tool for designing high-confidence gRNAs with integrated 
-GO term and KEGG pathway analysis for reduced pleiotropy.
+A tool that helps scientists pick a safe (low-pleiotropy) gene for deletion,
+using GO, UniProt, KEGG and PubMed evidence.
 """
 
 __version__ = "1.2.1"
 __author__ = "K-Sites Development Team"
-__description__ = "AI-Powered CRISPR Guide RNA Design Platform with Pathway-Aware Off-Target Filtering"
+__description__ = "Safe gene selection for knockout using GO, UniProt, KEGG and PubMed evidence"
 
 from k_sites.workflow.pipeline import run_k_sites_pipeline
 from k_sites.cli import main

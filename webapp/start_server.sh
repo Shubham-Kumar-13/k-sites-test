@@ -5,7 +5,7 @@
 
 echo "============================================================"
 echo "  K-Sites - Suite for Knock-out/down Studies"
-echo "  Advanced CRISPR Guide RNA Design Platform"
+echo "  Safe Gene Selection for Knockout Studies"
 echo "============================================================"
 
 # Check if running from correct directory
@@ -25,12 +25,6 @@ echo "Configuration:"
 echo "  NCBI Email: $K_SITES_NCBI_EMAIL"
 echo "  Mail Server: ${MAIL_SERVER:-Not configured (email disabled)}"
 
-# Check Neo4j
-if [ -n "$K_SITES_NEO4J_URI" ]; then
-    echo "  Neo4j URI: $K_SITES_NEO4J_URI"
-else
-    echo "  Neo4j: Not configured (pathway analysis disabled)"
-fi
 
 echo ""
 

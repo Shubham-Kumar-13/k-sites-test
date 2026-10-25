@@ -1,9 +1,9 @@
 """
 Safety Recommendation Module for K-Sites
 
-This module generates comprehensive safety recommendations for CRISPR experiments
-based on pleiotropy scores, phenotype predictions, off-target analysis, and
-cross-species conservation data.
+This module generates safety recommendations for gene knockout/deletion
+based on pleiotropy scores, phenotype predictions, cross-species conservation
+and literature support.
 """
 
 import logging
@@ -56,13 +56,11 @@ class SafetyRecommendation:
 
 class SafetyRecommender:
     """
-    Generates safety recommendations for CRISPR experiments.
+    Generates safety recommendations for gene knockout experiments.
     
     Considers:
     - Pleiotropy score (multi-functionality)
     - Phenotype severity (lethal vs mild)
-    - Off-target profiles
-    - Pathway conflicts
     - Cross-species conservation
     - Literature support
     """
@@ -73,11 +71,6 @@ class SafetyRecommender:
                 "low": 3,
                 "moderate": 5,
                 "high": 8
-            },
-            "off_target": {
-                "tolerable": 2,
-                "concerning": 5,
-                "critical": 10
             },
             "conservation": {
                 "low": 0.3,
@@ -91,7 +84,6 @@ class SafetyRecommender:
         gene_symbol: str,
         pleiotropy_score: float,
         phenotype_prediction: Optional[Dict] = None,
-        guides: Optional[List[Dict]] = None,
         cross_species_validation: Optional[Dict] = None,
         literature_support: Optional[float] = None
     ) -> SafetyRecommendation:
@@ -102,7 +94,6 @@ class SafetyRecommender:
             gene_symbol: Target gene symbol
             pleiotropy_score: Calculated pleiotropy score (0-10)
             phenotype_prediction: Phenotype prediction dict with severity, risk_level, etc.
-            guides: List of designed gRNAs with off-target data
             cross_species_validation: Cross-species validation data
             literature_support: Literature support score (0-1)
             
@@ -128,9 +119,6 @@ class SafetyRecommender:
             lethality_stage = phenotype_prediction.get("lethality_stage")
             compensatory_mechanisms = phenotype_prediction.get("compensatory_mechanisms", [])
         
-        # Analyze off-targets
-        off_target_analysis = self._analyze_off_targets(guides)
-        
         # Analyze conservation
         conservation_score = cross_species_validation.get("conservation_score", 0.0) if cross_species_validation else 0.0
         
@@ -138,7 +126,6 @@ class SafetyRecommender:
         safety_level, primary_rec, alternative_recs = self._determine_safety_level(
             pleiotropy_score,
             phenotype_risk,
-            off_target_analysis,
             conservation_score,
             phenotype_confidence
         )
@@ -148,7 +135,6 @@ class SafetyRecommender:
             pleiotropy_score,
             phenotype_severity,
             phenotype_risk,
-            off_target_analysis,
             conservation_score,
             literature_support,
             phenotype_confidence
@@ -159,7 +145,6 @@ class SafetyRecommender:
             pleiotropy_score,
             phenotype_severity,
             phenotype_risk,
-            off_target_analysis,
             conservation_score,
             compensatory_mechanisms
         )
@@ -168,7 +153,6 @@ class SafetyRecommender:
         mitigation_strategies = self._suggest_mitigation_strategies(
             safety_level,
             primary_rec,
-            off_target_analysis,
             phenotype_risk,
             compensatory_mechanisms
         )
@@ -177,7 +161,6 @@ class SafetyRecommender:
         experimental_considerations = self._suggest_experimental_considerations(
             phenotype_severity,
             lethality_stage,
-            off_target_analysis,
             primary_rec
         )
         
@@ -185,7 +168,6 @@ class SafetyRecommender:
         confidence_score = self._calculate_confidence(
             phenotype_confidence,
             literature_support,
-            bool(guides),
             bool(cross_species_validation)
         )
         
@@ -194,7 +176,6 @@ class SafetyRecommender:
             "pleiotropy_score": pleiotropy_score,
             "phenotype_severity": phenotype_severity,
             "phenotype_risk": phenotype_risk,
-            "off_target_summary": off_target_analysis,
             "conservation_score": conservation_score,
             "compensatory_mechanisms": compensatory_mechanisms,
             "literature_support": literature_support
@@ -213,60 +194,14 @@ class SafetyRecommender:
             supporting_evidence=supporting_evidence
         )
     
-    def _analyze_off_targets(self, guides: Optional[List[Dict]]) -> Dict[str, Any]:
-        """Analyze off-target profiles from guide RNAs."""
-        if not guides:
-            return {
-                "total_guides": 0,
-                "guides_with_severe_off_targets": 0,
-                "max_severity": "none",
-                "pathway_conflicts": 0,
-                "cfd_scores": []
-            }
-        
-        guides_with_severe = 0
-        max_severity = "none"
-        pathway_conflicts = 0
-        cfd_scores = []
-        
-        severity_rank = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "none": 0}
-        
-        for guide in guides:
-            severity = guide.get("severity_level", "LOW")
-            if severity in ["CRITICAL", "HIGH"]:
-                guides_with_severe += 1
-            
-            if severity_rank.get(severity, 0) > severity_rank.get(max_severity, 0):
-                max_severity = severity
-            
-            if guide.get("pathway_conflicts", 0) > 0 or guide.get("pathway_conflict", False):
-                pathway_conflicts += 1
-            
-            cfd = guide.get("cfd_off_targets", 0)
-            if isinstance(cfd, (int, float)):
-                cfd_scores.append(cfd)
-        
-        return {
-            "total_guides": len(guides),
-            "guides_with_severe_off_targets": guides_with_severe,
-            "max_severity": max_severity,
-            "pathway_conflicts": pathway_conflicts,
-            "cfd_scores": cfd_scores,
-            "avg_cfd": sum(cfd_scores) / len(cfd_scores) if cfd_scores else 0
-        }
-    
     def _determine_safety_level(
         self,
         pleiotropy_score: float,
         phenotype_risk: Optional[str],
-        off_target_analysis: Dict,
         conservation_score: float,
         phenotype_confidence: float
     ) -> tuple:
         """Determine safety level and primary/alternative recommendations."""
-        
-        severe_off_targets = off_target_analysis.get("guides_with_severe_off_targets", 0)
-        pathway_conflicts = off_target_analysis.get("pathway_conflicts", 0)
         
         # High concern conditions
         if phenotype_risk in ["CRITICAL", "HIGH"] and phenotype_confidence > 0.5:
@@ -305,14 +240,6 @@ class SafetyRecommender:
                     [RecommendationType.VALIDATED_KO, RecommendationType.CRISPRI]
                 )
         
-        # Off-target concerns
-        if severe_off_targets > 5 or pathway_conflicts > 3:
-            return (
-                SafetyLevel.MODERATE_CONCERN,
-                RecommendationType.VALIDATED_KO,
-                [RecommendationType.CRISPRI, RecommendationType.BASE_EDITING]
-            )
-        
         # Pleiotropy-based decisions
         if pleiotropy_score > 8:
             return (
@@ -346,7 +273,7 @@ class SafetyRecommender:
         return (
             SafetyLevel.SAFE,
             RecommendationType.STANDARD_KO,
-            [RecommendationType.VALIDATED_KO] if severe_off_targets > 0 else []
+            []
         )
     
     def _build_justification(
@@ -354,7 +281,6 @@ class SafetyRecommender:
         pleiotropy_score: float,
         phenotype_severity: Optional[str],
         phenotype_risk: Optional[str],
-        off_target_analysis: Dict,
         conservation_score: float,
         literature_support: Optional[float],
         phenotype_confidence: float
@@ -379,15 +305,6 @@ class SafetyRecommender:
             else:
                 justification.append(f"Low confidence phenotype prediction ({phenotype_confidence:.2f})")
         
-        # Off-target justification
-        severe_ot = off_target_analysis.get("guides_with_severe_off_targets", 0)
-        if severe_ot > 0:
-            justification.append(f"{severe_ot} guides have severe off-targets")
-        
-        pathway_conf = off_target_analysis.get("pathway_conflicts", 0)
-        if pathway_conf > 0:
-            justification.append(f"{pathway_conf} guides have pathway conflicts")
-        
         # Conservation justification
         if conservation_score > 0.8:
             justification.append(f"Highly conserved across species ({conservation_score:.2f})")
@@ -407,7 +324,6 @@ class SafetyRecommender:
         pleiotropy_score: float,
         phenotype_severity: Optional[str],
         phenotype_risk: Optional[str],
-        off_target_analysis: Dict,
         conservation_score: float,
         compensatory_mechanisms: List[str]
     ) -> List[str]:
@@ -423,14 +339,6 @@ class SafetyRecommender:
         if pleiotropy_score > 8:
             concerns.append("High pleiotropy may confound phenotype interpretation")
         
-        severe_ot = off_target_analysis.get("guides_with_severe_off_targets", 0)
-        if severe_ot > 0:
-            concerns.append(f"Off-target effects possible in {severe_ot} guide designs")
-        
-        pathway_conf = off_target_analysis.get("pathway_conflicts", 0)
-        if pathway_conf > 0:
-            concerns.append("Potential disruption of related pathways")
-        
         if conservation_score > 0.8:
             concerns.append("Highly conserved gene - may be essential for basic cellular functions")
         
@@ -443,17 +351,11 @@ class SafetyRecommender:
         self,
         safety_level: SafetyLevel,
         primary_rec: RecommendationType,
-        off_target_analysis: Dict,
         phenotype_risk: Optional[str],
         compensatory_mechanisms: List[str]
     ) -> List[str]:
         """Suggest strategies to mitigate risks."""
         strategies = []
-        
-        # Off-target mitigation
-        if off_target_analysis.get("guides_with_severe_off_targets", 0) > 0:
-            strategies.append("Use high-fidelity Cas variants (SpCas9-HF1, eSpCas9, HypaCas9)")
-            strategies.append("Validate off-target effects with whole-genome sequencing")
         
         # Phenotype mitigation
         if phenotype_risk in ["CRITICAL", "HIGH"]:
@@ -482,7 +384,6 @@ class SafetyRecommender:
         self,
         phenotype_severity: Optional[str],
         lethality_stage: Optional[str],
-        off_target_analysis: Dict,
         primary_rec: RecommendationType
     ) -> List[str]:
         """Suggest experimental design considerations."""
@@ -495,11 +396,6 @@ class SafetyRecommender:
         if phenotype_severity == "LETHAL":
             considerations.append("Use heterozygous crosses to maintain line")
             considerations.append("Consider inducible systems for temporal control")
-        
-        # Off-target considerations
-        if off_target_analysis.get("guides_with_severe_off_targets", 0) > 0:
-            considerations.append("Use multiple independent gRNAs to confirm on-target effects")
-            considerations.append("Include rescue experiments with cDNA")
         
         # Method-specific considerations
         if primary_rec == RecommendationType.CRISPRI:
@@ -515,7 +411,7 @@ class SafetyRecommender:
             considerations.append("Compare heterozygous vs homozygous phenotypes")
         
         # General considerations
-        considerations.append("Include appropriate controls (non-targeting gRNA, wild-type)")
+        considerations.append("Include appropriate controls (wild-type and non-targeting controls)")
         considerations.append("Plan for phenotypic scoring at multiple developmental stages")
         
         return considerations
@@ -524,7 +420,6 @@ class SafetyRecommender:
         self,
         phenotype_confidence: float,
         literature_support: Optional[float],
-        has_guides: bool,
         has_validation: bool
     ) -> float:
         """Calculate overall confidence in the recommendation."""
@@ -532,9 +427,6 @@ class SafetyRecommender:
         
         if literature_support:
             scores.append(literature_support)
-        
-        if has_guides:
-            scores.append(0.8)  # Having guides adds confidence
         
         if has_validation:
             scores.append(0.7)  # Cross-species validation adds confidence
@@ -563,7 +455,6 @@ class SafetyRecommender:
                     gene_symbol=gene_data.get("symbol", "unknown"),
                     pleiotropy_score=gene_data.get("pleiotropy_score", 10),
                     phenotype_prediction=gene_data.get("phenotype_prediction"),
-                    guides=gene_data.get("guides"),
                     cross_species_validation=gene_data.get("cross_species_validation"),
                     literature_support=gene_data.get("literature_support")
                 )
@@ -629,7 +520,6 @@ def get_safety_recommendation(
     gene_symbol: str,
     pleiotropy_score: float,
     phenotype_prediction: Optional[Dict] = None,
-    guides: Optional[List[Dict]] = None,
     cross_species_validation: Optional[Dict] = None,
     literature_support: Optional[float] = None
 ) -> SafetyRecommendation:
@@ -639,7 +529,6 @@ def get_safety_recommendation(
         gene_symbol=gene_symbol,
         pleiotropy_score=pleiotropy_score,
         phenotype_prediction=phenotype_prediction,
-        guides=guides,
         cross_species_validation=cross_species_validation,
         literature_support=literature_support
     )

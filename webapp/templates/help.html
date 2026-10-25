@@ -82,7 +82,6 @@
                 <a class="nav-link ms-3 small" href="#{{ key }}">{{ term.title }}</a>
                 {% endfor %}
                 <a class="nav-link" href="#faq">FAQ</a>
-                <a class="nav-link" href="#neo4j-setup">Neo4j Setup</a>
             </nav>
         </nav>
     </div>
@@ -104,15 +103,15 @@
                     <h3 class="mb-0"><i class="fas fa-info-circle me-2"></i>What is K-Sites?</h3>
                 </div>
                 <div class="card-body">
-                    <p class="lead">K-Sites is a comprehensive <strong>Suite for Knock-out/down Studies</strong> that integrates multiple biological databases and AI-powered analysis to design optimal CRISPR guide RNAs.</p>
+                    <p class="lead">K-Sites is a comprehensive <strong>Suite for Knock-out/down Studies</strong> that integrates multiple biological databases and literature mining to help you pick a safe gene to delete.</p>
                     
                     <div class="row g-4 mt-3">
                         <div class="col-md-6">
                             <div class="d-flex align-items-start">
                                 <i class="fas fa-bullseye fa-2x text-primary me-3 mt-1"></i>
                                 <div>
-                                    <h5>Pathway-Aware Design</h5>
-                                    <p class="text-muted mb-0">Identifies and avoids off-targets in related pathways using Neo4j graph analysis.</p>
+                                    <h5>Multi-Database Evidence</h5>
+                                    <p class="text-muted mb-0">Combines GO, UniProt, KEGG and PubMed data for each candidate gene.</p>
                                 </div>
                             </div>
                         </div>
@@ -139,7 +138,7 @@
                                 <i class="fas fa-shield-alt fa-2x text-warning me-3 mt-1"></i>
                                 <div>
                                     <h5>Safety Assessment</h5>
-                                    <p class="text-muted mb-0">Comprehensive risk evaluation for each gRNA design.</p>
+                                    <p class="text-muted mb-0">Comprehensive knockout risk evaluation for each gene.</p>
                                 </div>
                             </div>
                         </div>
@@ -206,48 +205,6 @@
                 <p>{{ item.answer }}</p>
             </div>
             {% endfor %}
-        </section>
-        
-        <!-- Neo4j Setup Section -->
-        <section id="neo4j-setup" class="mb-5">
-            <h2 class="mb-4"><i class="fas fa-database me-2 text-primary"></i>Neo4j Setup Guide</h2>
-            
-            <div class="card">
-                <div class="card-body">
-                    <h5>What is Neo4j Pathway Analysis?</h5>
-                    <p>Neo4j integration enables advanced pathway-aware off-target filtering. It stores KEGG pathway relationships in a graph database, allowing K-Sites to identify when off-target genes share pathways with your target gene.</p>
-                    
-                    <h5 class="mt-4">Installation Steps</h5>
-                    <ol>
-                        <li class="mb-2">
-                            <strong>Install Neo4j:</strong>
-                            <pre class="bg-light p-2 rounded"><code># Using Docker
-docker run -d --name neo4j-ksites -p 7687:7687 -p 7474:7474 -e NEO4J_AUTH=neo4j/password neo4j:latest
-
-# Or download from https://neo4j.com/download/</code></pre>
-                        </li>
-                        <li class="mb-2">
-                            <strong>Set environment variables:</strong>
-                            <pre class="bg-light p-2 rounded"><code>export K_SITES_NEO4J_URI=bolt://localhost:7687
-export K_SITES_NEO4J_USER=neo4j
-export K_SITES_NEO4J_PASSWORD=password</code></pre>
-                        </li>
-                        <li class="mb-2">
-                            <strong>Ingest KEGG pathway data:</strong>
-                            <pre class="bg-light p-2 rounded"><code>cd /home/iiab/Documents/K-sites
-python -m k_sites.neo4j.ingest_kegg --taxid 9606 --organism "Homo sapiens"</code></pre>
-                        </li>
-                        <li>
-                            <strong>Verify connection:</strong> The Neo4j database card should show as "Available" on the analysis form.
-                        </li>
-                    </ol>
-                    
-                    <div class="alert alert-info mt-4">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <strong>Note:</strong> Neo4j is optional. K-Sites works without it using GO-based pathway analysis only.
-                    </div>
-                </div>
-            </div>
         </section>
     </div>
 </div>

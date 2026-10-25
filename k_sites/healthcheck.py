@@ -30,8 +30,7 @@ def check_filesystem_integrity() -> Tuple[bool, List[str]]:
         "data_retrieval/organism_resolver.py",
         "data_retrieval/go_gene_mapper.py",
         "gene_analysis/pleiotropy_scorer.py",
-        "crispr_design/guide_designer.py",
-        "neo4j/graph_client.py",
+        "workflow/safety_recommender.py",
         "rag_system/literature_context.py",
         "reporting/report_generator.py"
     ]
@@ -46,8 +45,6 @@ def check_filesystem_integrity() -> Tuple[bool, List[str]]:
         "k_sites/__init__.py",
         "k_sites/data_retrieval/__init__.py",
         "k_sites/gene_analysis/__init__.py",
-        "k_sites/crispr_design/__init__.py",
-        "k_sites/neo4j/__init__.py",
         "k_sites/rag_system/__init__.py",
         "k_sites/workflow/__init__.py",
         "k_sites/reporting/__init__.py",
@@ -57,10 +54,6 @@ def check_filesystem_integrity() -> Tuple[bool, List[str]]:
     for subdir_init in required_subdirs:
         if not Path(subdir_init).exists():
             errors.append(f"Missing __init__.py: {subdir_init}")
-    
-    # Check if Sandip_created directory exists
-    if not Path("Sandip_created").exists():
-        errors.append("Sandip_created directory not found - original Neo4j files missing")
     
     # Check for example config
     if not Path("k-sites.yaml").exists():
@@ -89,9 +82,7 @@ def check_python_imports() -> Tuple[bool, List[str]]:
         modules_to_test = [
             "k_sites.cli",
             "k_sites.workflow",
-            "k_sites.neo4j.graph_client",
             "k_sites.gene_analysis",
-            "k_sites.crispr_design",
             "k_sites.rag_system",
             "k_sites.reporting",
             "k_sites.config"
@@ -117,7 +108,6 @@ def check_dependencies() -> Tuple[bool, List[str], Dict[str, str]]:
     # Test importing required packages
     required_packages = {
         "biopython": "Bio",
-        "neo4j": "neo4j",
         "requests": "requests",
         "pyyaml": "yaml",
         "tqdm": "tqdm",
@@ -148,14 +138,6 @@ def check_dependencies() -> Tuple[bool, List[str], Dict[str, str]]:
                 errors.append(f"Biopython version {bio_ver} is too old, requires >= 1.80")
         except:
             errors.append(f"Could not parse Biopython version: {bio_ver}")
-    
-    if "neo4j" in versions:
-        neo4j_ver = versions["neo4j"]
-        try:
-            if version.parse(neo4j_ver) < version.parse("5.0"):
-                errors.append(f"Neo4j version {neo4j_ver} is too old, requires >= 5.0")
-        except:
-            errors.append(f"Could not parse Neo4j version: {neo4j_ver}")
     
     return len(errors) == 0, errors, versions
 
@@ -196,31 +178,6 @@ def check_external_services() -> Dict[str, Any]:
             "error": str(e)
         }
     
-    # Check Neo4j
-    try:
-        from neo4j import GraphDatabase
-        driver = GraphDatabase.driver(
-            "bolt://localhost:7687",
-            auth=("neo4j", os.getenv("NEO4J_PASSWORD", "kkokay07")),
-            max_connection_lifetime=30  # Short lifetime for health check
-        )
-        
-        # Test connection with timeout
-        with driver.session() as session:
-            result = session.run("RETURN 1", timeout=2)
-            record = result.single()
-            results["neo4j"] = {
-                "reachable": record is not None,
-                "connected": True
-            }
-        
-        driver.close()
-    except Exception as e:
-        results["neo4j"] = {
-            "reachable": False,
-            "error": str(e)
-        }
-    
     return results
 
 
@@ -238,20 +195,12 @@ def check_configuration() -> Tuple[bool, List[str], Dict[str, Any]]:
     else:
         config_info["ncbi_email_set"] = True
     
-    # Check Neo4j password
-    neo4j_password = os.getenv("NEO4J_PASSWORD") or os.getenv("K_SITES_NEO4J_PASSWORD")
-    if not neo4j_password or neo4j_password == "kkokay07":  # Default dev password
-        warnings.append("NEO4J_PASSWORD not set or using default - Neo4j features will be limited")
-        config_info["neo4j_password_set"] = False
-    else:
-        config_info["neo4j_password_set"] = True
-    
     return len(errors) == 0, warnings, config_info
 
 
 def run_health_check() -> None:
     """Run complete health check and display results."""
-    print("Universal K-Sites Health Check")
+    print("K-Sites Health Check")
     print("────────────────")
     
     # 1. Filesystem integrity
@@ -297,12 +246,6 @@ def run_health_check() -> None:
     else:
         print(f"⚠️  QuickGO: Not reachable ({service_results['quickgo'].get('error', 'connection failed')})")
     
-    # Neo4j
-    if service_results["neo4j"]["reachable"]:
-        print("✅ Neo4j: Reachable")
-    else:
-        print(f"⚠️  Neo4j: Not reachable (bolt://localhost:7687) — pathway features disabled")
-    
     # 5. Configuration
     config_ok, config_warnings, config_info = check_configuration()
     if config_ok:
@@ -316,19 +259,8 @@ def run_health_check() -> None:
     overall_status = "READY"
     if not fs_ok or not import_ok or not deps_ok:
         overall_status = "ISSUES DETECTED"
-    elif not service_results["neo4j"]["reachable"]:
-        overall_status = "READY (GO-only mode)"
     
-    # Determine mode
-    mode_status = "PATHWAY MODE: ENABLED" if service_results["neo4j"]["reachable"] else "PATHWAY MODE: DISABLED (Neo4j unreachable)"
-    
-    print(f"Status: {overall_status} | {mode_status}")
-    
-    # Suggest next steps
-    if not service_results["neo4j"]["reachable"]:
-        print("\nNext steps:")
-        print("• Start Neo4j: docker start neo4j-ksites")
-        print("• Ingest pathways: python -m k_sites.neo4j.ingest_kegg --taxid 9606")
+    print(f"Status: {overall_status}")
 
 
 if __name__ == "__main__":

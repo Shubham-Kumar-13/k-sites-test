@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-Unified Command-Line Interface for Universal K-Sites
+Unified Command-Line Interface for K-Sites
 
-This module serves as the entry point for the Universal K-Sites platform,
-integrating both original GO-based analysis and Neo4j/KEGG pathway graph analysis.
+This module serves as the entry point for K-Sites, a tool that helps
+scientists pick a safe gene for knockout/deletion using GO, UniProt, KEGG
+and PubMed evidence.
 """
 
 import argparse
@@ -96,30 +97,6 @@ def validate_go_term(go_term):
     return go_term.upper()
 
 
-def check_neo4j_availability():
-    """
-    Check if Neo4j is available and reachable.
-    
-    Returns:
-        bool: True if Neo4j is available, False otherwise
-    """
-    try:
-        from k_sites.neo4j.connection_manager import get_driver
-        driver = get_driver()
-        
-        # Test connection by running a simple query
-        with driver.session() as session:
-            result = session.run("RETURN 1")
-            record = result.single()
-            if record and record[0] == 1:
-                return True
-    except Exception as e:
-        logger.debug(f"Neo4j connection test failed: {str(e)}")
-        return False
-    
-    return False
-
-
 def run_k_sites_analysis(args):
     """
     Execute the main K-Sites analysis workflow.
@@ -137,24 +114,8 @@ def run_k_sites_analysis(args):
         logger.error(str(e))
         sys.exit(1)
     
-    # Check if graph functionality should be enabled
-    use_graph = args.use_graph
-    if args.use_graph and not os.path.exists("Sandip_created/"):
-        logger.warning("--use-graph enabled but Sandip_created/ directory not found, falling back to GO-only mode")
-        use_graph = False
-    elif args.use_graph and not check_neo4j_availability():
-        logger.warning("--use-graph enabled but Neo4j not reachable, falling back to GO-only mode")
-        use_graph = False
-    
-    logger.info(f"Using graph-enhanced analysis: {use_graph}")
-    
     # Import required modules
     try:
-        if use_graph:
-            from k_sites.neo4j.graph_queries import run_query
-            from k_sites.neo4j.pathway_analytics import calculate_centrality_metrics
-            logger.info("Loaded graph utilities for pathway analysis")
-        
         # Import workflow components
         from k_sites.workflow.pipeline import run_k_sites_pipeline
         from k_sites.reporting.report_generator import generate_html_report
@@ -163,7 +124,6 @@ def run_k_sites_analysis(args):
         pipeline_params = {
             'go_term': go_term,
             'organism': taxid,
-            'use_graph': use_graph,
             'max_pleiotropy': getattr(args, 'max_pleiotropy', 3),  # Default value
             'evidence_filter': getattr(args, 'evidence_filter', 'experimental'),  # Default evidence filter
             'species_validation': getattr(args, 'species_validation', None),  # Default species list
@@ -185,6 +145,7 @@ def run_k_sites_analysis(args):
             print(f"\nAnalysis Summary:")
             print(f"- Total genes screened: {stats.get('total_genes_screened', 0)}")
             print(f"- Genes passed filter: {stats.get('genes_passed_filter', 0)}")
+            print(f"- Genes not scored (insufficient data): {stats.get('genes_insufficient_data', 0)}")
             print(f"- Average pleiotropy score: {stats.get('avg_pleiotropy', 0):.2f}")
             most_specific = stats.get('most_specific_gene', {})
             if most_specific:
@@ -231,16 +192,13 @@ def main():
     Main entry point for the K-Sites CLI.
     """
     parser = argparse.ArgumentParser(
-        description="Universal K-Sites: Advanced CRISPR guide RNA design platform "
-                   "integrating GO term analysis with KEGG pathway graph analytics.",
+        description="K-Sites: helps scientists pick a safe gene for knockout by scoring "
+                   "pleiotropy, evidence quality, conservation and literature support.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   # Basic usage
   %(prog)s --go-term GO:0006281 --organism "Homo sapiens" --output report.html
-  
-  # With Neo4j pathway analysis
-  %(prog)s --go-term GO:0006281 --organism 9606 --output report.html --use-graph
   
   # With RAG phenotype prediction and literature reports
   %(prog)s --go-term GO:0006281 --organism 9606 --output report.html --predict-phenotypes --rag-report
@@ -262,7 +220,6 @@ Database Options (--databases):
 Note:
   - Organism can be NCBI TaxID (e.g., 9606) or scientific name (e.g., "Homo sapiens")
   - GO term format: GO:0000000 (7 digits after GO:)
-  - Graph mode uses Neo4j KEGG pathway data for enhanced pleiotropy assessment
   - Use --go-term-search to get GO term suggestions with gene count statistics
   - Use --rag-report to generate detailed literature analysis for each gene
         """
@@ -287,20 +244,6 @@ Note:
     )
     
     parser.add_argument(
-        '--use-graph',
-        action='store_true',
-        default=True,
-        help='Enable Neo4j pathway-aware pleiotropy analysis (default: true if Neo4j is reachable)'
-    )
-    
-    parser.add_argument(
-        '--no-graph',
-        action='store_false',
-        dest='use_graph',
-        help='Disable Neo4j pathway analysis, use GO-only mode'
-    )
-    
-    parser.add_argument(
         '--max-pleiotropy',
         type=int,
         default=10,
@@ -313,7 +256,10 @@ Note:
         '--evidence-filter',
         choices=['experimental', 'computational', 'all'],
         default='experimental',
-        help='Type of evidence to include (default: experimental)'
+        help='Which GO evidence counts: experimental = only roles proven in lab experiments '
+             '(strict, but can make poorly studied genes look specific); computational = only '
+             'predicted roles; all = every known role, the most cautious about pleiotropy '
+             '(default: experimental)'
     )
     
     parser.add_argument(
@@ -348,7 +294,6 @@ Note:
         help='Search for GO terms with autocomplete functionality and gene count statistics (e.g., "DNA repair")'
     )
     
-    # Allow the use_graph flag to be set by default based on Neo4j availability
     args = parser.parse_args()
     
     # Handle GO term search functionality
@@ -370,11 +315,6 @@ Note:
             print(f"No GO terms found matching '{args.go_term_search}'")
         
         return  # Exit after showing search results
-    
-    # If use_graph is still default (True), check Neo4j availability
-    if args.use_graph:
-        if not os.path.exists("Sandip_created/") or not check_neo4j_availability():
-            args.use_graph = False
     
     run_k_sites_analysis(args)
 

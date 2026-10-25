@@ -11,7 +11,7 @@
                 <i class="fas fa-dna me-3"></i>K-Sites
             </h1>
             <p class="lead text-muted">Suite for Knock-out/down Studies</p>
-            <p class="text-secondary">Advanced CRISPR Guide RNA Design Platform with Pathway-Aware Analysis</p>
+            <p class="text-secondary">Safe Gene Selection for Knockout Studies</p>
         </div>
         
         <form id="analysisForm" class="needs-validation" novalidate>
@@ -224,12 +224,7 @@
                     </div>
                     <div class="form-text mt-2">
                         <i class="fas fa-info-circle me-1"></i>
-                        QuickGO is always used. Enable Neo4j for pathway-aware off-target filtering.
-                    </div>
-                    <div id="neo4jWarning" class="alert alert-warning mt-3" style="display: none;">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <strong>Neo4j not available.</strong> Pathway analysis requires Neo4j database setup.
-                        <a href="/help#neo4j-setup" class="alert-link">Learn more</a>.
+                        QuickGO is always used. KEGG adds a pathway count for each gene.
                     </div>
                 </div>
             </div>
@@ -292,10 +287,16 @@
                                 <i class="fas fa-check-double me-2"></i>Evidence Filter
                             </label>
                             <select class="form-select" id="evidence_filter" name="evidence_filter">
-                                <option value="experimental">Experimental only (recommended)</option>
+                                <option value="experimental">Experimental only</option>
                                 <option value="computational">Computational only</option>
                                 <option value="all">All evidence types</option>
                             </select>
+                            <div class="form-text">
+                                <strong>Experimental:</strong> only roles proven in lab experiments (strict, but can make
+                                poorly studied genes look more specific than they are).<br>
+                                <strong>Computational:</strong> only predicted roles.<br>
+                                <strong>All:</strong> every known role (most cautious about pleiotropy).
+                            </div>
                         </div>
                         
                         <div class="col-md-6 mb-3">

@@ -17,22 +17,13 @@ class TestCliIntegration:
     
     def test_cli_execution_with_mocked_responses(self):
         """Test CLI execution with mocked external services."""
-        # Create a temporary output file
         with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as tmp_file:
             output_path = tmp_file.name
         
         try:
-            # Mock all external dependencies
-            with patch('k_sites.cli.validate_and_resolve_organism') as mock_resolve, \
-                 patch('k_sites.cli.check_neo4j_availability') as mock_neo4j, \
-                 patch('k_sites.workflow.pipeline.run_k_sites_pipeline') as mock_pipeline, \
-                 patch('k_sites.reporting.report_generator.generate_html_report') as mock_report:
+            with patch('k_sites.cli.validate_and_resolve_organism') as mock_resolve,                  patch('k_sites.workflow.pipeline.run_k_sites_pipeline') as mock_pipeline,                  patch('k_sites.reporting.report_generator.generate_html_report') as mock_report:
                 
-                # Set up mocks
                 mock_resolve.return_value = "9606"  # Homo sapiens taxid
-                mock_neo4j.return_value = True  # Neo4j available
-                
-                # Mock pipeline output
                 mock_pipeline.return_value = {
                     "metadata": {
                         "go_term": "GO:0006281",
@@ -45,132 +36,30 @@ class TestCliIntegration:
                             "symbol": "BRCA1",
                             "pleiotropy_score": 2,
                             "description": "BRCA1 DNA repair associated",
-                            "guides": [
-                                {
-                                    "seq": "AACGUUUCCUAGCUAGAAAUAGC",
-                                    "position": 123456,
-                                    "doench_score": 0.85,
-                                    "cfd_off_targets": 2,
-                                    "pathway_conflict": False
-                                }
-                            ]
+                            "safety_recommendation": {"safety_level": "SAFE"}
                         }
-                    ]
+                    ],
+                    "statistics": {"total_genes_screened": 1, "genes_passed_filter": 1}
                 }
-                
-                # Mock report generation
                 mock_report.return_value = None
                 
-                # Test the main CLI function directly rather than using subprocess
                 from k_sites.cli import run_k_sites_analysis
-                import argparse
                 
-                # Create mock args
                 class MockArgs:
                     go_term = "GO:0006281"
                     organism = "Homo sapiens"
                     output = output_path
-                    use_graph = True
                 
-                args = MockArgs()
+                run_k_sites_analysis(MockArgs())
                 
-                # Run the analysis
-                run_k_sites_analysis(args)
-                
-                # Verify that the pipeline was called
-                assert mock_pipeline.called
-                assert mock_report.called
-                
-                # Verify that the report was generated
-                assert os.path.exists(output_path)
-                
-                # Read the generated HTML to verify content
-                with open(output_path, 'r') as f:
-                    html_content = f.read()
-                
-                # Check that the HTML contains expected elements
-                assert "BRCA1" in html_content  # Gene symbol should be in report
-                assert "GO:0006281" in html_content  # GO term should be in report
-                assert "AACGUUUCCUAGCUAGAAAUAGC" in html_content  # gRNA sequence should be in report
-                
-        finally:
-            # Clean up temp file
-            if os.path.exists(output_path):
-                os.unlink(output_path)
-    
-    def test_cli_with_neo4j_unavailable(self):
-        """Test CLI execution when Neo4j is unavailable (GO-only mode)."""
-        # Create a temporary output file
-        with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as tmp_file:
-            output_path = tmp_file.name
-        
-        try:
-            # Mock all external dependencies
-            with patch('k_sites.cli.validate_and_resolve_organism') as mock_resolve, \
-                 patch('k_sites.cli.check_neo4j_availability') as mock_neo4j, \
-                 patch('k_sites.workflow.pipeline.run_k_sites_pipeline') as mock_pipeline, \
-                 patch('k_sites.reporting.report_generator.generate_html_report') as mock_report:
-                
-                # Set up mocks - Neo4j unavailable
-                mock_resolve.return_value = "9606"  # Homo sapiens taxid
-                mock_neo4j.return_value = False  # Neo4j not available
-                
-                # Mock pipeline output with GO-only results
-                mock_pipeline.return_value = {
-                    "metadata": {
-                        "go_term": "GO:0006281", 
-                        "organism": "Homo sapiens",
-                        "timestamp": "2026-02-05T21:00:00",
-                        "max_pleiotropy": 3,
-                        "use_graph": False  # Should be set to False when Neo4j unavailable
-                    },
-                    "genes": [
-                        {
-                            "symbol": "BRCA1", 
-                            "pleiotropy_score": 2,
-                            "description": "BRCA1 DNA repair associated",
-                            "guides": [
-                                {
-                                    "seq": "AACGUUUCCUAGCUAGAAAUAGC",
-                                    "position": 123456,
-                                    "doench_score": 0.85,
-                                    "cfd_off_targets": 2,
-                                    "pathway_conflict": False
-                                }
-                            ]
-                        }
-                    ]
-                }
-                
-                # Mock report generation
-                mock_report.return_value = None
-                
-                # Test the main CLI function directly
-                from k_sites.cli import run_k_sites_analysis
-                import argparse
-                
-                # Create mock args
-                class MockArgs:
-                    go_term = "GO:0006281"
-                    organism = "Homo sapiens" 
-                    output = output_path
-                    use_graph = True  # User requested graph, but it will be disabled
-                
-                args = MockArgs()
-                
-                # Run the analysis
-                run_k_sites_analysis(args)
-                
-                # Verify that the pipeline was called with use_graph=False
+                # The pipeline is called without any graph/guide options
                 mock_pipeline.assert_called_once()
-                call_args = mock_pipeline.call_args
-                assert call_args[1]['use_graph'] == False  # Should be False despite user request
-                
-                # Verify that the report was generated
-                assert os.path.exists(output_path)
-                
+                call_kwargs = mock_pipeline.call_args[1]
+                assert call_kwargs['go_term'] == "GO:0006281"
+                assert call_kwargs['organism'] == "9606"
+                assert 'use_graph' not in call_kwargs
+                assert mock_report.called
         finally:
-            # Clean up temp file
             if os.path.exists(output_path):
                 os.unlink(output_path)
     

@@ -1,18 +1,12 @@
 # K-Sites Configuration Template
 # Copy this to k-sites.yaml in your project directory or to ~/.openclaw/workspace/k-sites/config/k-sites.yaml
 
-neo4j:
-  uri: "bolt://localhost:7687"
-  user: "neo4j"
-  password: "${NEO4J_PASSWORD}"  # ← resolved from environment variable
-
 ncbi:
   email: "user@example.com"  # Required by NCBI E-Utils
   api_key: "${NCBI_API_KEY}"      # Optional but recommended for higher rate limits
 
 pipeline:
   max_pleiotropy: 3
-  use_graph: true
   cache_dir: "~/.openclaw/workspace/k-sites/.cache"
 
 reporting:

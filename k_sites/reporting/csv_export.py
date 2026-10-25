@@ -34,7 +34,7 @@ def generate_comprehensive_csv_report(pipeline_output: Dict[str, Any], csv_path:
         
         # Add metadata as header comments
         header_comments = [
-            ["# K-Sites CRISPR Design Report"],
+            ["# K-Sites Gene Selection Report"],
             [f"# GO Term: {metadata.get('go_term', 'N/A')}"],
             [f"# Organism: {metadata.get('organism', 'N/A')}"],
             [f"# Timestamp: {metadata.get('timestamp', 'N/A')}"],
@@ -54,11 +54,6 @@ def generate_comprehensive_csv_report(pipeline_output: Dict[str, Any], csv_path:
             ["# - Experimental_Evidence_Count: Number of experimental evidence codes"],
             ["# - Computational_Evidence_Count: Number of computational evidence codes"],
             ["# - IEA_Evidence_Count: Number of IEA (computational) evidence codes"],
-            ["# - Guide_Sequence: gRNA sequence (5'->3')"],
-            ["# - Guide_Position: Position of gRNA in gene"],
-            ["# - Doench_Score: On-target efficiency score (0-1 scale)"],
-            ["# - CFD_Off_Targets: Number of potential off-targets with CFD scoring"],
-            ["# - Pathway_Conflict: Whether gRNA has pathway conflicts"],
             ["# - Phenotype_Severity: Predicted knockout phenotype severity"],
             ["# - Phenotype_Risk_Level: Risk level based on phenotype prediction"],
             ["# - Phenotype_Confidence: Confidence in phenotype prediction"],
@@ -75,8 +70,7 @@ def generate_comprehensive_csv_report(pipeline_output: Dict[str, Any], csv_path:
             "Specificity_Score", "Evidence_Quality", "Literature_Support", 
             "Conservation_Score", "Composite_Score", "BP_Term_Count",
             "Experimental_Evidence_Count", "Computational_Evidence_Count", 
-            "IEA_Evidence_Count", "Guide_Sequence", "Guide_Position", 
-            "Doench_Score", "CFD_Off_Targets", "Pathway_Conflict",
+            "IEA_Evidence_Count", "KEGG_Pathway_Count",
             "Phenotype_Severity", "Phenotype_Risk_Level", "Phenotype_Confidence",
             "Phenotype_Lethality_Stage", "Safety_Recommendation"
         ]
@@ -97,6 +91,7 @@ def generate_comprehensive_csv_report(pipeline_output: Dict[str, Any], csv_path:
             exp_count = gene.get("experimental_evidence_count", "")
             comp_count = gene.get("computational_evidence_count", "")
             iea_count = gene.get("iea_evidence_count", "")
+            kegg_count = gene.get("kegg_pathway_count", "")
             
             # Get phenotype prediction if available
             phenotype_pred = gene.get("phenotype_prediction", {})
@@ -121,39 +116,14 @@ def generate_comprehensive_csv_report(pipeline_output: Dict[str, Any], csv_path:
             else:
                 safety_recommendation = "Standard KO acceptable"
             
-            # Add rows for each guide
-            guides = gene.get("guides", [])
-            for guide in guides:
-                guide_seq = guide.get("seq", "")
-                guide_position = guide.get("position", "")
-                doench_score = guide.get("doench_score", "")
-                cfd_off_targets = guide.get("cfd_off_targets", "")
-                pathway_conflict = guide.get("pathway_conflict", "")
-                
-                row = [
-                    gene_symbol, gene_description, entrez_id, pleiotropy_score,
-                    specificity_score, evidence_quality, literature_support,
-                    conservation_score, composite_score, bp_term_count,
-                    exp_count, comp_count, iea_count,
-                    guide_seq, guide_position, doench_score,
-                    cfd_off_targets, pathway_conflict,
-                    phenotype_severity, phenotype_risk, phenotype_confidence,
-                    phenotype_stage, safety_recommendation
-                ]
-                rows.append(row)
-            
-            # If no guides, still add the gene information
-            if not guides:
-                row = [
-                    gene_symbol, gene_description, entrez_id, pleiotropy_score,
-                    specificity_score, evidence_quality, literature_support,
-                    conservation_score, composite_score, bp_term_count,
-                    exp_count, comp_count, iea_count,
-                    "", "", "", "", "",
-                    phenotype_severity, phenotype_risk, phenotype_confidence,
-                    phenotype_stage, safety_recommendation
-                ]
-                rows.append(row)
+            rows.append([
+                gene_symbol, gene_description, entrez_id, pleiotropy_score,
+                specificity_score, evidence_quality, literature_support,
+                conservation_score, composite_score, bp_term_count,
+                exp_count, comp_count, iea_count, kegg_count,
+                phenotype_severity, phenotype_risk, phenotype_confidence,
+                phenotype_stage, safety_recommendation
+            ])
         
         # Add statistics summary
         rows.append([])
@@ -201,7 +171,7 @@ def generate_gene_summary_csv(pipeline_output: Dict[str, Any], csv_path: str) ->
                 'specificity_score', 'evidence_quality', 'literature_support',
                 'conservation_score', 'composite_score', 'bp_term_count',
                 'experimental_evidence_count', 'computational_evidence_count',
-                'iea_evidence_count', 'guide_count', 'phenotype_severity',
+                'iea_evidence_count', 'kegg_pathway_count', 'phenotype_severity',
                 'phenotype_risk_level', 'safety_recommendation', 'safety_justification'
             ]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -234,7 +204,7 @@ def generate_gene_summary_csv(pipeline_output: Dict[str, Any], csv_path: str) ->
                     'experimental_evidence_count': gene.get('experimental_evidence_count', ''),
                     'computational_evidence_count': gene.get('computational_evidence_count', ''),
                     'iea_evidence_count': gene.get('iea_evidence_count', ''),
-                    'guide_count': len(gene.get('guides', [])),
+                    'kegg_pathway_count': gene.get('kegg_pathway_count', ''),
                     'phenotype_severity': phenotype_severity,
                     'phenotype_risk_level': phenotype_risk,
                     'safety_recommendation': safety_recommendation,

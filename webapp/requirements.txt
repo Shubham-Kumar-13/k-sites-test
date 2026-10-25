@@ -13,9 +13,6 @@ SQLAlchemy==2.0.36
 Celery==5.3.4
 Redis==5.0.1
 
-# Neo4j
-neo4j==5.15.0
-
 # Email
 email-validator==2.1.0
 

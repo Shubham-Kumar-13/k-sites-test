@@ -1,124 +1,52 @@
-# K-Sites v1.2.0: Advanced CRISPR Guide RNA Design Platform
+# K-Sites: Safe Gene Selection for Knockout Studies
 
-[![PyPI version](https://badge.fury.io/py/k-sites.svg)](https://pypi.org/project/k-sites/)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**K-Sites** is a comprehensive CRISPR guide RNA design platform that integrates **GO term analysis** with **KEGG pathway graph analytics** to identify non-pleiotropic gene targets and design optimal gRNAs with pathway-aware off-target filtering.
+**K-Sites** helps scientists pick a **safe gene to delete**. Give it a biological process (a Gene Ontology term) and a species, and it ranks the genes involved in that process by how specific their function is and how risky a knockout is likely to be.
+
+A *pleiotropic* gene takes part in many different processes, so deleting it causes side effects everywhere. K-Sites favours genes with a narrow function, well-supported evidence and no known severe knockout phenotype.
+
+> **Scope:** K-Sites selects *which gene* to delete. It does not design guide RNAs or predict off-targets; use a dedicated guide design tool (for example CRISPOR or CHOPCHOP) for the gene you choose.
 
 ---
 
-## 🌟 Key Features
-
-### 1. Multi-Database Integration
-Queries **GO.org, UniProt, and KEGG simultaneously** using parallel processing for comprehensive gene data retrieval:
-- **GO.org (QuickGO)**: Gene Ontology annotations with evidence codes
-- **UniProt**: Protein knowledgebase (function, domains, pathways)
-- **KEGG**: Pathway annotations and pathway counts
-
-```bash
-# Use all databases (default)
-k-sites --go-term GO:0006281 --organism 9606 --output report.html
-
-# Select specific databases
-k-sites --go-term GO:0006281 --organism 9606 --output report.html --databases quickgo uniprot kegg
-```
-
-### 2. Pleiotropy Scoring Algorithm
-**Exponential decay scoring** based on number of associated Biological Process GO terms:
+## How it works
 
 ```
-Score = 10 × (1 - exp(-λ × (n-1)))
-```
-Where:
-- `n` = number of OTHER BP terms (excluding target GO term)
-- `λ` = 0.3 (decay rate)
-- Score range: **0-10** (0 = highly specific, 10 = highly pleiotropic)
-
-**Specificity Score**: Inverse on 0-1 scale (1 = most specific)
-```
-Specificity = 1.0 - (Pleiotropy / 10.0)
-```
-
-```bash
-k-sites --go-term GO:0006281 --organism 9606 --output report.html --max-pleiotropy 3
+GO term + organism
+      │
+      ▼
+1. Resolve organism                      → NCBI TaxID
+2. Map GO term to genes (QuickGO)        → candidate genes, filtered by evidence type
+3. Score and rank genes                  → pleiotropy, specificity, evidence quality,
+                                           literature support, conservation, composite score
+4. Per gene                              → cross-species check, optional phenotype
+                                           prediction, skip genes above the pleiotropy cutoff
+5. Safety recommendation                 → SAFE / CAUTION / MODERATE_CONCERN /
+                                           HIGH_CONCERN / AVOID, with reasons
+6. Reports                               → HTML, CSV, Excel
 ```
 
-### 3. Evidence-Based Filtering
-Distinguishes **experimental evidence** from **computational predictions**:
+### What is scored
 
-| Evidence Type | Codes | Weight |
-|--------------|-------|--------|
-| **Experimental** | IDA, IMP, IGI, IPI, IEP, HTP, HDA, HMP, HGI, HEP | 1.0 |
-| **Computational** | ISS, ISO, ISA, ISM, IGC, IBA, IBD, IKR, IRD, RCA | 0.6 |
-| **Prediction (IEA)** | IEA | 0.3 |
+| Signal | Source | Meaning |
+|---|---|---|
+| **Pleiotropy score (0–10)** | GO Biological Process terms (QuickGO, UniProt, KEGG) | How many other processes the gene takes part in. 0 = very specific. |
+| **Specificity (0–1)** | `1 − pleiotropy / 10` | Inverse of pleiotropy. 1 = most specific. |
+| **Evidence quality (0–1)** | GO evidence codes | Experimental evidence weighs 1.0, computational 0.6, IEA predictions 0.3. |
+| **Literature support (0–1)** | PubMed publication count | More studied genes score higher. |
+| **Conservation (0–1)** | Cross-species check | Whether the gene behaves similarly in other species. |
+| **KEGG pathway count** | KEGG | Number of KEGG pathways the gene belongs to (reported per gene). |
+| **Phenotype prediction** (optional) | PubMed mining (SentenceTransformer + FAISS) | Predicted knockout severity and risk, with a confidence value. |
 
-```bash
-# Experimental only (default)
-k-sites --go-term GO:0006281 --organism 9606 --output report.html --evidence-filter experimental
+Pleiotropy uses exponential decay: `score = 10 × (1 − exp(−0.3 × other_BP_terms))`, where `other_BP_terms` is the number of Biological Process terms excluding the one you are studying.
 
-# Computational only
-k-sites --go-term GO:0006281 --organism 9606 --output report.html --evidence-filter computational
-
-# All evidence types
-k-sites --go-term GO:0006281 --organism 9606 --output report.html --evidence-filter all
-```
-
-### 4. RAG-Based Phenotype Prediction
-Literature mining with semantic analysis:
-- **PubMed integration**: Real-time NCBI Entrez API queries
-- **Semantic embeddings**: SentenceTransformer (all-MiniLM-L6-v2)
-- **Vector search**: FAISS L2 distance indexing
-- **Severity classification**: LETHAL, SEVERE, MODERATE, MILD, UNKNOWN
-- **Risk assessment**: CRITICAL, HIGH, MEDIUM, LOW, UNKNOWN
-
-```bash
-k-sites --go-term GO:0006281 --organism 9606 --output report.html --predict-phenotypes --rag-report
-```
-
-### 5. CRISPR gRNA Design
-- **Multi-Cas support**: SpCas9, SaCas9, Cas12a, Cas9-NG, xCas9
-- **Doench 2016**: On-target efficiency scoring (20 position-dependent weights)
-- **CFD Algorithm**: Off-target prediction with position-weighted mismatches
-- **Pathway-aware filtering**: Prevents disruption of critical pathways
-
-### 6. Cross-Species Validation
-Validates gene specificity across model organisms:
-- **9606** - Homo sapiens (Human)
-- **10090** - Mus musculus (Mouse)
-- **7227** - Drosophila melanogaster (Fly)
-- **6239** - Caenorhabditis elegans (Worm)
-
-```bash
-k-sites --go-term GO:0006281 --organism 9606 --output report.html \
-        --species-validation 9606 10090 7227
-```
+The composite score weights specificity 40%, evidence quality 25%, literature support 20% and conservation 15%.
 
 ---
 
-## 🛠️ Installation
-
-### Prerequisites
-- Python 3.8+
-- Git
-
-### Install from PyPI
-
-```bash
-# Basic installation
-pip install k-sites
-
-# With RAG phenotype prediction support
-pip install 'k-sites[rag]'
-
-# With web application support
-pip install 'k-sites[webapp]'
-
-# With all features
-pip install 'k-sites[all]'
-```
-
-### Install from Source
+## Installation
 
 ```bash
 git clone https://github.com/kkokay07/K-Sites.git
@@ -126,174 +54,146 @@ cd K-Sites
 pip install -e .
 ```
 
-### Environment Variables
+Optional extras:
 
 ```bash
-export NCBI_EMAIL="your.email@example.com"  # Required for NCBI API calls
-export NCBI_API_KEY="your_ncbi_api_key"     # Optional for higher rate limits
+pip install -e '.[rag]'      # phenotype prediction (sentence-transformers, FAISS)
+pip install -e '.[webapp]'   # web application
+pip install -e '.[all]'      # everything
+```
+
+Set your email for NCBI (required) and, optionally, an API key for higher rate limits:
+
+```bash
+export NCBI_EMAIL="your.email@example.com"
+export NCBI_API_KEY="your_ncbi_api_key"
 ```
 
 ---
 
-## 🚀 Usage
+## Usage
 
-### Command Line Interface
+### Command line
 
-#### Basic Usage
 ```bash
 k-sites --go-term GO:0006281 --organism "Homo sapiens" --output report.html
 ```
 
-#### Advanced Usage with All Features
+With options:
+
 ```bash
 k-sites --go-term GO:0006281 --organism 9606 --output results/report.html \
-        --use-graph \
         --max-pleiotropy 5 \
         --evidence-filter experimental \
-        --species-validation 9606 10090 10116 \
+        --species-validation 9606 10090 \
         --predict-phenotypes \
-        --rag-report \
-        --databases all
+        --rag-report
 ```
 
-#### Search GO Terms
+Search for a GO term:
+
 ```bash
 k-sites --go-term-search "DNA repair" --organism "Homo sapiens" --output report.html
 ```
 
-### Programmatic API
+### Options
+
+| Option | Description | Default |
+|---|---|---|
+| `--go-term` | GO term to analyse (e.g. `GO:0006281`) | required |
+| `--organism` | NCBI TaxID or scientific name | required |
+| `--output` | Output HTML report path | required |
+| `--max-pleiotropy` | Maximum allowed pleiotropy (0–10) | 10 |
+| `--evidence-filter` | Which GO evidence counts: `experimental` (roles proven in lab experiments; strict, but can flatter poorly studied genes), `computational` (predicted roles only) or `all` (every known role; most cautious) | `experimental` |
+| `--species-validation` | TaxIDs for cross-species validation | pipeline default (human, mouse, rat, fly, worm) |
+| `--predict-phenotypes` | Predict knockout phenotype from PubMed | off |
+| `--rag-report` | Per-gene literature reports (needs `--predict-phenotypes`) | off |
+| `--databases` | `quickgo`, `uniprot`, `ncbi`, `pubmed`, `kegg`, `all` | `all` |
+| `--go-term-search` | Search GO terms by keyword | – |
+
+### Python
 
 ```python
 from k_sites.workflow.pipeline import run_k_sites_pipeline
+from k_sites.reporting.report_generator import generate_html_report
 
 results = run_k_sites_pipeline(
-    go_term="GO:0006281",  # DNA repair
-    organism="9606",       # Human
-    max_pleiotropy=3,
-    use_graph=True,
+    go_term="GO:0006281",   # DNA repair
+    organism="9606",        # human
+    max_pleiotropy=5,
     evidence_filter="experimental",
-    species_validation=["9606", "10090"],
-    predict_phenotypes=True,
-    databases=["quickgo", "uniprot", "kegg"]
+    predict_phenotypes=False,
 )
-
-# Generate report
-from k_sites.reporting.report_generator import generate_html_report
-generate_html_report(results, "output_report.html")
+generate_html_report(results, "report.html")
 ```
 
+### Web application
+
+A Flask interface is in [`webapp/`](webapp/README.md).
+
 ---
 
-## 📊 Output Files
+## Output files
+
+For `--output report.html`:
 
 | File | Description |
-|------|-------------|
-| `report.html` | Interactive HTML report with visualizations |
-| `report_comprehensive.csv` | Full results with all metrics |
-| `report_gene_summary.csv` | Gene-level summary statistics |
-| `report_grna_sequences.fasta` | gRNA sequences in FASTA format |
-| `report_sequences.gb` | GenBank format sequences |
-| `rag_reports/*.html` | Per-gene RAG literature analysis (with `--rag-report`) |
+|---|---|
+| `report.html` | Ranked genes with safety level and recommendation |
+| `report_comprehensive.csv` | All metrics per gene |
+| `report_gene_summary.csv` | Gene-level summary |
+| `report_comprehensive.xlsx` | Excel workbook (needs `openpyxl`) |
+| `rag_reports/*.html` | Per-gene literature analysis (with `--rag-report`) |
 
 ---
 
-## ⚙️ CLI Options
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--go-term` | GO term to analyze (e.g., GO:0006281) | Required |
-| `--organism` | Organism as TaxID or scientific name | Required |
-| `--output` | Output HTML report path | Required |
-| `--use-graph` | Enable Neo4j pathway analysis | True |
-| `--no-graph` | Disable Neo4j, use GO-only mode | - |
-| `--max-pleiotropy` | Max allowed pleiotropy (0-10) | 10 |
-| `--evidence-filter` | Evidence type: experimental/computational/all | experimental |
-| `--species-validation` | Species for cross-validation | 9606 10090 7227 6239 |
-| `--predict-phenotypes` | Enable RAG phenotype prediction | False |
-| `--rag-report` | Generate detailed RAG reports | False |
-| `--databases` | Select databases: quickgo/uniprot/ncbi/pubmed/kegg/all | all |
-| `--go-term-search` | Search GO terms by keyword | - |
-
----
-
-## 🏗️ Architecture
+## Project layout
 
 ```
 k_sites/
-├── data_retrieval/       # Multi-database integration (GO, UniProt, KEGG)
-│   ├── multi_database_client.py
-│   ├── go_gene_mapper.py
-│   └── organism_resolver.py
-├── gene_analysis/        # Pleiotropy scoring algorithms
-│   └── pleiotropy_scorer.py
-├── crispr_design/        # gRNA design and scoring
-│   └── guide_designer.py
-├── neo4j/               # Graph database integration
-│   ├── graph_client.py
-│   └── ingest_kegg.py
-├── rag_system/          # Literature-based phenotype prediction
-│   └── literature_context.py
-├── reporting/           # Report generation
-│   ├── report_generator.py
-│   ├── csv_export.py
-│   └── rag_report_generator.py
-└── workflow/            # Pipeline orchestration
-    └── pipeline.py
+├── cli.py                    # command line entry point
+├── config/                   # configuration loading
+├── data_retrieval/           # QuickGO, UniProt, KEGG, organism lookup
+├── gene_analysis/            # pleiotropy scoring and ranking
+├── rag_system/               # PubMed mining and phenotype prediction
+├── workflow/
+│   ├── pipeline.py           # pipeline orchestration
+│   └── safety_recommender.py # safety level and recommendation
+└── reporting/                # HTML, CSV, Excel and RAG reports
+webapp/                       # Flask web application
+tests/
+demo/
 ```
 
 ---
 
-## 🧪 Testing
+## Known limitations
+
+- Scores depend on live queries to QuickGO, UniProt, KEGG and PubMed. If a lookup fails, the affected gene can currently be scored as if it were highly specific. Treat results with 0.00 pleiotropy and empty evidence counts with suspicion until this is fixed.
+- Phenotype prediction is keyword-based and often returns `UNKNOWN` for poorly studied genes.
+- Annotation data can say a gene looks safe; it cannot guarantee safety in a particular cell line or animal. Always validate experimentally.
+
+---
+
+## Testing
 
 ```bash
-# Run all tests
 python -m pytest tests/
-
-# Run specific test modules
-python -m pytest tests/test_non_pleiotropic_features.py
-python -m pytest tests/test_crispr_design.py
-python -m pytest tests/test_rag_phenotype.py
 ```
 
 ---
 
-## 📚 Documentation
+## Developers
 
-- **Feature Documentation**: [FEATURES.md](FEATURES.md)
-- **PyPI Package**: https://pypi.org/project/k-sites/
-- **GitHub Repository**: https://github.com/kkokay07/K-Sites
+- **Kanaka KK** – Lead Architect
+- **Sandip Garai** – Neo4j Graph Integration Specialist (earlier prototype, since retired)
+- **Jeevan C** – CRISPR Algorithm Developer
+- **Tanzil Fatima** – Bioinformatics Analyst
 
----
+## License
 
-## 👥 Developers
+MIT License – see [LICENSE](LICENSE).
 
-- **Kanaka KK** - Lead Architect
-- **Sandip Garai** - Neo4j Graph Integration Specialist
-- **Jeevan C** - CRISPR Algorithm Developer
-- **Tanzil Fatima** - Bioinformatics Analyst
+## Acknowledgments
 
----
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- Thanks to the GO Consortium for gene ontology resources
-- Thanks to UniProt for protein knowledgebase
-- Thanks to KEGG for pathway data
-- Thanks to NCBI for biological databases (PubMed, Entrez)
-- Thanks to the Neo4j community for graph database technology
-
----
-
-## 📈 Version History
-
-| Version | Date | Key Features |
-|---------|------|--------------|
-| 1.0.0 | 2026-02-05 | Initial release with core functionality |
-| 1.1.0 | 2026-02-13 | Web application, RAG system, enhanced reporting |
-| 1.2.0 | 2026-02-13 | Multi-database selection, RAG reports, improved CLI |
+Gene Ontology Consortium, UniProt, KEGG and NCBI (PubMed, Entrez) for their open data.

@@ -20,15 +20,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass_json
 @dataclass
-class Neo4jConfig:
-    """Neo4j configuration settings."""
-    uri: str = "bolt://localhost:7687"
-    user: str = "neo4j"
-    password: str = "kkokay07"  # Default for development; should be overridden
-
-
-@dataclass_json
-@dataclass
 class NcbiConfig:
     """NCBI API configuration settings."""
     email: str = "user@example.com"  # Required by NCBI E-Utils
@@ -40,7 +31,6 @@ class NcbiConfig:
 class PipelineConfig:
     """Pipeline configuration settings."""
     max_pleiotropy: int = 3
-    use_graph: bool = True
     cache_dir: str = "~/.openclaw/workspace/k-sites/.cache"
 
 
@@ -56,7 +46,6 @@ class ReportingConfig:
 @dataclass
 class KSitesConfig:
     """Main K-Sites configuration."""
-    neo4j: Neo4jConfig = field(default_factory=Neo4jConfig)
     ncbi: NcbiConfig = field(default_factory=NcbiConfig)
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)
     reporting: ReportingConfig = field(default_factory=ReportingConfig)
@@ -136,16 +125,6 @@ class ConfigLoader:
             # Convert to KSitesConfig - handle nested structures properly
             config_dict = {}
             
-            if 'neo4j' in yaml_data:
-                neo4j_data = yaml_data.get('neo4j', {})
-                config_dict['neo4j'] = Neo4jConfig(
-                    uri=neo4j_data.get('uri', 'bolt://localhost:7687'),
-                    user=neo4j_data.get('user', 'neo4j'),
-                    password=neo4j_data.get('password', 'kkokay07')
-                )
-            else:
-                config_dict['neo4j'] = Neo4jConfig()
-            
             if 'ncbi' in yaml_data:
                 ncbi_data = yaml_data.get('ncbi', {})
                 config_dict['ncbi'] = NcbiConfig(
@@ -159,7 +138,6 @@ class ConfigLoader:
                 pipeline_data = yaml_data.get('pipeline', {})
                 config_dict['pipeline'] = PipelineConfig(
                     max_pleiotropy=pipeline_data.get('max_pleiotropy', 3),
-                    use_graph=pipeline_data.get('use_graph', True),
                     cache_dir=pipeline_data.get('cache_dir', '~/.openclaw/workspace/k-sites/.cache')
                 )
             else:
@@ -205,14 +183,6 @@ class ConfigLoader:
     
     def _apply_env_vars(self, config: KSitesConfig) -> KSitesConfig:
         """Apply environment variables to configuration."""
-        # Neo4j settings
-        if os.getenv('K_SITES_NEO4J_URI'):
-            config.neo4j.uri = os.getenv('K_SITES_NEO4J_URI')
-        if os.getenv('K_SITES_NEO4J_USER'):
-            config.neo4j.user = os.getenv('K_SITES_NEO4J_USER')
-        if os.getenv('K_SITES_NEO4J_PASSWORD'):
-            config.neo4j.password = os.getenv('K_SITES_NEO4J_PASSWORD')
-        
         # NCBI settings
         if os.getenv('K_SITES_NCBI_EMAIL'):
             config.ncbi.email = os.getenv('K_SITES_NCBI_EMAIL')
@@ -222,8 +192,6 @@ class ConfigLoader:
         # Pipeline settings
         if os.getenv('K_SITES_MAX_PLEIOTROPY'):
             config.pipeline.max_pleiotropy = int(os.getenv('K_SITES_MAX_PLEIOTROPY'))
-        if os.getenv('K_SITES_USE_GRAPH'):
-            config.pipeline.use_graph = os.getenv('K_SITES_USE_GRAPH', '').lower() in ('true', '1', 'yes')
         
         # Reporting settings
         if os.getenv('K_SITES_INCLUDE_LITERATURE'):
@@ -235,7 +203,7 @@ class ConfigLoader:
     
     def _apply_cli_overrides(self, config: KSitesConfig, overrides: Dict[str, Any]) -> KSitesConfig:
         """Apply CLI overrides to configuration."""
-        # Apply overrides with dot notation support (e.g., "neo4j.uri")
+        # Apply overrides with dot notation support (e.g., "ncbi.email")
         for key, value in overrides.items():
             if '.' in key:
                 parts = key.split('.')
@@ -257,12 +225,6 @@ class ConfigLoader:
     def _merge_configs(self, base: KSitesConfig, override: KSitesConfig) -> KSitesConfig:
         """Merge two configurations, with override taking precedence."""
         # For each section, update with values from override
-        base.neo4j = Neo4jConfig(
-            uri=override.neo4j.uri if override.neo4j.uri != "bolt://localhost:7687" else base.neo4j.uri,
-            user=override.neo4j.user if override.neo4j.user != "neo4j" else base.neo4j.user,
-            password=override.neo4j.password if override.neo4j.password != "kkokay07" else base.neo4j.password
-        )
-        
         base.ncbi = NcbiConfig(
             email=override.ncbi.email if override.ncbi.email != "user@example.com" else base.ncbi.email,
             api_key=override.ncbi.api_key if override.ncbi.api_key is not None else base.ncbi.api_key
@@ -270,7 +232,6 @@ class ConfigLoader:
         
         base.pipeline = PipelineConfig(
             max_pleiotropy=override.pipeline.max_pleiotropy if override.pipeline.max_pleiotropy != 3 else base.pipeline.max_pleiotropy,
-            use_graph=override.pipeline.use_graph if override.pipeline.use_graph != True else base.pipeline.use_graph,
             cache_dir=override.pipeline.cache_dir if override.pipeline.cache_dir != "~/.openclaw/workspace/k-sites/.cache" else base.pipeline.cache_dir
         )
         
@@ -288,10 +249,6 @@ class ConfigLoader:
         # Validate NCBI email (required by NCBI E-Utils)
         if not config.ncbi.email or config.ncbi.email == "user@example.com":
             errors.append("NCBI email is required and must be a valid email address")
-        
-        # Validate Neo4j URI format
-        if not config.neo4j.uri.startswith(('bolt://', 'neo4j://')):
-            errors.append("Neo4j URI must start with bolt:// or neo4j://")
         
         # Validate max_pleiotropy is positive
         if config.pipeline.max_pleiotropy < 0:
@@ -336,18 +293,12 @@ def create_default_config(config_path: Path) -> None:
     
     # Convert to dict for YAML serialization
     config_dict = {
-        "neo4j": {
-            "uri": default_config.neo4j.uri,
-            "user": default_config.neo4j.user,
-            "password": default_config.neo4j.password  # This should be changed in real usage
-        },
         "ncbi": {
             "email": default_config.ncbi.email,
             "api_key": default_config.ncbi.api_key
         },
         "pipeline": {
             "max_pleiotropy": default_config.pipeline.max_pleiotropy,
-            "use_graph": default_config.pipeline.use_graph,
             "cache_dir": default_config.pipeline.cache_dir
         },
         "reporting": {

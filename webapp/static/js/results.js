@@ -22,8 +22,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Setup search
-    document.getElementById('guideSearch')?.addEventListener('input', debounce(searchGuides, 300));
 });
 
 // ============================================================================
@@ -157,12 +155,6 @@ function showResults(job) {
     document.getElementById('errorState').style.display = 'none';
     document.getElementById('resultsContent').style.display = 'block';
     
-    // Update summary numbers
-    if (job.total_genes_found !== undefined) {
-        document.getElementById('avgGuidesPerGene').textContent = 
-            job.genes_processed > 0 ? (job.total_grnas / job.genes_processed).toFixed(1) : '-';
-    }
-    
     // Setup download links
     document.getElementById('downloadHtml').href = `/api/jobs/${job.id}/download/html`;
     document.getElementById('downloadHtml').style.display = 'inline-block';
@@ -205,11 +197,22 @@ async function loadResults(jobId) {
         resultsData = data.results;
         
         renderGenes(resultsData.genes);
-        renderAllGuides(resultsData.genes);
+        renderInsufficientData(resultsData.insufficient_data_genes);
         renderSummary(resultsData);
         
     } catch (error) {
         console.error('Error loading results:', error);
+    }
+}
+
+function safetyBadgeClass(level) {
+    switch (level) {
+        case 'SAFE': return 'bg-success';
+        case 'CAUTION': return 'bg-info';
+        case 'MODERATE_CONCERN': return 'bg-warning text-dark';
+        case 'HIGH_CONCERN':
+        case 'AVOID': return 'bg-danger';
+        default: return 'bg-secondary';
     }
 }
 
@@ -225,165 +228,83 @@ function renderGenes(genes) {
         return;
     }
     
-    container.innerHTML = genes.map((gene, index) => `
-        <div class="grna-card">
-            <div class="d-flex justify-content-between align-items-start mb-3">
-                <div>
-                    <h5 class="mb-1">
-                        <span class="badge bg-secondary me-2">#${index + 1}</span>
-                        ${gene.symbol}
-                    </h5>
-                    <p class="text-muted mb-0 small">${gene.description || 'No description available'}</p>
-                </div>
-                <div class="text-end">
-                    <div class="mb-1">
-                        <span class="score-badge ${getPleiotropyClass(gene.pleiotropy_score)}">
-                            Pleiotropy: ${gene.pleiotropy_score?.toFixed(2) || 'N/A'}
-                        </span>
-                    </div>
+    container.innerHTML = genes.map((gene, index) => {
+        const safety = gene.safety_recommendation || {};
+        const concerns = (safety.concerns || []).map(c => `<li>${c}</li>`).join('');
+        const justification = (safety.justification || []).map(j => `<li>${j}</li>`).join('');
+        return `
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
                     <div>
-                        <span class="score-badge score-high">
-                            ${gene.guides?.length || 0} gRNAs
-                        </span>
+                        <h5 class="mb-1">
+                            <span class="badge bg-secondary me-2">#${index + 1}</span>
+                            ${gene.symbol}
+                        </h5>
+                        <p class="text-muted mb-0 small">${gene.description || 'No description available'}</p>
+                    </div>
+                    <div class="text-end">
+                        <div class="mb-1">
+                            <span class="score-badge ${getPleiotropyClass(gene.pleiotropy_score)}">
+                                Pleiotropy: ${gene.pleiotropy_score?.toFixed(2) || 'N/A'}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="badge ${safetyBadgeClass(safety.safety_level)}">
+                                ${safety.safety_level || 'UNKNOWN'}
+                            </span>
+                        </div>
                     </div>
                 </div>
+                
+                <div class="row g-2 mb-3 small text-muted">
+                    <div class="col-md-3">
+                        <i class="fas fa-star me-1"></i>Specificity: ${gene.specificity_score?.toFixed(2) || 'N/A'}
+                    </div>
+                    <div class="col-md-3">
+                        <i class="fas fa-chart-line me-1"></i>Composite: ${gene.composite_score?.toFixed(2) || 'N/A'}
+                    </div>
+                    <div class="col-md-3">
+                        <i class="fas fa-check-circle me-1"></i>Evidence: ${gene.evidence_quality?.toFixed(2) || 'N/A'}
+                    </div>
+                    <div class="col-md-3">
+                        <i class="fas fa-book me-1"></i>Literature: ${gene.literature_support?.toFixed(2) || 'N/A'}
+                    </div>
+                    <div class="col-md-3">
+                        <i class="fas fa-project-diagram me-1"></i>KEGG pathways: ${gene.kegg_pathway_count ?? 'N/A'}
+                    </div>
+                </div>
+                
+                ${safety.primary_recommendation ? `<p class="mb-2"><strong>Recommendation:</strong> ${safety.primary_recommendation}</p>` : ''}
+                ${justification ? `<ul class="small mb-2">${justification}</ul>` : ''}
+                ${concerns ? `<div class="small text-muted">Concerns:<ul class="mb-0">${concerns}</ul></div>` : ''}
             </div>
-            
-            <!-- Gene Details -->
-            <div class="row g-2 mb-3 small text-muted">
-                <div class="col-md-3">
-                    <i class="fas fa-star me-1"></i>Specificity: ${gene.specificity_score?.toFixed(1) || 'N/A'}
-                </div>
-                <div class="col-md-3">
-                    <i class="fas fa-chart-line me-1"></i>Composite: ${gene.composite_score?.toFixed(1) || 'N/A'}
-                </div>
-                <div class="col-md-3">
-                    <i class="fas fa-check-circle me-1"></i>Evidence: ${gene.evidence_quality?.toFixed(2) || 'N/A'}
-                </div>
-                <div class="col-md-3">
-                    <i class="fas fa-book me-1"></i>Literature: ${gene.literature_support?.toFixed(2) || 'N/A'}
-                </div>
-            </div>
-            
-            <!-- Top gRNAs -->
-            <div class="table-responsive">
-                <table class="table table-sm table-hover">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Sequence</th>
-                            <th>Position</th>
-                            <th>Doench Score</th>
-                            <th>Off-targets</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${(gene.guides || []).slice(0, 5).map(guide => `
-                            <tr>
-                                <td>
-                                    <code class="sequence-box">${guide.seq}</code>
-                                    <small class="text-muted">PAM: ${guide.pam_sequence}</small>
-                                </td>
-                                <td>${guide.position}</td>
-                                <td>
-                                    <span class="score-badge ${getScoreClass(guide.doench_score)}">
-                                        ${guide.doench_score?.toFixed(2) || 'N/A'}
-                                    </span>
-                                </td>
-                                <td>${guide.cfd_off_targets || 0}</td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-primary" 
-                                            onclick='showGuideDetails(${JSON.stringify(guide).replace(/'/g, "&#39;")})'>
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-            
-            ${(gene.guides || []).length > 5 ? `
-                <div class="text-center">
-                    <button class="btn btn-sm btn-link" onclick="toggleAllGuides('${gene.symbol}')">
-                        Show all ${gene.guides.length} gRNAs
-                    </button>
-                </div>
-            ` : ''}
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 }
 
-function renderAllGuides(genes) {
-    const container = document.getElementById('guidesContainer');
+function renderInsufficientData(genes) {
+    if (!genes || genes.length === 0) return;
     
-    if (!genes || genes.length === 0) {
-        container.innerHTML = `
-            <div class="alert alert-warning">
-                <i class="fas fa-exclamation-triangle me-2"></i>No gRNAs designed.
-            </div>
-        `;
-        return;
-    }
+    const container = document.getElementById('genesContainer');
+    const rows = genes.map(g => `
+        <tr>
+            <td><strong>${g.symbol}</strong></td>
+            <td>${(g.reasons || []).join('; ') || 'No data'}</td>
+            <td>${g.lookup_failed ? 'Yes' : 'No'}</td>
+        </tr>
+    `).join('');
     
-    // Flatten all guides with gene info
-    const allGuides = [];
-    genes.forEach(gene => {
-        (gene.guides || []).forEach(guide => {
-            allGuides.push({
-                ...guide,
-                gene_symbol: gene.symbol,
-                gene_pleiotropy: gene.pleiotropy_score
-            });
-        });
-    });
-    
-    // Sort by Doench score
-    allGuides.sort((a, b) => (b.doench_score || 0) - (a.doench_score || 0));
-    
-    container.innerHTML = `
-        <div class="table-responsive">
-            <table class="table table-hover" id="allGuidesTable">
-                <thead class="table-light">
-                    <tr>
-                        <th>Rank</th>
-                        <th>Gene</th>
-                        <th>Sequence</th>
-                        <th>Doench Score</th>
-                        <th>Specificity</th>
-                        <th>Off-targets</th>
-                        <th>GC%</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${allGuides.map((guide, index) => `
-                        <tr data-search="${guide.seq.toLowerCase()} ${guide.gene_symbol.toLowerCase()}">
-                            <td><span class="badge bg-secondary">${index + 1}</span></td>
-                            <td><strong>${guide.gene_symbol}</strong></td>
-                            <td>
-                                <code class="sequence-box">${guide.seq}</code>
-                            </td>
-                            <td>
-                                <span class="score-badge ${getScoreClass(guide.doench_score)}">
-                                    ${guide.doench_score?.toFixed(2) || 'N/A'}
-                                </span>
-                            </td>
-                            <td>${guide.specificity_score?.toFixed(2) || 'N/A'}</td>
-                            <td>${guide.cfd_off_targets || 0}</td>
-                            <td>${((guide.gc_content || 0) * 100).toFixed(0)}%</td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary" 
-                                        onclick='showGuideDetails(${JSON.stringify(guide).replace(/'/g, "&#39;")})'>
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    `).join('')}
-                </tbody>
+    container.insertAdjacentHTML('beforeend', `
+        <div class="alert alert-warning mt-4">
+            <h6><i class="fas fa-exclamation-triangle me-2"></i>${genes.length} gene(s) could not be scored (insufficient data)</h6>
+            <p class="small mb-2">These genes are not ranked and have no safety level. "Lookup failed" means a database could not be reached, so a retry may help.</p>
+            <table class="table table-sm mb-0">
+                <thead><tr><th>Gene</th><th>Reason</th><th>Lookup failed</th></tr></thead>
+                <tbody>${rows}</tbody>
             </table>
         </div>
-    `;
+    `);
 }
 
 function renderSummary(data) {
@@ -393,10 +314,7 @@ function renderSummary(data) {
     // Calculate statistics
     const stats = {
         totalGenes: genes.length,
-        totalGuides: genes.reduce((sum, g) => sum + (g.guides?.length || 0), 0),
-        avgPleiotropy: genes.reduce((sum, g) => sum + (g.pleiotropy_score || 0), 0) / genes.length || 0,
-        avgDoench: genes.flatMap(g => g.guides || []).reduce((sum, g) => sum + (g.doench_score || 0), 0) / 
-                   genes.flatMap(g => g.guides || []).length || 0
+        avgPleiotropy: genes.reduce((sum, g) => sum + (g.pleiotropy_score || 0), 0) / genes.length || 0
     };
     
     container.innerHTML = `
@@ -413,20 +331,8 @@ function renderSummary(data) {
                                 <td class="fw-bold">${stats.totalGenes}</td>
                             </tr>
                             <tr>
-                                <td class="text-muted">Total gRNAs:</td>
-                                <td class="fw-bold">${stats.totalGuides}</td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">Average gRNAs/Gene:</td>
-                                <td class="fw-bold">${(stats.totalGuides / stats.totalGenes).toFixed(1)}</td>
-                            </tr>
-                            <tr>
                                 <td class="text-muted">Average Pleiotropy:</td>
                                 <td class="fw-bold">${stats.avgPleiotropy.toFixed(2)}</td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">Average Doench Score:</td>
-                                <td class="fw-bold">${stats.avgDoench.toFixed(3)}</td>
                             </tr>
                         </table>
                     </div>
@@ -436,7 +342,7 @@ function renderSummary(data) {
             <div class="col-md-6">
                 <div class="card h-100">
                     <div class="card-header bg-success text-white">
-                        <h6 class="mb-0"><i class="fas fa-trophy me-2"></i>Top Performers</h6>
+                        <h6 class="mb-0"><i class="fas fa-trophy me-2"></i>Most Specific Genes</h6>
                     </div>
                     <div class="card-body">
                         <h6 class="text-muted">Highest Specificity Genes</h6>
@@ -447,21 +353,7 @@ function renderSummary(data) {
                                 .map(g => `
                                     <li class="list-group-item d-flex justify-content-between">
                                         ${g.symbol}
-                                        <span class="badge bg-success">${g.specificity_score?.toFixed(1)}</span>
-                                    </li>
-                                `).join('')}
-                        </ul>
-                        
-                        <h6 class="text-muted">Best gRNA Designs</h6>
-                        <ul class="list-group list-group-flush">
-                            ${genes
-                                .flatMap(g => (g.guides || []).map(guide => ({...guide, gene: g.symbol})))
-                                .sort((a, b) => (b.doench_score || 0) - (a.doench_score || 0))
-                                .slice(0, 3)
-                                .map(g => `
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <code>${g.seq}</code> <small>(${g.gene})</small>
-                                        <span class="badge bg-primary">${g.doench_score?.toFixed(2)}</span>
+                                        <span class="badge bg-success">${g.specificity_score?.toFixed(2)}</span>
                                     </li>
                                 `).join('')}
                         </ul>
@@ -476,91 +368,11 @@ function renderSummary(data) {
 // Helper Functions
 // ============================================================================
 
-function getScoreClass(score) {
-    if (!score) return 'score-low';
-    if (score >= 0.6) return 'score-high';
-    if (score >= 0.4) return 'score-medium';
-    return 'score-low';
-}
-
 function getPleiotropyClass(score) {
     if (!score && score !== 0) return 'score-medium';
     if (score <= 2) return 'score-high';  // Low pleiotropy is good
     if (score <= 5) return 'score-medium';
     return 'score-low';
-}
-
-function showGuideDetails(guide) {
-    const modal = new bootstrap.Modal(document.getElementById('guideModal'));
-    const content = document.getElementById('guideModalContent');
-    
-    content.innerHTML = `
-        <div class="row">
-            <div class="col-md-6">
-                <h6 class="text-muted">Sequence Information</h6>
-                <div class="sequence-box mb-3">${guide.seq}</div>
-                <table class="table table-sm">
-                    <tr><td class="text-muted">PAM:</td><td><code>${guide.pam_sequence}</code></td></tr>
-                    <tr><td class="text-muted">Position:</td><td>${guide.position}</td></tr>
-                    <tr><td class="text-muted">Strand:</td><td>${guide.strand}</td></tr>
-                    <tr><td class="text-muted">Exon:</td><td>${guide.exon_number} (${guide.exon_position})</td></tr>
-                    <tr><td class="text-muted">GC Content:</td><td>${((guide.gc_content || 0) * 100).toFixed(1)}%</td></tr>
-                </table>
-            </div>
-            <div class="col-md-6">
-                <h6 class="text-muted">Scoring</h6>
-                <table class="table table-sm">
-                    <tr>
-                        <td class="text-muted">Doench Score:</td>
-                        <td><span class="score-badge ${getScoreClass(guide.doench_score)}">${guide.doench_score?.toFixed(3) || 'N/A'}</span></td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted">Specificity:</td>
-                        <td>${guide.specificity_score?.toFixed(3) || 'N/A'}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted">Off-targets:</td>
-                        <td>${guide.cfd_off_targets || 0}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted">Pathway Conflict:</td>
-                        <td>${guide.pathway_conflict ? 'Yes' : 'No'}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted">Severity:</td>
-                        <td><span class="badge bg-${guide.severity_level === 'HIGH' ? 'danger' : guide.severity_level === 'MEDIUM' ? 'warning' : 'info'}">${guide.severity_level}</span></td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-        
-        ${guide.safety_recommendation ? `
-            <div class="alert alert-warning mt-3">
-                <h6><i class="fas fa-shield-alt me-2"></i>Safety Recommendation</h6>
-                <p class="mb-0">${guide.safety_recommendation}</p>
-            </div>
-        ` : ''}
-    `;
-    
-    modal.show();
-}
-
-function toggleAllGuides(geneSymbol) {
-    // This would show all guides for a specific gene
-    // For now, switch to the All gRNAs tab and filter
-    document.getElementById('guides-tab').click();
-    document.getElementById('guideSearch').value = geneSymbol;
-    searchGuides({ target: { value: geneSymbol } });
-}
-
-function searchGuides(event) {
-    const query = event.target.value.toLowerCase();
-    const rows = document.querySelectorAll('#allGuidesTable tbody tr');
-    
-    rows.forEach(row => {
-        const searchData = row.dataset.search || '';
-        row.style.display = searchData.includes(query) ? '' : 'none';
-    });
 }
 
 function debounce(func, wait) {

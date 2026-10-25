@@ -48,7 +48,6 @@
                         <th>Organism</th>
                         <th>GO Term</th>
                         <th>Genes</th>
-                        <th>gRNAs</th>
                         <th>Status</th>
                         <th>Created</th>
                         <th>Actions</th>
@@ -56,7 +55,7 @@
                 </thead>
                 <tbody id="jobsTableBody">
                     <tr>
-                        <td colspan="8" class="text-center py-5 text-muted">
+                        <td colspan="7" class="text-center py-5 text-muted">
                             <div class="spinner-border mb-3" role="status">
                                 <span class="visually-hidden">Loading...</span>
                             </div>
@@ -99,7 +98,7 @@ async function loadJobs() {
     const tbody = document.getElementById('jobsTableBody');
     tbody.innerHTML = `
         <tr>
-            <td colspan="8" class="text-center py-5 text-muted">
+            <td colspan="7" class="text-center py-5 text-muted">
                 <div class="spinner-border mb-3" role="status"></div>
                 <p>Loading jobs...</p>
             </td>
@@ -117,7 +116,7 @@ async function loadJobs() {
         console.error('Error loading jobs:', error);
         tbody.innerHTML = `
             <tr>
-                <td colspan="8" class="text-center py-5 text-danger">
+                <td colspan="7" class="text-center py-5 text-danger">
                     <i class="fas fa-exclamation-circle fa-2x mb-3"></i>
                     <p>Error loading jobs. Please try again.</p>
                 </td>
@@ -149,7 +148,6 @@ function renderJobs(jobs) {
                 ${job.go_term_name ? `<br><small class="text-muted">${job.go_term_name}</small>` : ''}
             </td>
             <td>${job.genes_processed !== null ? job.genes_processed : '-'}</td>
-            <td>${job.total_grnas !== null ? job.total_grnas : '-'}</td>
             <td>
                 <span class="status-badge status-${job.status}">${job.status.toUpperCase()}</span>
             </td>

@@ -19,8 +19,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import lru_cache
 import hashlib
 
+from k_sites.data_retrieval.http import http_get
+from k_sites.data_retrieval.multi_database_client import MultiDatabaseClient, EVIDENCE_PRIORITY
+
 # Set up logging
 logger = logging.getLogger(__name__)
+
+# Shared evidence-code classifier (same rules as the multi-database client)
+_evidence_classifier = MultiDatabaseClient()
 
 # Cache configuration
 CACHE_DIR = Path.home() / ".k_sites_cache"
@@ -91,6 +97,10 @@ def _fetch_quickgo_page(go_term: str, taxid: str, page: int, page_size: int, hea
     
     Returns:
         Tuple of (total_hits, results)
+
+    Raises:
+        GoTermNotFoundError: If QuickGO rejects the GO term.
+        GeneRetrievalError: If QuickGO could not be queried.
     """
     base_url = "https://www.ebi.ac.uk/QuickGO/services/annotation/search"
     
@@ -102,17 +112,17 @@ def _fetch_quickgo_page(go_term: str, taxid: str, page: int, page_size: int, hea
     }
     
     try:
-        response = requests.get(base_url, params=params, headers=headers, timeout=30)
-        response.raise_for_status()
-        data = response.json()
-        
-        total_hits = data.get("numberOfHits", 0)
-        results = data.get("results", [])
-        
-        return total_hits, results
-    except Exception as e:
-        logger.warning(f"Error fetching QuickGO page {page}: {e}")
-        return 0, []
+        response = http_get(base_url, params=params, headers=headers)
+    except requests.RequestException as e:
+        raise GeneRetrievalError(f"QuickGO request failed: {e}")
+
+    if response.status_code in (400, 404):
+        raise GoTermNotFoundError(f"QuickGO rejected {go_term} for taxon {taxid}: {response.text[:200]}")
+    if response.status_code != 200:
+        raise GeneRetrievalError(f"QuickGO returned HTTP {response.status_code} for {go_term}")
+
+    data = response.json()
+    return data.get("numberOfHits", 0), data.get("results", [])
 
 
 def get_genes_for_go_term(go_term: str, taxid: str, evidence_filter: str = "experimental") -> List[Dict[str, str]]:
@@ -173,9 +183,6 @@ def get_genes_for_go_term(go_term: str, taxid: str, evidence_filter: str = "expe
         # First request to get total count
         total_hits, first_results = _fetch_quickgo_page(go_term, taxid, 1, page_size, headers)
         
-        if response_status_404 := False:  # Placeholder, actual check happens in _fetch_quickgo_page
-            pass
-            
         if not first_results and total_hits == 0:
             logger.warning(f"No results found for GO term {go_term} in organism {taxid}")
             return []
@@ -197,12 +204,9 @@ def get_genes_for_go_term(go_term: str, taxid: str, evidence_filter: str = "expe
                 
                 for future in as_completed(future_to_page):
                     page_num = future_to_page[future]
-                    try:
-                        _, results = future.result(timeout=30)
-                        all_results.extend(results)
-                        logger.debug(f"Fetched page {page_num} with {len(results)} results")
-                    except Exception as e:
-                        logger.warning(f"Failed to fetch page {page_num}: {e}")
+                    _, results = future.result()  # a failed page must fail the whole lookup
+                    all_results.extend(results)
+                    logger.debug(f"Fetched page {page_num} with {len(results)} results")
         
         logger.info(f"Fetched {len(all_results)} annotations for {go_term}")
         
@@ -226,9 +230,8 @@ def get_genes_for_go_term(go_term: str, taxid: str, evidence_filter: str = "expe
         
         return gene_list
         
-    except requests.RequestException as e:
-        logger.error(f"Request failed for GO term {go_term} in organism {taxid}: {str(e)}")
-        raise GeneRetrievalError(f"Failed to retrieve genes for GO term {go_term} in organism {taxid}: {str(e)}")
+    except (GoTermNotFoundError, GeneRetrievalError):
+        raise
     except Exception as e:
         logger.error(f"Unexpected error retrieving genes for GO term {go_term} in organism {taxid}: {str(e)}")
         raise GeneRetrievalError(f"Unexpected error retrieving genes for GO term {go_term} in organism {taxid}: {str(e)}")
@@ -389,25 +392,13 @@ def get_pleiotropy_score_detailed(gene_symbol: str, taxid: str, go_term: str = N
         lambda_val = 0.3  # Decay rate - adjust as needed
         bp_score = 1 - math.exp(-lambda_val * (len(bp_terms) - 1)) if len(bp_terms) > 0 else 0
         
-        # Get pathway degree from Neo4j if available
-        try:
-            from k_sites.neo4j.graph_client import get_pathway_neighbors
-            pathway_neighbors = get_pathway_neighbors(gene_symbol, taxid)
-            pathway_score = len(pathway_neighbors)  # Number of connected genes in pathways
-        except ImportError:
-            logger.warning("Neo4j not available, using 0 for pathway score")
-            pathway_score = 0
-        except Exception as e:
-            logger.warning(f"Could not get pathway neighbors: {e}")
-            pathway_score = 0
-        
         # Calculate evidence-based score
         experimental_evidence_count = sum(1 for term in all_go_terms if term.get("evidence_type") == "experimental")
         computational_evidence_count = sum(1 for term in all_go_terms if term.get("evidence_type") == "computational")
         iea_evidence_count = sum(1 for term in all_go_terms if term.get("evidence_type") == "IEA")
         
         # Combine scores
-        total_score = bp_score + (pathway_score * 0.1)  # Scale pathway score appropriately
+        total_score = bp_score
         
         result = {
             "gene_symbol": gene_symbol,
@@ -415,7 +406,6 @@ def get_pleiotropy_score_detailed(gene_symbol: str, taxid: str, go_term: str = N
             "total_pleiotropy_score": total_score,
             "bp_term_count": len(bp_terms),
             "bp_score": bp_score,
-            "pathway_score": pathway_score,
             "experimental_evidence_count": experimental_evidence_count,
             "computational_evidence_count": computational_evidence_count,
             "iea_evidence_count": iea_evidence_count,
@@ -436,185 +426,147 @@ def get_pleiotropy_score_detailed(gene_symbol: str, taxid: str, go_term: str = N
 def _get_all_go_terms_for_gene(gene_symbol: str, taxid: str) -> List[Dict]:
     """
     Get all GO terms associated with a gene.
-    
+
     Args:
         gene_symbol: Gene symbol
         taxid: NCBI Taxonomy ID
-        
+
     Returns:
-        List of GO terms with details including proper 'category' field
+        List of GO terms (one per GO id, strongest evidence kept) with a 'category' field
+        (P, F or C). An empty list means the gene has no annotations or is unknown to UniProt.
+
+    Raises:
+        GeneRetrievalError: If UniProt or QuickGO could not be queried.
     """
-    try:
-        # Use QuickGO to get all annotations for this gene
-        base_url = "https://www.ebi.ac.uk/QuickGO/services/annotation/search"
-        
-        # First, we need to get the gene's UniProt ID
-        gene_id = _resolve_gene_to_uniprot(gene_symbol, taxid)
-        if not gene_id:
-            logger.warning(f"Could not resolve {gene_symbol} to UniProt ID")
-            return []
-        
-        headers = {
-            "Accept": "application/json"
-        }
-        
-        # Paginate through results (QuickGO limits to 200 per page)
-        PAGE_SIZE = 200
-        all_results = []
-        page = 1
-        
-        while True:
-            params = {
-                "geneProductId": gene_id,
-                "limit": PAGE_SIZE,
-                "page": page
-            }
-            
-            time.sleep(0.34)  # Rate limiting
-            response = requests.get(base_url, params=params, headers=headers, timeout=30)
-            
-            if response.status_code == 400:
-                logger.warning(f"QuickGO returned 400 for {gene_symbol}")
-                return []
-            
-            response.raise_for_status()
-            
-            data = response.json()
-            results = data.get("results", [])
-            
-            if not results:
-                break
-                
-            all_results.extend(results)
-            
-            # Check if we've got all results
-            total_hits = data.get("numberOfHits", 0)
-            if len(all_results) >= total_hits or len(results) < PAGE_SIZE:
-                break
-                
-            page += 1
-            if page > 50:  # Safety limit
-                break
-        
-        if not all_results:
-            return []
-        
-        go_terms = []
-        seen_go_ids = set()  # Deduplicate
-        
-        for result in all_results:
-            go_id = result.get("goId", "")
-            
-            # Skip duplicates
-            if go_id in seen_go_ids:
-                continue
-            seen_go_ids.add(go_id)
-            
-            evidence_codes = result.get("evidenceCode", [])
-            aspect = result.get("goAspect", "")
-            qualifiers = result.get("qualifier", [])
-            go_name = result.get("goName", "")
-            
-            # Normalize aspect to single letter (P, F, C)
-            # QuickGO returns full names like "biological_process"
-            category = "U"  # Unknown
-            if aspect in ["biological_process", "P"]:
-                category = "P"
-            elif aspect in ["molecular_function", "F"]:
-                category = "F"
-            elif aspect in ["cellular_component", "C"]:
-                category = "C"
-            
-            # Determine evidence type - EXPLICIT classification
-            # IDA, IMP, IGI = EXPERIMENTAL (as per requirements)
-            # IEA = computational PREDICTION (NOT experimental)
-            evidence_type = "other"
-            if any(code in {"IDA", "IPI", "IMP", "IGI", "IEP", "HTP", "HDA", "HMP", "HGI", "HEP"} for code in evidence_codes):
-                evidence_type = "experimental"
-            elif any(code in {"ISS", "ISO", "ISA", "ISM", "IGC", "IBA", "IBD", "IKR", "IRD", "RCA"} for code in evidence_codes):
-                evidence_type = "computational"
-            elif any(code == "IEA" for code in evidence_codes):
-                evidence_type = "IEA"  # Computational prediction - DISTINCT from experimental
-            
-            go_terms.append({
-                "go_id": go_id,
-                "go_name": go_name,
-                "aspect": aspect,
-                "category": category,  # CRITICAL: P, F, or C for filtering
-                "evidence_codes": evidence_codes,
-                "evidence_type": evidence_type,
-                "qualifiers": qualifiers
-            })
-        
-        logger.info(f"Found {len(go_terms)} GO terms for {gene_symbol}")
-        return go_terms
-        
-    except Exception as e:
-        logger.error(f"Error getting GO terms for {gene_symbol}: {str(e)}")
+    gene_id = _resolve_gene_to_uniprot(gene_symbol, taxid)
+    if not gene_id:
+        logger.warning(f"Could not resolve {gene_symbol} to UniProt ID in taxid {taxid}")
         return []
+
+    base_url = "https://www.ebi.ac.uk/QuickGO/services/annotation/search"
+    PAGE_SIZE = 200  # QuickGO rejects larger pages with HTTP 400
+    all_results = []
+    page = 1
+
+    while True:
+        params = {
+            "geneProductId": gene_id,
+            "limit": PAGE_SIZE,
+            "page": page,
+            "includeFields": "goName",
+        }
+
+        time.sleep(0.34)  # Rate limiting
+        try:
+            response = http_get(base_url, params=params)
+        except requests.RequestException as e:
+            raise GeneRetrievalError(f"QuickGO request failed for {gene_symbol}: {e}")
+
+        if response.status_code != 200:
+            raise GeneRetrievalError(
+                f"QuickGO returned HTTP {response.status_code} for {gene_symbol}: {response.text[:200]}"
+            )
+
+        data = response.json()
+        results = data.get("results", [])
+        if not results:
+            break
+
+        all_results.extend(results)
+
+        total_hits = data.get("numberOfHits", 0)
+        if len(all_results) >= total_hits or len(results) < PAGE_SIZE:
+            break
+
+        page += 1
+        if page > 50:  # Safety limit
+            break
+
+    terms: Dict[str, Dict] = {}
+
+    for result in all_results:
+        go_id = result.get("goId", "")
+        if not go_id:
+            continue
+
+        qualifier = result.get("qualifier", "")
+        if "NOT" in str(qualifier).upper().split("|"):
+            continue  # NOT annotations say the gene is NOT involved
+
+        code = result.get("goEvidence", "")
+        evidence_type = _evidence_classifier._classify_evidence([code])
+
+        existing = terms.get(go_id)
+        if existing is not None:
+            if code and code not in existing["evidence_codes"]:
+                existing["evidence_codes"].append(code)
+            if EVIDENCE_PRIORITY.get(evidence_type, 0) > EVIDENCE_PRIORITY.get(existing["evidence_type"], 0):
+                existing["evidence_type"] = evidence_type
+            continue
+
+        aspect = result.get("goAspect", "")
+
+        # Normalize aspect to single letter (P, F, C); QuickGO returns full names
+        category = "U"  # Unknown
+        if aspect in ["biological_process", "P"]:
+            category = "P"
+        elif aspect in ["molecular_function", "F"]:
+            category = "F"
+        elif aspect in ["cellular_component", "C"]:
+            category = "C"
+
+        terms[go_id] = {
+            "go_id": go_id,
+            "go_name": result.get("goName") or "",
+            "aspect": aspect,
+            "category": category,  # CRITICAL: P, F, or C for filtering
+            "evidence_codes": [code] if code else [],
+            "evidence_type": evidence_type,
+            "qualifiers": qualifier
+        }
+
+    go_terms = list(terms.values())
+    logger.info(f"Found {len(go_terms)} GO terms for {gene_symbol}")
+    return go_terms
 
 
 def _resolve_gene_to_uniprot(gene_symbol: str, taxid: str) -> Optional[str]:
     """
-    Resolve a gene symbol to UniProt ID using the NEW UniProt REST API.
-    
+    Resolve a gene symbol to a UniProt accession using the UniProt REST API.
+
     Args:
         gene_symbol: Gene symbol
         taxid: NCBI Taxonomy ID
-        
+
     Returns:
-        UniProt ID or None if not found
+        UniProt accession, or None if UniProt has no such gene.
+
+    Raises:
+        GeneRetrievalError: If UniProt could not be queried.
     """
-    try:
-        # Use the NEW UniProt REST API (not the deprecated one)
-        base_url = "https://rest.uniprot.org/uniprotkb/search"
-        
-        # Build query using organism_id (taxid) and gene name
-        query = f"gene:{gene_symbol} AND organism_id:{taxid} AND reviewed:true"
-        
-        params = {
-            "query": query,
-            "format": "json",
-            "fields": "accession",
-            "size": 1
-        }
-        
-        headers = {
-            "Accept": "application/json"
-        }
-        
+    base_url = "https://rest.uniprot.org/uniprotkb/search"
+
+    # Prefer the reviewed (Swiss-Prot) entry, then fall back to any entry
+    for query in (
+        f"gene:{gene_symbol} AND organism_id:{taxid} AND reviewed:true",
+        f"gene:{gene_symbol} AND organism_id:{taxid}",
+    ):
+        params = {"query": query, "format": "json", "fields": "accession", "size": 1}
+
         time.sleep(0.34)  # Rate limiting
-        response = requests.get(base_url, params=params, headers=headers, timeout=15)
-        
-        if response.status_code == 200:
-            data = response.json()
-            results = data.get("results", [])
-            if results:
-                uniprot_id = results[0].get("primaryAccession")
-                logger.debug(f"Resolved {gene_symbol} to UniProt ID: {uniprot_id}")
-                return uniprot_id
-        
-        # Fallback: try without reviewed filter
-        query = f"gene:{gene_symbol} AND organism_id:{taxid}"
-        params["query"] = query
-        
-        time.sleep(0.34)
-        response = requests.get(base_url, params=params, headers=headers, timeout=15)
-        
-        if response.status_code == 200:
-            data = response.json()
-            results = data.get("results", [])
-            if results:
-                uniprot_id = results[0].get("primaryAccession")
-                logger.debug(f"Resolved {gene_symbol} to UniProt ID (unreviewed): {uniprot_id}")
-                return uniprot_id
-        
-        logger.warning(f"Could not resolve {gene_symbol} to UniProt ID in taxid {taxid}")
-        return None
-        
-    except Exception as e:
-        logger.warning(f"Could not resolve {gene_symbol} to UniProt ID: {e}")
-        return None
+        try:
+            response = http_get(base_url, params=params, timeout=15)
+        except requests.RequestException as e:
+            raise GeneRetrievalError(f"UniProt request failed for {gene_symbol}: {e}")
+
+        if response.status_code != 200:
+            raise GeneRetrievalError(f"UniProt returned HTTP {response.status_code} for {gene_symbol}")
+
+        results = response.json().get("results", [])
+        if results:
+            return results[0].get("primaryAccession")
+
+    return None
 
 
 def _validate_go_term(go_term: str) -> bool:

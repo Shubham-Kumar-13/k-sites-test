@@ -198,7 +198,7 @@ class TestReportGeneration(unittest.TestCase):
         import re
         
         report_file = Path(__file__).parent.parent / "k_sites" / "reporting" / "report_generator.py"
-        content = report_file.read_text()
+        content = report_file.read_text(encoding="utf-8")
         
         # Should NOT have "/10" for specificity display
         # The specificity should show as 0-1 scale

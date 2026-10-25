@@ -1,6 +1,6 @@
 """
 K-Sites Web Application - Enhanced Version
-Flask backend for CRISPR guide RNA design platform
+Flask backend for the K-Sites safe gene selection tool
 """
 
 import os
@@ -138,14 +138,12 @@ class AnalysisJob(db.Model):
     max_genes = db.Column(db.Integer, default=10)
     max_pleiotropy = db.Column(db.Integer, default=5)
     evidence_filter = db.Column(db.String(20), default='experimental')
-    use_graph = db.Column(db.Boolean, default=False)
     predict_phenotypes = db.Column(db.Boolean, default=False)
     selected_databases = db.Column(db.Text)
     
     # Results
     total_genes_found = db.Column(db.Integer)
     genes_processed = db.Column(db.Integer)
-    total_grnas = db.Column(db.Integer)
     results_path = db.Column(db.String(500))
     error_message = db.Column(db.Text)
     
@@ -167,12 +165,10 @@ class AnalysisJob(db.Model):
             'max_genes': self.max_genes,
             'max_pleiotropy': self.max_pleiotropy,
             'evidence_filter': self.evidence_filter,
-            'use_graph': self.use_graph,
             'predict_phenotypes': self.predict_phenotypes,
             'selected_databases': json.loads(self.selected_databases) if self.selected_databases else [],
             'total_genes_found': self.total_genes_found,
             'genes_processed': self.genes_processed,
-            'total_grnas': self.total_grnas,
             'results_path': self.results_path,
             'error_message': self.error_message
         }
@@ -226,7 +222,6 @@ Job Details:
 - Organism: {job.organism}
 - GO Term: {job.go_term} ({job.go_term_name or 'N/A'})
 - Genes Analyzed: {job.genes_processed}
-- Total gRNAs Designed: {job.total_grnas}
 - Completion Time: {job.updated_at.strftime('%Y-%m-%d %H:%M:%S')}
 
 View your results: http://localhost:5000/results/{job.id}
@@ -472,15 +467,6 @@ def search_go_terms_api():
 @login_required
 def get_databases():
     """Get list of available databases for analysis"""
-    # Check Neo4j availability
-    neo4j_available = False
-    try:
-        from k_sites.neo4j.graph_client import get_graph_client
-        client = get_graph_client()
-        neo4j_available = client.test_connection()
-    except Exception:
-        pass
-    
     databases = [
         {
             'id': 'quickgo',
@@ -511,15 +497,15 @@ def get_databases():
             'required': False
         },
         {
-            'id': 'neo4j',
-            'name': 'Neo4j Pathways',
-            'description': 'KEGG pathway analysis for off-target filtering',
-            'enabled': neo4j_available,
+            'id': 'kegg',
+            'name': 'KEGG',
+            'description': 'Pathway annotations (pathway count per gene)',
+            'enabled': True,
             'required': False
         }
     ]
     
-    return jsonify({'databases': databases, 'neo4j_available': neo4j_available})
+    return jsonify({'databases': databases})
 
 
 # ============================================================================
@@ -535,6 +521,7 @@ def validate_analysis():
     organism = data.get('organism', '').strip()
     go_term = data.get('go_term', '').strip()
     max_genes = int(data.get('max_genes', 10))
+    evidence_filter = data.get('evidence_filter', 'experimental')
     
     errors = []
     warnings = []
@@ -549,6 +536,10 @@ def validate_analysis():
     elif not go_term.upper().startswith('GO:'):
         errors.append('GO term must be in format GO:XXXXXXX')
     
+    # Validate evidence type
+    if evidence_filter not in ('experimental', 'computational', 'all'):
+        errors.append('Evidence filter must be experimental, computational or all')
+    
     # Validate max_genes
     if max_genes < 1:
         errors.append('Maximum genes must be at least 1')
@@ -560,7 +551,7 @@ def validate_analysis():
         if organism and go_term:
             organism_info = resolve_organism(organism)
             taxid = organism_info['taxid']
-            genes = get_genes_for_go_term(go_term, taxid, evidence_filter='experimental')
+            genes = get_genes_for_go_term(go_term, taxid, evidence_filter=evidence_filter)
             total_genes = len(genes)
             
             if total_genes == 0:
@@ -648,7 +639,6 @@ def start_analysis():
             max_genes=int(data.get('max_genes', 10)),
             max_pleiotropy=int(data.get('max_pleiotropy', 5)),
             evidence_filter=data.get('evidence_filter', 'experimental'),
-            use_graph=data.get('use_graph', False),
             predict_phenotypes=data.get('predict_phenotypes', False),
             selected_databases=json.dumps(data.get('databases', ['quickgo'])),
             status='pending',
@@ -743,7 +733,6 @@ def run_analysis_job(job_id: str):
                 go_term=job.go_term,
                 organism=job.organism,
                 max_pleiotropy=job.max_pleiotropy,
-                use_graph=job.use_graph,
                 evidence_filter=job.evidence_filter,
                 predict_phenotypes=job.predict_phenotypes
             )
@@ -778,7 +767,6 @@ def run_analysis_job(job_id: str):
             job.current_step = 'Completed'
             job.progress_percent = 100
             job.genes_processed = len(pipeline_output.get('genes', []))
-            job.total_grnas = sum(len(g.get('guides', [])) for g in pipeline_output.get('genes', []))
             job.results_path = str(job_results_dir)
             db.session.commit()
             

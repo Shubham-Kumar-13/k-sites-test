@@ -1,135 +1,153 @@
 """
 Unit tests for go_gene_mapper module.
+
+QuickGO is mocked at ``_fetch_quickgo_page`` and the on-disk cache is bypassed,
+so the tests never touch the network or the user's real cache.
 """
 
 import pytest
 from unittest.mock import patch, MagicMock
-from k_sites.data_retrieval.go_gene_mapper import get_genes_for_go_term, GoTermNotFoundError, GeneRetrievalError
+
+import requests
+
+from k_sites.data_retrieval import go_gene_mapper
+from k_sites.data_retrieval.go_gene_mapper import (
+    get_genes_for_go_term,
+    GoTermNotFoundError,
+    GeneRetrievalError,
+)
+
+
+def annotation(symbol, product_id, evidence, reference="PMID:1"):
+    """Build a QuickGO annotation record in the shape the mapper reads."""
+    return {
+        "symbol": symbol,
+        "geneProductId": product_id,
+        "goEvidence": evidence,
+        "reference": reference,
+        "qualifier": "involved_in",
+    }
+
+
+@pytest.fixture(autouse=True)
+def isolated_cache():
+    """Run every test with an empty in-memory cache and no disk access."""
+    with patch.object(go_gene_mapper, "_load_cache"), \
+         patch.object(go_gene_mapper, "_save_cache"), \
+         patch.dict(go_gene_mapper._go_gene_cache, {}, clear=True):
+        yield
 
 
 class TestGoGeneMapper:
     """Test cases for GO term to gene mapping functionality."""
-    
-    @patch('requests.get')
-    def test_get_genes_for_valid_go_term(self, mock_get):
-        """Test getting genes for a valid GO term."""
-        # Mock the API response
-        mock_response = MagicMock()
-        mock_response.json.return_value = {
-            "results": [
-                {
-                    "geneProductAc": "P38398",
-                    "geneProductName": "BRCA1",
-                    "proteinId": "672",
-                    "evidenceCode": ["EXP", "IDA"],
-                    "reference": "DNA repair function"
-                },
-                {
-                    "geneProductAc": "P04637", 
-                    "geneProductName": "TP53",
-                    "proteinId": "7157",
-                    "evidenceCode": ["EXP"],
-                    "reference": "Tumor suppressor"
-                }
-            ]
-        }
-        mock_response.raise_for_status.return_value = None
-        mock_get.return_value = mock_response
-        
+
+    @patch.object(go_gene_mapper, "_fetch_quickgo_page")
+    def test_get_genes_for_valid_go_term(self, mock_fetch):
+        mock_fetch.return_value = (2, [
+            annotation("BRCA1", "UniProtKB:P38398", "IDA"),
+            annotation("TP53", "UniProtKB:P04637", "IMP"),
+        ])
+
         genes = get_genes_for_go_term("GO:0006281", "9606")
-        
-        assert len(genes) == 2
-        assert genes[0]["symbol"] == "BRCA1"
-        assert genes[0]["entrez_id"] == "672"
-        assert genes[1]["symbol"] == "TP53"
-        assert genes[1]["entrez_id"] == "7157"
-    
-    @patch('requests.get')
-    def test_get_genes_filters_iea_evidence(self, mock_get):
-        """Test that IEA evidence codes are filtered out."""
-        # Mock response with only IEA evidence
-        mock_response = MagicMock()
-        mock_response.json.return_value = {
-            "results": [
-                {
-                    "geneProductAc": "P38398",
-                    "geneProductName": "BRCA1", 
-                    "proteinId": "672",
-                    "evidenceCode": ["IEA", "ECO:0000501"],  # Both are IEA
-                    "reference": "Electronic annotation"
-                },
-                {
-                    "geneProductAc": "P04637",
-                    "geneProductName": "TP53",
-                    "proteinId": "7157", 
-                    "evidenceCode": ["EXP", "IEA"],  # Mixed - should be included
-                    "reference": "Experimental annotation"
-                }
-            ]
-        }
-        mock_response.raise_for_status.return_value = None
-        mock_get.return_value = mock_response
-        
+
+        assert [g["symbol"] for g in genes] == ["BRCA1", "TP53"]
+        assert genes[0]["entrez_id"] == "UniProtKB:P38398"
+        assert genes[0]["evidence_codes"] == ["IDA"]
+        assert genes[0]["go_evidence_type"] == "experimental"
+
+    @patch.object(go_gene_mapper, "_fetch_quickgo_page")
+    def test_experimental_filter_excludes_iea(self, mock_fetch):
+        mock_fetch.return_value = (2, [
+            annotation("BRCA1", "UniProtKB:P38398", "IEA"),
+            annotation("TP53", "UniProtKB:P04637", "IDA"),
+        ])
+
+        genes = get_genes_for_go_term("GO:0006281", "9606", "experimental")
+
+        assert [g["symbol"] for g in genes] == ["TP53"]
+
+    @patch.object(go_gene_mapper, "_fetch_quickgo_page")
+    def test_computational_filter_includes_iea(self, mock_fetch):
+        mock_fetch.return_value = (2, [
+            annotation("BRCA1", "UniProtKB:P38398", "IEA"),
+            annotation("TP53", "UniProtKB:P04637", "IDA"),
+        ])
+
+        genes = get_genes_for_go_term("GO:0006281", "9606", "computational")
+
+        assert [g["symbol"] for g in genes] == ["BRCA1"]
+
+    @patch.object(go_gene_mapper, "_fetch_quickgo_page")
+    def test_all_filter_keeps_every_gene(self, mock_fetch):
+        mock_fetch.return_value = (2, [
+            annotation("BRCA1", "UniProtKB:P38398", "IEA"),
+            annotation("TP53", "UniProtKB:P04637", "IDA"),
+        ])
+
+        genes = get_genes_for_go_term("GO:0006281", "9606", "all")
+
+        assert {g["symbol"] for g in genes} == {"BRCA1", "TP53"}
+
+    @patch.object(go_gene_mapper, "_fetch_quickgo_page")
+    def test_annotations_for_same_gene_are_merged(self, mock_fetch):
+        mock_fetch.return_value = (2, [
+            annotation("BRCA1", "UniProtKB:P38398", "IDA"),
+            annotation("BRCA1", "UniProtKB:P38398", "IMP"),
+        ])
+
         genes = get_genes_for_go_term("GO:0006281", "9606")
-        
-        # Should only include the gene with EXP evidence (not just IEA)
+
         assert len(genes) == 1
-        assert genes[0]["symbol"] == "TP53"
-    
-    @patch('requests.get')
-    def test_get_genes_empty_result(self, mock_get):
-        """Test getting genes for a GO term with no results."""
-        mock_response = MagicMock()
-        mock_response.json.return_value = {
-            "results": []
-        }
-        mock_response.raise_for_status.return_value = None
-        mock_get.return_value = mock_response
-        
-        genes = get_genes_for_go_term("GO:0000000", "9606")  # Non-existent GO term
-        
-        assert len(genes) == 0
-    
-    @patch('requests.get')
-    def test_go_term_not_found_raises_error(self, mock_get):
-        """Test that non-existent GO term raises GoTermNotFoundError."""
-        mock_response = MagicMock()
-        mock_response.status_code = 404
-        mock_response.raise_for_status.side_effect = Exception("Not found")
-        mock_get.return_value = mock_response
-        
-        with pytest.raises(GoTermNotFoundError):
-            get_genes_for_go_term("GO:0000000", "9606")
-    
-    @patch('requests.get')
+        assert set(genes[0]["evidence_codes"]) == {"IDA", "IMP"}
+
+    @patch.object(go_gene_mapper, "_fetch_quickgo_page")
+    def test_get_genes_empty_result(self, mock_fetch):
+        mock_fetch.return_value = (0, [])
+
+        assert get_genes_for_go_term("GO:0000000", "9606") == []
+
+    @patch.object(go_gene_mapper, "_fetch_quickgo_page")
+    def test_results_are_cached(self, mock_fetch):
+        mock_fetch.return_value = (1, [annotation("BRCA1", "UniProtKB:P38398", "IDA")])
+
+        first = get_genes_for_go_term("GO:0006281", "9606")
+        second = get_genes_for_go_term("GO:0006281", "9606")
+
+        assert first == second
+        assert mock_fetch.call_count == 1
+
+    @patch("k_sites.data_retrieval.go_gene_mapper.http_get")
     def test_request_failure_raises_error(self, mock_get):
-        """Test that API request failure raises GeneRetrievalError."""
-        mock_get.side_effect = Exception("Network error")
-        
+        mock_get.side_effect = requests.ConnectionError("Network error")
+
         with pytest.raises(GeneRetrievalError):
             get_genes_for_go_term("GO:0006281", "9606")
-    
+
+    @patch("k_sites.data_retrieval.go_gene_mapper.http_get")
+    def test_server_error_raises_error(self, mock_get):
+        mock_get.return_value = MagicMock(status_code=503, text="unavailable")
+
+        with pytest.raises(GeneRetrievalError):
+            get_genes_for_go_term("GO:0006281", "9606")
+
+    @patch("k_sites.data_retrieval.go_gene_mapper.http_get")
+    def test_go_term_not_found_raises_error(self, mock_get):
+        mock_get.return_value = MagicMock(status_code=400, text="invalid goId")
+
+        with pytest.raises(GoTermNotFoundError):
+            get_genes_for_go_term("GO:0000000", "9606")
+
+    @patch.object(go_gene_mapper, "_fetch_quickgo_page")
+    def test_failed_extra_page_fails_the_lookup(self, mock_fetch):
+        first = [annotation("BRCA1", "UniProtKB:P38398", "IDA")]
+        mock_fetch.side_effect = [(450, first), (450, first), GeneRetrievalError("page 3 failed")]
+
+        with pytest.raises(GeneRetrievalError):
+            get_genes_for_go_term("GO:0006281", "9606")
+
     def test_invalid_go_term_format(self):
-        """Test that invalid GO term format raises ValueError."""
         with pytest.raises(ValueError):
             get_genes_for_go_term("INVALID_FORMAT", "9606")
-        
+
         with pytest.raises(ValueError):
             get_genes_for_go_term("GO:123", "9606")  # Wrong length
-    
-    @patch('requests.get')
-    def test_taxid_to_species_mapping(self, mock_get):
-        """Test that taxid gets properly mapped to species name."""
-        # This test verifies the internal mapping works
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"results": []}
-        mock_response.raise_for_status.return_value = None
-        mock_get.return_value = mock_response
-        
-        # This should not raise an error for valid taxid
-        try:
-            genes = get_genes_for_go_term("GO:0006281", "9606")
-            # Even if no genes are returned, the call should succeed
-        except GeneRetrievalError:
-            # This is expected if the API call fails for other reasons
-            pass

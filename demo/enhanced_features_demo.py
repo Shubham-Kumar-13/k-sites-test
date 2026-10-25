@@ -122,16 +122,7 @@ def demonstrate_pipeline_with_visual_indicators():
                         "risk_level": "MEDIUM",
                         "confidence_score": 0.7
                     },
-                    "safety_recommendation": "Standard KO acceptable",
-                    "guides": [
-                        {
-                            "seq": "GCCTGCGACGGAGGAAGCGA",
-                            "position": 1234,
-                            "doench_score": 0.85,
-                            "cfd_off_targets": 2,
-                            "pathway_conflict": False
-                        }
-                    ]
+                    "safety_recommendation": "Standard KO acceptable"
                 },
                 {
                     "symbol": "MLH1",
@@ -151,16 +142,7 @@ def demonstrate_pipeline_with_visual_indicators():
                         "risk_level": "HIGH",
                         "confidence_score": 0.8
                     },
-                    "safety_recommendation": "Conditional KO/CRISPRi preferred",
-                    "guides": [
-                        {
-                            "seq": "GCTGCGACGGAGGAAGCGAA",
-                            "position": 2345,
-                            "doench_score": 0.78,
-                            "cfd_off_targets": 1,
-                            "pathway_conflict": True
-                        }
-                    ]
+                    "safety_recommendation": "Conditional KO/CRISPRi preferred"
                 }
             ],
             "statistics": {
@@ -229,16 +211,7 @@ def demonstrate_csv_export():
                         "risk_level": "MEDIUM",
                         "confidence_score": 0.7
                     },
-                    "safety_recommendation": "Standard KO acceptable",
-                    "guides": [
-                        {
-                            "seq": "GCCTGCGACGGAGGAAGCGA",
-                            "position": 1234,
-                            "doench_score": 0.85,
-                            "cfd_off_targets": 2,
-                            "pathway_conflict": False
-                        }
-                    ]
+                    "safety_recommendation": "Standard KO acceptable"
                 }
             ],
             "statistics": {

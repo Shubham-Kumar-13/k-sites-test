@@ -97,6 +97,17 @@ def calculate_specificity_score(pleiotropy_score: float) -> float:
     return max(0.0, min(1.0, 1.0 - (pleiotropy_score / 10.0)))
 
 
+DATA_OK = "ok"
+DATA_INSUFFICIENT = "insufficient_data"
+
+# Evidence types that count toward pleiotropy under each evidence filter
+_ALLOWED_EVIDENCE = {
+    "experimental": {"experimental"},
+    "computational": {"computational", "curatorial", "IEA"},
+    "all": None,  # everything
+}
+
+
 def score_gene_pleiotropy(
     gene_symbol: str,
     taxid: str,
@@ -106,29 +117,41 @@ def score_gene_pleiotropy(
 ) -> Dict:
     """
     Calculate comprehensive pleiotropy score for a gene using multi-database integration.
-    
+
     This function queries GO.org, UniProt, and KEGG simultaneously to get
     comprehensive BP term counts and evidence quality.
-    
+
+    The result always carries a ``data_status``:
+
+    - ``"ok"``: scores are valid.
+    - ``"insufficient_data"``: the gene could not be scored (lookup failed, gene unknown,
+      or no Biological Process term with the requested evidence). ``pleiotropy_score``
+      and ``specificity_score`` are then ``None``; they are never defaulted to "specific".
+      ``data_issues`` explains why and ``lookup_failed`` says whether a database was
+      unreachable (as opposed to the gene simply having no annotations).
+
     Args:
         gene_symbol: Gene symbol (e.g., "BRCA1")
         taxid: NCBI Taxonomy ID
         target_go_term: Optional target GO term (excluded from count)
         evidence_filter: "experimental", "computational", or "all"
         use_multi_database: Whether to query all databases simultaneously
-        
+
     Returns:
         Comprehensive scoring dictionary
     """
     logger.info(f"Scoring pleiotropy for {gene_symbol} in {taxid}")
-    
+
     result = {
         "gene_symbol": gene_symbol,
         "taxid": taxid,
+        "data_status": DATA_INSUFFICIENT,
+        "data_issues": [],
+        "lookup_failed": False,
         "bp_term_count": 0,
         "other_bp_term_count": 0,
-        "pleiotropy_score": 0.0,
-        "specificity_score": 1.0,  # 0-1 scale
+        "pleiotropy_score": None,
+        "specificity_score": None,
         "evidence_quality": 0.0,
         "experimental_evidence_count": 0,
         "computational_evidence_count": 0,
@@ -137,80 +160,96 @@ def score_gene_pleiotropy(
         "database_sources": [],
         "bp_terms": []
     }
-    
+
     try:
         if use_multi_database:
             # Query all databases simultaneously
             from k_sites.data_retrieval.multi_database_client import query_gene_from_all_databases
             db_results = query_gene_from_all_databases(gene_symbol, taxid)
-            
-            # Extract combined BP terms
+
             bp_terms = db_results.get("combined_bp_terms", [])
-            result["bp_terms"] = bp_terms
-            result["bp_term_count"] = len(bp_terms)
-            
-            # Track database sources
+
             result["database_sources"] = [
-                k for k, v in db_results.get("query_status", {}).items() 
+                k for k, v in db_results.get("query_status", {}).items()
                 if v == "success"
             ]
-            
-            # Extract evidence counts
+            result["data_issues"].extend(db_results.get("data_issues", []))
+
             evidence = db_results.get("combined_evidence", {})
             result["experimental_evidence_count"] = evidence.get("experimental", 0)
             result["computational_evidence_count"] = evidence.get("computational", 0)
             result["iea_evidence_count"] = evidence.get("IEA", 0)
-            
-            # Extract KEGG pathway count
+
             kegg_data = db_results.get("kegg_data", {})
             result["kegg_pathway_count"] = kegg_data.get("pathway_count", 0)
-            
+
+            go_sources_failed = any(
+                str(db_results.get("query_status", {}).get(name, "")).startswith("failed")
+                for name in ("go", "uniprot")
+            )
         else:
-            # Fallback to single database query
+            # Single database query (QuickGO via UniProt accession)
             from k_sites.data_retrieval.go_gene_mapper import get_pleiotropy_score_detailed
             detailed = get_pleiotropy_score_detailed(gene_symbol, taxid)
-            
-            result["bp_term_count"] = detailed.get("bp_term_count", 0)
-            result["bp_terms"] = detailed.get("biological_process_terms", [])
+
+            bp_terms = detailed.get("biological_process_terms", [])
             result["experimental_evidence_count"] = detailed.get("experimental_evidence_count", 0)
             result["computational_evidence_count"] = detailed.get("computational_evidence_count", 0)
             result["iea_evidence_count"] = detailed.get("iea_evidence_count", 0)
             result["database_sources"] = ["QuickGO"]
-        
-        # Apply evidence filter
-        if evidence_filter == "experimental":
-            # Only count terms with experimental evidence
-            filtered_count = result["experimental_evidence_count"]
-            # Use minimum of actual BP terms and experimental evidence count
-            effective_bp_count = min(result["bp_term_count"], max(1, filtered_count))
-        elif evidence_filter == "computational":
-            filtered_count = result["computational_evidence_count"] + result["iea_evidence_count"]
-            effective_bp_count = min(result["bp_term_count"], max(1, filtered_count))
+            go_sources_failed = False
+
+        result["bp_terms"] = bp_terms
+        result["bp_term_count"] = len(bp_terms)
+
+        # Apply evidence filter: count only the BP terms supported by the requested evidence
+        allowed = _ALLOWED_EVIDENCE.get(evidence_filter)
+        if allowed is None:
+            counted_terms = bp_terms
         else:
-            effective_bp_count = result["bp_term_count"]
-        
-        # Calculate other BP terms (exclude target if specified)
-        other_bp_count = effective_bp_count - 1 if effective_bp_count > 0 else 0
-        result["other_bp_term_count"] = other_bp_count
-        
-        # Calculate pleiotropy score (0-10 scale based on OTHER BP terms)
+            counted_terms = [t for t in bp_terms if t.get("evidence_type") in allowed]
+        effective_bp_count = len(counted_terms)
+
+        if effective_bp_count == 0:
+            if not bp_terms:
+                if go_sources_failed:
+                    result["lookup_failed"] = True
+                    result["data_issues"].append("No Biological Process data retrieved: a GO database could not be queried")
+                else:
+                    result["data_issues"].append("No Biological Process annotations found for this gene")
+            else:
+                result["data_issues"].append(
+                    f"No Biological Process term has {evidence_filter} evidence "
+                    f"({len(bp_terms)} term(s) found with other evidence)"
+                )
+            logger.warning(f"Insufficient data to score {gene_symbol}: {'; '.join(result['data_issues'])}")
+            return result
+
+        # Number of OTHER BP terms (the target term is excluded inside the formula)
+        result["other_bp_term_count"] = effective_bp_count - 1
+
+        # Pleiotropy score (0-10 scale based on OTHER BP terms)
         result["pleiotropy_score"] = calculate_pleiotropy_score(effective_bp_count)
-        
-        # Calculate specificity score (0-1 scale)
+
+        # Specificity score (0-1 scale)
         result["specificity_score"] = calculate_specificity_score(result["pleiotropy_score"])
-        
-        # Calculate evidence quality (0-1 scale)
+
+        # Evidence quality (0-1 scale)
         result["evidence_quality"] = _calculate_evidence_quality(result)
-        
+
+        result["data_status"] = DATA_OK
+
         logger.info(f"Pleiotropy for {gene_symbol}: {result['pleiotropy_score']:.2f}, "
                    f"Specificity: {result['specificity_score']:.2f}, "
-                   f"BP terms: {result['bp_term_count']}")
-        
+                   f"BP terms: {result['bp_term_count']} ({effective_bp_count} counted)")
+
         return result
-        
+
     except Exception as e:
         logger.error(f"Error scoring pleiotropy for {gene_symbol}: {e}")
         result["error"] = str(e)
+        result["lookup_failed"] = True
+        result["data_issues"].append(f"Scoring failed: {e}")
         return result
 
 
@@ -369,9 +408,13 @@ def validate_across_species(
                 logger.warning(f"Validation failed for {taxid}: {e}")
                 results["species_results"][taxid] = {"found": False, "error": str(e)}
     
-    # Calculate conservation score
-    results["conservation_score"] = results["found_in_species"] / len(species_list)
-    
+    # Calculate conservation score over the species that could be queried; a failed lookup
+    # is not evidence that the gene is absent
+    queried = [r for r in results["species_results"].values() if not r.get("error")]
+    results["species_queried"] = len(queried)
+    results["lookup_errors"] = len(species_list) - len(queried)
+    results["conservation_score"] = results["found_in_species"] / len(queried) if queried else 0.0
+
     # Calculate specificity consistency (how consistent is specificity across species)
     if specificity_scores:
         mean_spec = sum(specificity_scores) / len(specificity_scores)
@@ -395,19 +438,53 @@ def _validate_in_species(gene_symbol: str, target_go_term: str, taxid: str) -> D
     
     try:
         # Get pleiotropy score for this species
-        scoring = score_gene_pleiotropy(gene_symbol, taxid, target_go_term, use_multi_database=False)
-        
-        if scoring.get("bp_term_count", 0) > 0:
+        # "all" evidence: here we only ask whether the gene is annotated in this species
+        scoring = score_gene_pleiotropy(
+            gene_symbol, taxid, target_go_term, evidence_filter="all", use_multi_database=False
+        )
+
+        if scoring.get("data_status") == DATA_OK:
             result["found"] = True
-            result["pleiotropy_score"] = scoring.get("pleiotropy_score", 5.0)
-            result["specificity_score"] = scoring.get("specificity_score", 0.5)
+            result["pleiotropy_score"] = scoring.get("pleiotropy_score")
+            result["specificity_score"] = scoring.get("specificity_score")
             result["bp_term_count"] = scoring.get("bp_term_count", 0)
-        
+        elif scoring.get("lookup_failed"):
+            # The database could not be queried: this says nothing about the gene
+            result["error"] = "; ".join(scoring.get("data_issues", [])) or "lookup failed"
+
     except Exception as e:
         logger.warning(f"Validation in {taxid} failed: {e}")
         result["error"] = str(e)
     
     return result
+
+
+def _insufficient_data_record(gene_info: Dict, scoring: Dict) -> Dict:
+    """Ranking record for a gene that could not be scored. Scores are None, never defaults."""
+    return {
+        "symbol": gene_info.get("symbol", ""),
+        "description": gene_info.get("description", ""),
+        "entrez_id": gene_info.get("entrez_id", ""),
+        "data_status": DATA_INSUFFICIENT,
+        "data_issues": scoring.get("data_issues", []),
+        "lookup_failed": scoring.get("lookup_failed", False),
+        "pleiotropy_score": None,
+        "specificity_score": None,
+        "evidence_quality": 0.0,
+        "literature_score": 0.0,
+        "conservation_score": 0.0,
+        "composite_score": 0.0,
+        "bp_term_count": scoring.get("bp_term_count", 0),
+        "other_bp_term_count": 0,
+        "experimental_evidence_count": scoring.get("experimental_evidence_count", 0),
+        "computational_evidence_count": scoring.get("computational_evidence_count", 0),
+        "iea_evidence_count": scoring.get("iea_evidence_count", 0),
+        "kegg_pathway_count": scoring.get("kegg_pathway_count", 0),
+        "pubmed_count": 0,
+        "specificity_consistency": 0.0,
+        "database_sources": scoring.get("database_sources", []),
+        "passes_threshold": False,
+    }
 
 
 def _rank_single_gene(
@@ -433,7 +510,11 @@ def _rank_single_gene(
             evidence_filter,
             use_multi_database=True
         )
-        
+
+        # A gene we could not score is reported as such, not ranked on default values
+        if scoring.get("data_status") != DATA_OK:
+            return _insufficient_data_record(gene_info, scoring)
+
         # Get literature support (REAL PubMed query)
         if include_literature:
             lit_data = get_literature_support(gene_symbol, taxid)
@@ -470,6 +551,8 @@ def _rank_single_gene(
             "symbol": gene_symbol,
             "description": gene_info.get("description", ""),
             "entrez_id": gene_info.get("entrez_id", ""),
+            "data_status": DATA_OK,
+            "data_issues": scoring.get("data_issues", []),
             "pleiotropy_score": pleiotropy_score,
             "specificity_score": specificity_score,
             "evidence_quality": evidence_quality,
@@ -490,28 +573,10 @@ def _rank_single_gene(
         
     except Exception as e:
         logger.warning(f"Error ranking gene {gene_symbol}: {e}")
-        return {
-            "symbol": gene_symbol,
-            "description": gene_info.get("description", ""),
-            "entrez_id": gene_info.get("entrez_id", ""),
-            "pleiotropy_score": 5.0,
-            "specificity_score": 0.5,
-            "evidence_quality": 0.5,
-            "literature_score": 0.5,
-            "conservation_score": 0.0,
-            "composite_score": 0.375,
-            "bp_term_count": 0,
-            "other_bp_term_count": 0,
-            "experimental_evidence_count": 0,
-            "computational_evidence_count": 0,
-            "iea_evidence_count": 0,
-            "kegg_pathway_count": 0,
-            "pubmed_count": 0,
-            "specificity_consistency": 0.0,
-            "database_sources": [],
-            "passes_threshold": True,
-            "error": str(e)
-        }
+        return _insufficient_data_record(gene_info, {
+            "data_issues": [f"Ranking failed: {e}"],
+            "lookup_failed": True,
+        })
 
 
 def rank_genes_by_specificity(
@@ -575,21 +640,21 @@ def rank_genes_by_specificity(
                 gene_info = future_to_gene[future]
                 logger.warning(f"Failed to rank gene {gene_info.get('symbol', 'unknown')}: {e}")
     
-    # Sort by composite score (DESCENDING - highest specificity first)
-    ranked_genes.sort(key=lambda x: x["composite_score"], reverse=True)
-    
+    # Scored genes first, highest composite score first; unscorable genes go last
+    ranked_genes.sort(key=lambda x: (x.get("data_status") == DATA_OK, x["composite_score"]), reverse=True)
+
     logger.info(f"Ranked {len(ranked_genes)} genes by specificity")
     return ranked_genes
 
 
 # Legacy function for backward compatibility
-def score_pleiotropy(gene_symbol: str, taxid: str, go_term: str = None, evidence_filter: str = "experimental") -> float:
+def score_pleiotropy(gene_symbol: str, taxid: str, go_term: str = None, evidence_filter: str = "experimental") -> Optional[float]:
     """
-    Legacy function - returns pleiotropy score on 0-10 scale.
-    Use score_gene_pleiotropy() for comprehensive data.
+    Legacy function - returns pleiotropy score on 0-10 scale, or None when the gene
+    could not be scored. Use score_gene_pleiotropy() for comprehensive data.
     """
     result = score_gene_pleiotropy(gene_symbol, taxid, go_term, evidence_filter)
-    return result.get("pleiotropy_score", 5.0)
+    return result.get("pleiotropy_score")
 
 
 # Legacy function for backward compatibility

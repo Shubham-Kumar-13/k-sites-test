@@ -81,7 +81,7 @@ if [ -n "$GITHUB_TOKEN" ]; then
         https://api.github.com/user/repos \
         -d '{
             "name": "k-sites",
-            "description": "AI-Powered CRISPR Guide RNA Design Platform with Pathway-Aware Off-Target Filtering",
+            "description": "Safe gene selection for knockout studies using GO, UniProt, KEGG and PubMed evidence",
             "homepage": "https://pypi.org/project/k-sites/",
             "private": false,
             "has_issues": true,

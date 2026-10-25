@@ -65,26 +65,6 @@ def mock_uniprot_response():
 
 
 @pytest.fixture
-def mock_neo4j_driver():
-    """Mock Neo4j driver and session."""
-    with patch('k_sites.neo4j.graph_client.GraphDatabase') as mock_driver_class:
-        mock_driver = MagicMock()
-        mock_session = MagicMock()
-        mock_transaction = MagicMock()
-        
-        # Configure the mock chain: driver -> session -> transaction -> result
-        mock_driver_class.driver.return_value = mock_driver
-        mock_driver.session.return_value.__enter__.return_value = mock_session
-        
-        yield {
-            'driver_class': mock_driver_class,
-            'driver': mock_driver,
-            'session': mock_session,
-            'transaction': mock_transaction
-        }
-
-
-@pytest.fixture
 def sample_gene_data():
     """Sample gene data for testing."""
     return {

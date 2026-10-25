@@ -1,5 +1,5 @@
 """
-Setup script for Universal K-Sites package.
+Setup script for the K-Sites package.
 """
 
 from setuptools import setup, find_packages
@@ -15,7 +15,7 @@ setup(
     version="1.2.1",
     author="Kanaka KK, Sandip Garai, Jeevan C, Tanzil Fatima",
     author_email="kanakakk@example.com",
-    description="K-Sites: AI-Powered CRISPR Guide RNA Design Platform with Multi-Database Integration (GO.org, UniProt, KEGG), Exponential Decay Pleiotropy Scoring, Evidence-Based Filtering (IDA/IMP/IGI vs IEA), and RAG-Based Phenotype Prediction",
+    description="K-Sites: Safe gene selection for knockout studies with multi-database integration (GO.org, UniProt, KEGG), exponential-decay pleiotropy scoring, evidence-based filtering and RAG-based phenotype prediction",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/KanakaKK/K-sites",
@@ -45,7 +45,6 @@ setup(
     install_requires=[
         "requests>=2.25.0",
         "biopython>=1.78",
-        "neo4j>=4.4.0",
         "pyyaml>=5.4.0",
         "tqdm>=4.60.0",
         "dataclasses-json>=0.5.0",
@@ -83,7 +82,7 @@ setup(
             "k-sites=k_sites.cli:main",
         ],
     },
-    keywords="crispr, bioinformatics, genomics, gene-editing, rna-guides, biology, research, pathway-analysis, go-terms",
+    keywords="bioinformatics, genomics, gene-knockout, pleiotropy, gene-selection, biology, research, pathway-analysis, go-terms",
     include_package_data=True,
     zip_safe=False,
 )

@@ -14,7 +14,7 @@ ANALYTICAL_TERMS = {
             <h6>How it's calculated:</h6>
             <ul>
                 <li>Counts the number of Biological Process GO terms associated with the gene</li>
-                <li>Adds KEGG pathway degree (if Neo4j is enabled)</li>
+                <li>Reports the number of KEGG pathways the gene belongs to</li>
                 <li>Uses exponential decay scoring to penalize highly pleiotropic genes</li>
             </ul>
             
@@ -33,7 +33,7 @@ ANALYTICAL_TERMS = {
             is less likely to cause widespread, unpredictable phenotypic changes. High pleiotropy may indicate 
             essential genes or hub genes in regulatory networks.</p>
         """,
-        "reference": "Based on GO term enrichment and KEGG pathway analysis"
+        "reference": "Based on GO Biological Process annotations"
     },
     
     "specificity_score": {
@@ -134,73 +134,6 @@ ANALYTICAL_TERMS = {
         "reference": "Gene Ontology Evidence Codes (https://geneontology.org/docs/guide-go-evidence-codes/)"
     },
     
-    "doench_score": {
-        "title": "Doench Score (On-Target Efficiency)",
-        "icon": "fa-crosshairs",
-        "short_description": "Predicts how efficiently a gRNA will cleave its target site",
-        "detailed_explanation": """
-            <p>The <strong>Doench Score</strong> (also known as the on-target activity score) predicts the 
-            cutting efficiency of a CRISPR guide RNA at its intended target site.</p>
-            
-            <h6>Score Range:</h6>
-            <div class="table-responsive">
-                <table class="table table-sm">
-                    <tr><td class="text-success"><strong>0.6-1.0</strong></td><td>High activity - excellent guide</td></tr>
-                    <tr><td class="text-info"><strong>0.4-0.6</strong></td><td>Moderate activity - acceptable</td></tr>
-                    <tr><td class="text-warning"><strong>0.2-0.4</strong></td><td>Low activity - consider alternatives</td></tr>
-                    <tr><td class="text-danger"><strong>0.0-0.2</strong></td><td>Poor activity - avoid</td></tr>
-                </table>
-            </div>
-            
-            <h6>Factors Considered:</h6>
-            <ul>
-                <li>GC content (optimal: 40-60%)</li>
-                <li>Position-specific nucleotide preferences</li>
-                <li>Thermodynamic features of the guide</li>
-                <li>Secondary structure predictions</li>
-                <li>Position within the gene (early exons preferred)</li>
-            </ul>
-            
-            <h6>Reference:</h6>
-            <p>Doench et al., "Optimized sgRNA design to maximize activity and minimize off-target effects of CRISPR-Cas9", 
-            Nature Biotechnology (2016)</p>
-        """,
-        "reference": "Doench et al., Nat Biotechnol (2016)"
-    },
-    
-    "cfd_off_targets": {
-        "title": "CFD Off-Target Score",
-        "icon": "fa-radiation",
-        "short_description": "Predicted number of off-target sites in the genome",
-        "detailed_explanation": """
-            <p>The <strong>Cumulative Fraction Detected (CFD)</strong> score predicts the likelihood of 
-            off-target cleavage at sites throughout the genome that are similar to the intended target.</p>
-            
-            <h6>How it's calculated:</h6>
-            <ul>
-                <li>Scans the genome for sequences similar to the gRNA</li>
-                <li>Allows up to 4 mismatches in various positions</li>
-                <li>Scores each potential off-target based on mismatch position and type</li>
-                <li>Summarizes high-confidence off-target predictions</li>
-            </ul>
-            
-            <h6>Interpretation:</h6>
-            <div class="table-responsive">
-                <table class="table table-sm">
-                    <tr><td class="text-success"><strong>0-1</strong></td><td>Excellent specificity</td></tr>
-                    <tr><td class="text-info"><strong>2-4</strong></td><td>Good specificity</td></tr>
-                    <tr><td class="text-warning"><strong>5-10</strong></td><td>Moderate off-target risk</td></tr>
-                    <tr><td class="text-danger"><strong>>10</strong></td><td>High off-target risk - validate carefully</td></n                    </tr>
-                </table>
-            </div>
-            
-            <h6>Mitigation:</h6>
-            <p>High off-target counts can be mitigated by using high-fidelity Cas9 variants or performing 
-            off-target validation experiments (GUIDE-seq, CIRCLE-seq).</p>
-        """,
-        "reference": "Doench et al., Nature Biotechnology (2016)"
-    },
-    
     "safety_level": {
         "title": "Safety Level",
         "icon": "fa-shield-alt",
@@ -213,20 +146,20 @@ ANALYTICAL_TERMS = {
             <div class="table-responsive">
                 <table class="table table-sm">
                     <tr class="table-success">
-                        <td><strong>LOW</strong></td>
-                        <td>Safe target - proceed with standard protocols</td>
+                        <td><strong>SAFE</strong></td>
+                        <td>Safe to delete - standard knockout acceptable</td>
                     </tr>
                     <tr class="table-info">
-                        <td><strong>MEDIUM</strong></td>
-                        <td>Generally safe - some validation recommended</td>
+                        <td><strong>CAUTION</strong></td>
+                        <td>Generally safe - validation recommended</td>
                     </tr>
                     <tr class="table-warning">
-                        <td><strong>HIGH</strong></td>
-                        <td>Use with caution - comprehensive validation required</td>
+                        <td><strong>MODERATE_CONCERN</strong></td>
+                        <td>Use with caution - heterozygous or validated knockout suggested</td>
                     </tr>
                     <tr class="table-danger">
-                        <td><strong>CRITICAL</strong></td>
-                        <td>High risk - may be essential or highly pleiotropic</td>
+                        <td><strong>HIGH_CONCERN / AVOID</strong></td>
+                        <td>High risk - conditional knockout, CRISPRi or another strategy preferred</td>
                     </tr>
                 </table>
             </div>
@@ -235,39 +168,11 @@ ANALYTICAL_TERMS = {
             <ul>
                 <li>Pleiotropy score (high = higher risk)</li>
                 <li>Predicted phenotype severity (lethal = critical)</li>
-                <li>Off-target potential</li>
                 <li>Literature evidence of essentiality</li>
                 <li>Cross-species conservation</li>
             </ul>
         """,
         "reference": "K-Sites integrated safety assessment algorithm"
-    },
-    
-    "pathway_conflict": {
-        "title": "Pathway Conflict",
-        "icon": "fa-exclamation-triangle",
-        "short_description": "Indicates if off-targets share pathways with the target gene",
-        "detailed_explanation": """
-            <p>A <strong>Pathway Conflict</strong> occurs when a gRNA's predicted off-targets are located 
-            in genes that participate in the same biological pathways as the intended target gene.</p>
-            
-            <h6>Why it matters:</h6>
-            <p>Off-target effects in pathway-related genes can confound experimental results. If both 
-            the target and off-target affect the same pathway, it becomes difficult to attribute 
-            phenotypic changes to the intended target.</p>
-            
-            <h6>Detection:</h6>
-            <p>Requires Neo4j database with KEGG pathway information. The system checks if off-target 
-            genes share KEGG pathways with the target gene.</p>
-            
-            <h6>Recommendations:</h6>
-            <ul>
-                <li><strong>No conflict:</strong> Preferred guides</li>
-                <li><strong>Conflict detected:</strong> Consider alternative guides or include pathway 
-                analysis in experimental design</li>
-            </ul>
-        """,
-        "reference": "KEGG pathway analysis via Neo4j graph database"
     },
     
     "phenotype_prediction": {
@@ -302,33 +207,6 @@ ANALYTICAL_TERMS = {
             accurate predictions than poorly characterized genes.</p>
         """,
         "reference": "RAG-based NLP pipeline using PubMed and SentenceTransformers"
-    },
-    
-    "gc_content": {
-        "title": "GC Content",
-        "icon": "fa-percentage",
-        "short_description": "Percentage of G and C nucleotides in the gRNA",
-        "detailed_explanation": """
-            <p><strong>GC Content</strong> is the percentage of guanine (G) and cytosine (C) nucleotides 
-            in the 20-nucleotide gRNA sequence.</p>
-            
-            <h6>Optimal Range:</h6>
-            <p><strong>40-60%</strong> is considered optimal for CRISPR activity.</p>
-            
-            <h6>Effects:</h6>
-            <div class="table-responsive">
-                <table class="table table-sm">
-                    <tr><td class="text-danger"><strong>&lt;30%</strong></td><td>Low activity - unstable binding</td></tr>
-                    <tr><td class="text-success"><strong>40-60%</strong></td><td>Optimal - stable binding, high activity</td></tr>
-                    <tr><td class="text-warning"><strong>&gt;70%</strong></td><td>May increase off-targets</td></tr>
-                </table>
-            </div>
-            
-            <h6>Rationale:</h6>
-            <p>GC content affects binding stability and specificity. Too low = weak binding; 
-            too high = potential off-target binding to GC-rich regions.</p>
-        """,
-        "reference": "General CRISPR design guidelines"
     },
     
     "conservation_score": {
@@ -369,12 +247,12 @@ METHODOLOGY_SECTIONS = [
         "title": "Overview",
         "icon": "fa-microscope",
         "content": """
-            <p>K-Sites is a comprehensive CRISPR guide RNA design platform that integrates multiple 
-            biological databases and AI-powered analysis to identify optimal gene targets and design 
-            high-quality gRNAs.</p>
+            <p>K-Sites helps you pick a safe gene to delete. It integrates multiple 
+            biological databases and literature mining to rank the genes of a biological process by 
+            how specific their function is and how risky a knockout is likely to be.</p>
             
-            <p>The platform follows a multi-step pipeline from gene selection to gRNA design with 
-            pathway-aware off-target filtering.</p>
+            <p>The platform follows a multi-step pipeline from gene discovery to a safety 
+            recommendation for each candidate gene.</p>
         """
     },
     {
@@ -405,7 +283,7 @@ METHODOLOGY_SECTIONS = [
             <ol>
                 <li>Queries all GO annotations for the gene</li>
                 <li>Counts unique Biological Process terms</li>
-                <li>Retrieves KEGG pathway memberships (if Neo4j available)</li>
+                <li>Retrieves KEGG pathway memberships (reported as a pathway count)</li>
                 <li>Calculates exponential decay score</li>
             </ol>
             
@@ -448,53 +326,19 @@ METHODOLOGY_SECTIONS = [
         """
     },
     {
-        "title": "Step 5: gRNA Design",
-        "icon": "fa-cut",
-        "content": """
-            <p>For each selected gene, the platform designs gRNAs using optimized algorithms:</p>
-            
-            <ol>
-                <li><strong>Target Identification:</strong> Find all NGG PAM sites in exonic regions</li>
-                <li><strong>Efficiency Scoring:</strong> Calculate Doench scores for each potential guide</li>
-                <li><strong>Specificity Analysis:</strong> Predict off-target sites using CFD scoring</li>
-                <li><strong>Position Optimization:</strong> Prioritize early exons and coding regions</li>
-                <li><strong>Filtering:</strong> Remove guides with poly-T tracks or extreme GC content</li>
-            </ol>
-            
-            <p>Typically 20-50 high-quality gRNAs are designed per gene.</p>
-        """
-    },
-    {
-        "title": "Step 6: Pathway-Aware Off-Target Analysis",
-        "icon": "fa-network-wired",
-        "content": """
-            <p>When <strong>Neo4j</strong> is enabled, the system performs advanced pathway analysis:</p>
-            
-            <ul>
-                <li>Map target gene to KEGG pathways</li>
-                <li>Identify pathway neighbors</li>
-                <li>Check if off-target genes share pathways with target</li>
-                <li>Flag potential pathway conflicts</li>
-            </ul>
-            
-            <p>This prevents selection of gRNAs that could confound results by affecting the same 
-            biological pathway through off-target effects.</p>
-        """
-    },
-    {
-        "title": "Step 7: Safety Assessment",
+        "title": "Step 5: Safety Assessment",
         "icon": "fa-shield-alt",
         "content": """
             <p>The final step integrates all analyses to provide safety recommendations:</p>
             
             <ul>
-                <li>Combine pleiotropy, phenotype, and off-target data</li>
+                <li>Combine pleiotropy, phenotype, conservation and literature data</li>
                 <li>Assess risk of essential gene knockout</li>
                 <li>Generate specific experimental recommendations</li>
-                <li>Flag guides requiring additional validation</li>
+                <li>Flag genes requiring additional validation</li>
             </ul>
             
-            <p>Safety levels range from LOW (safe to proceed) to CRITICAL (may be lethal/essential).</p>
+            <p>Safety levels range from SAFE (safe to proceed) to AVOID (may be lethal/essential).</p>
         """
     },
     {
@@ -505,10 +349,8 @@ METHODOLOGY_SECTIONS = [
             
             <ul>
                 <li><strong>HTML Report:</strong> Interactive, publication-ready summary</li>
-                <li><strong>CSV Tables:</strong> Gene and gRNA data for spreadsheets</li>
+                <li><strong>CSV Tables:</strong> Gene-level data for spreadsheets</li>
                 <li><strong>JSON:</strong> Complete data for programmatic access</li>
-                <li><strong>FASTA:</strong> gRNA sequences for ordering</li>
-                <li><strong>GenBank:</strong> Annotated sequences</li>
             </ul>
             
             <p>All results include detailed metadata, quality scores, and safety recommendations 
@@ -521,19 +363,7 @@ METHODOLOGY_SECTIONS = [
 FAQ_ITEMS = [
     {
         "question": "What is the difference between pleiotropy score and specificity score?",
-        "answer": "Pleiotropy score measures how many processes a gene is involved in (0=specific, high=broad). Specificity score is simply 10 minus the pleiotropy score, so higher values indicate more specific genes. Both convey the same information but in opposite directions."
-    },
-    {
-        "question": "How many gRNAs should I design per gene?",
-        "answer": "We recommend testing 3-5 gRNAs per gene to account for variable activity. K-Sites designs 20 high-quality gRNAs per gene by default, ranked by Doench score, giving you plenty of options to choose from."
-    },
-    {
-        "question": "What is a 'good' Doench score?",
-        "answer": "Doench scores above 0.6 indicate high activity guides. Scores between 0.4-0.6 are acceptable for most applications. Avoid guides with scores below 0.2 unless no better options exist."
-    },
-    {
-        "question": "Should I enable Neo4j pathway analysis?",
-        "answer": "If you have Neo4j configured with KEGG data, enabling pathway analysis provides valuable insights about off-targets in related pathways. However, the tool works well without it using GO-based analysis only."
+        "answer": "Pleiotropy score measures how many processes a gene is involved in (0=specific, high=broad). Specificity score is the inverse on a 0-1 scale (1 minus pleiotropy divided by 10), so higher values indicate more specific genes. Both convey the same information but in opposite directions."
     },
     {
         "question": "How accurate is the phenotype prediction?",
@@ -541,14 +371,10 @@ FAQ_ITEMS = [
     },
     {
         "question": "What if my gene has a high pleiotropy score?",
-        "answer": "High pleiotropy doesn't necessarily mean you shouldn't target the gene, but be prepared for complex phenotypes. Consider: 1) Using heterozygous knockouts, 2) Including pathway analysis in your interpretation, 3) Validating with multiple gRNAs."
-    },
-    {
-        "question": "Can I use K-Sites for CRISPRi/a (interference/activation)?",
-        "answer": "Yes! While K-Sites is optimized for knockout studies, the gRNA designs are suitable for CRISPRi/a. For CRISPRi, prefer promoters/TSS-proximal guides. For CRISPRa, prefer distal enhancer regions."
+        "answer": "High pleiotropy doesn't necessarily mean you shouldn't target the gene, but be prepared for complex phenotypes. Consider: 1) Using heterozygous or conditional knockouts, 2) Including pathway information in your interpretation, 3) Validating with an independent approach."
     },
     {
         "question": "How long does an analysis take?",
-        "answer": "Typical runtime is 2-5 minutes for 5-10 genes. Factors affecting speed: number of genes, phenotype prediction (adds ~1 min/gene), Neo4j availability (can speed up pathway analysis), and database response times."
+        "answer": "Typical runtime is 2-5 minutes for 5-10 genes. Factors affecting speed: number of genes, phenotype prediction (adds ~1 min/gene), and database response times."
     }
 ]

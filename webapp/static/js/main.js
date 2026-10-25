@@ -359,11 +359,6 @@ async function loadDatabases() {
         const response = await fetch('/api/databases');
         const data = await response.json();
         
-        // Show Neo4j warning if not available
-        if (!data.neo4j_available) {
-            document.getElementById('neo4jWarning').style.display = 'block';
-        }
-        
         container.innerHTML = data.databases.map(db => `
             <div class="col-md-6 col-lg-4">
                 <div class="card database-card ${db.required ? 'selected' : ''} ${!db.enabled ? 'disabled opacity-50' : ''}"
@@ -436,7 +431,7 @@ function initializeEventListeners() {
     });
     
     // Parameter changes for gene count check
-    ['max_genes', 'predict_phenotypes'].forEach(id => {
+    ['max_genes', 'predict_phenotypes', 'evidence_filter'].forEach(id => {
         document.getElementById(id)?.addEventListener('change', () => {
             clearTimeout(geneCountCheckTimeout);
             geneCountCheckTimeout = setTimeout(checkGeneCount, 500);
@@ -459,6 +454,7 @@ async function checkGeneCount() {
     const goTerm = document.getElementById('go_term').value.trim();
     const maxGenes = parseInt(document.getElementById('max_genes').value) || 10;
     const predictPhenotypes = document.getElementById('predict_phenotypes').checked;
+    const evidenceFilter = document.getElementById('evidence_filter').value;
     
     if (!organism || !goTerm) {
         document.getElementById('geneCountPreview').style.display = 'none';
@@ -473,7 +469,8 @@ async function checkGeneCount() {
                 organism, 
                 go_term: goTerm, 
                 max_genes: maxGenes,
-                predict_phenotypes: predictPhenotypes
+                predict_phenotypes: predictPhenotypes,
+                evidence_filter: evidenceFilter
             })
         });
         
@@ -582,7 +579,6 @@ function collectFormData() {
         max_genes: parseInt(document.getElementById('max_genes').value) || 10,
         max_pleiotropy: parseInt(document.getElementById('max_pleiotropy').value) || 5,
         evidence_filter: document.getElementById('evidence_filter').value,
-        use_graph: selectedDatabases.includes('neo4j'),
         predict_phenotypes: document.getElementById('predict_phenotypes').checked,
         databases: selectedDatabases
     };

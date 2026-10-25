@@ -1,6 +1,6 @@
 # K-Sites Web Application
 
-A comprehensive web interface for the K-Sites CRISPR guide RNA design platform.
+A web interface for K-Sites, a tool that helps scientists pick a safe gene for knockout/deletion.
 
 **Tagline:** Suite for Knock-out/down Studies
 
@@ -17,7 +17,7 @@ A comprehensive web interface for the K-Sites CRISPR guide RNA design platform.
 3. **Direct Entry**: Option to enter GO:XXXXXXX ID directly
 
 ### 📊 Advanced Analysis Features
-- **Pathway-Aware Analysis**: Neo4j integration for KEGG pathway filtering
+- **Multi-Database Evidence**: GO, UniProt, KEGG and PubMed data per gene
 - **RAG Phenotype Prediction**: AI-powered literature-based phenotype prediction
 - **Smart Gene Limiting**: Real-time gene count validation with suggestions
 - **Email Notifications**: Get notified when analysis starts and completes
@@ -32,14 +32,13 @@ A comprehensive web interface for the K-Sites CRISPR guide RNA design platform.
 - **Help Page**: Detailed explanations of all analytical terms
 - **Methodology Guide**: Step-by-step explanation of the pipeline
 - **FAQ Section**: Common questions and answers
-- **Score Explanations**: Pleiotropy, specificity, Doench scores, etc.
+- **Score Explanations**: Pleiotropy, specificity, safety level, etc.
 
 ## Installation
 
 ### Prerequisites
 - Python 3.8+
 - K-Sites package installed (`pip install -e ..` from parent directory)
-- Optional: Neo4j database for pathway analysis
 - Optional: SMTP server for email notifications
 
 ### Setup
@@ -60,11 +59,6 @@ export MAIL_USERNAME="your-email@gmail.com"
 export MAIL_PASSWORD="your-app-password"
 export MAIL_SERVER="smtp.gmail.com"
 export MAIL_PORT=587
-
-# Optional: Neo4j
-export K_SITES_NEO4J_URI="bolt://localhost:7687"
-export K_SITES_NEO4J_USER="neo4j"
-export K_SITES_NEO4J_PASSWORD="password"
 ```
 
 3. Start the server:
@@ -87,22 +81,20 @@ export K_SITES_NEO4J_PASSWORD="password"
    - Click category (e.g., "Biological Process")
    - Filter to find term (e.g., "DNA repair")
    - Or enter GO:0006281 directly
-4. **Choose Databases**: Select Neo4j for pathway analysis
+4. **Choose Databases**: QuickGO is always used; add UniProt, NCBI, PubMed, KEGG as needed
 5. **Set Parameters**:
    - Max genes: 10-50 (lower = faster)
    - Max pleiotropy: 1-20 (lower = more specific)
    - Enable RAG prediction (optional, adds ~1 min/gene)
 6. **Review Gene Count**: See available genes and estimated time
 7. **Start Analysis**: Submit and wait for completion
-8. **View Results**: Interactive dashboard with all gRNAs
+8. **View Results**: Interactive dashboard with safety levels for every gene
 
 ### Understanding Results
 
 Visit `/help` for detailed explanations of:
 - **Pleiotropy Score**: Gene specificity (0=highly specific)
-- **Specificity Score**: Inverse of pleiotropy (10=highly specific)
-- **Doench Score**: gRNA efficiency prediction (0.6+=good)
-- **CFD Off-targets**: Predicted off-target sites
+- **Specificity Score**: Inverse of pleiotropy on a 0-1 scale (1=highly specific)
 - **Safety Level**: Overall risk assessment
 
 ## API Endpoints
@@ -131,20 +123,6 @@ Configure email to receive:
 1. Enable 2-Factor Authentication
 2. Generate App Password: https://support.google.com/accounts/answer/185833
 3. Use App Password (not your regular password)
-
-## Neo4j Pathway Analysis
-
-Enable advanced pathway-aware off-target filtering:
-
-```bash
-# Start Neo4j
-docker run -d --name neo4j-ksites -p 7687:7687 -p 7474:7474 \
-  -e NEO4J_AUTH=neo4j/password neo4j:latest
-
-# Ingest KEGG data
-cd /home/iiab/Documents/K-sites
-python -m k_sites.neo4j.ingest_kegg --taxid 9606
-```
 
 ## Architecture
 
@@ -187,11 +165,6 @@ Tracks all analysis jobs with:
 - Check MAIL_USERNAME and MAIL_PASSWORD are set
 - For Gmail, use App Password, not account password
 - Check firewall allows outbound SMTP
-
-### Neo4j not available
-- Check Neo4j is running: `docker ps | grep neo4j`
-- Verify connection settings in environment variables
-- Tool works without Neo4j (GO-only analysis)
 
 ### No genes found
 - Try a broader GO term

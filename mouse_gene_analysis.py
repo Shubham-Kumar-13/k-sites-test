@@ -1,7 +1,8 @@
 """
 K-Sites Mouse Gene Analysis Example
 
-This script runs the K-Sites pipeline on mouse genes associated with DNA repair (GO:0006281).
+This script runs the K-Sites pipeline on mouse genes associated with DNA repair (GO:0006281)
+and ranks them by how safe they are to delete.
 Results are saved to the mouse_analysis_results directory.
 """
 
@@ -31,36 +32,30 @@ from k_sites.reporting.report_generator import generate_html_report
 
 
 def generate_csv_export(pipeline_output, output_path):
-    """Generate a CSV export of the gRNA designs."""
+    """Generate a gene-level CSV export of the safety results."""
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     
     with open(output_path, 'w', newline='') as csvfile:
         fieldnames = [
             'gene_symbol', 'gene_description', 'pleiotropy_score', 
-            'specificity_score', 'composite_score',
-            'grna_sequence', 'position', 'doench_score', 'cfd_off_targets', 
-            'pathway_conflict', 'safety_level', 'primary_recommendation'
+            'specificity_score', 'composite_score', 'kegg_pathway_count',
+            'safety_level', 'primary_recommendation'
         ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         
         writer.writeheader()
         for gene in pipeline_output.get('genes', []):
             safety_rec = gene.get('safety_recommendation', {})
-            for guide in gene.get('guides', []):
-                writer.writerow({
-                    'gene_symbol': gene.get('symbol', ''),
-                    'gene_description': gene.get('description', ''),
-                    'pleiotropy_score': gene.get('pleiotropy_score', ''),
-                    'specificity_score': gene.get('specificity_score', ''),
-                    'composite_score': gene.get('composite_score', ''),
-                    'grna_sequence': guide.get('seq', ''),
-                    'position': guide.get('position', ''),
-                    'doench_score': guide.get('doench_score', ''),
-                    'cfd_off_targets': guide.get('cfd_off_targets', ''),
-                    'pathway_conflict': guide.get('pathway_conflict', ''),
-                    'safety_level': safety_rec.get('safety_level', ''),
-                    'primary_recommendation': safety_rec.get('primary_recommendation', '')
-                })
+            writer.writerow({
+                'gene_symbol': gene.get('symbol', ''),
+                'gene_description': gene.get('description', ''),
+                'pleiotropy_score': gene.get('pleiotropy_score', ''),
+                'specificity_score': gene.get('specificity_score', ''),
+                'composite_score': gene.get('composite_score', ''),
+                'kegg_pathway_count': gene.get('kegg_pathway_count', ''),
+                'safety_level': safety_rec.get('safety_level', ''),
+                'primary_recommendation': safety_rec.get('primary_recommendation', '')
+            })
     
     logger.info(f"CSV export saved to {output_path}")
 
@@ -93,7 +88,7 @@ def generate_json_export(pipeline_output, output_path):
             "iea_evidence_count": gene.get("iea_evidence_count"),
             "cross_species_validation": gene.get("cross_species_validation"),
             "safety_recommendation": gene.get("safety_recommendation"),
-            "guides": gene.get("guides", [])
+            "kegg_pathway_count": gene.get("kegg_pathway_count")
         }
         export_data["genes"].append(gene_data)
     
@@ -133,7 +128,6 @@ def run_mouse_analysis():
             go_term=go_term,
             organism=organism,
             max_pleiotropy=max_pleiotropy,
-            use_graph=False,  # Disable Neo4j for this demo
             evidence_filter="experimental",
             species_validation=["10090", "9606"],  # Validate in mouse and human
             predict_phenotypes=False  # Skip phenotype prediction for faster results
@@ -147,18 +141,12 @@ def run_mouse_analysis():
         # Validate outputs
         genes = pipeline_output.get('genes', [])
         total_genes = len(genes)
-        total_guides = sum(len(gene.get('guides', [])) for gene in genes)
         
         logger.info(f"\nResults Summary:")
         logger.info(f"  Genes passing pleiotropy filter: {total_genes}")
-        logger.info(f"  Total gRNAs designed: {total_guides}")
         
         if total_genes == 0:
             logger.warning("No genes passed the pleiotropy filter")
-            return False
-        
-        if total_guides == 0:
-            logger.warning("No gRNAs were designed")
             return False
         
         # Generate outputs
@@ -192,7 +180,6 @@ def run_mouse_analysis():
             pleiotropy = gene.get('pleiotropy_score', 'N/A')
             specificity = gene.get('specificity_score', 'N/A')
             composite = gene.get('composite_score', 'N/A')
-            guide_count = len(gene.get('guides', []))
             safety = gene.get('safety_recommendation', {})
             safety_level = safety.get('safety_level', 'UNKNOWN')
             
@@ -200,18 +187,7 @@ def run_mouse_analysis():
             logger.info(f"  Pleiotropy Score: {pleiotropy}")
             logger.info(f"  Specificity Score: {specificity}")
             logger.info(f"  Composite Score: {composite}")
-            logger.info(f"  gRNAs Designed: {guide_count}")
             logger.info(f"  Safety Level: {safety_level}")
-            
-            # Show top 3 gRNAs for each gene
-            guides = gene.get('guides', [])
-            if guides:
-                logger.info(f"  Top gRNAs:")
-                for j, guide in enumerate(guides[:3]):
-                    seq = guide.get('seq', 'N/A')
-                    doench = guide.get('doench_score', 'N/A')
-                    off_targets = guide.get('cfd_off_targets', 'N/A')
-                    logger.info(f"    {j+1}. {seq} (Doench: {doench}, Off-targets: {off_targets})")
         
         logger.info("\n" + "="*70)
         logger.info("ANALYSIS COMPLETE")

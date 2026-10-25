@@ -49,60 +49,34 @@ def check_prerequisites():
     else:
         logger.info("✓ NCBI email configured")
     
-    # Check Neo4j availability (optional)
-    try:
-        from k_sites.neo4j.graph_client import get_graph_client
-        client = get_graph_client()
-        if client.test_connection():
-            logger.info("✓ Neo4j connection available")
-            neo4j_available = True
-        else:
-            logger.warning("⚠ Neo4j not available, will run in GO-only mode")
-            neo4j_available = False
-    except Exception as e:
-        logger.warning(f"⚠ Neo4j not available: {e}, will run in GO-only mode")
-        neo4j_available = False
-    
-    # Check if KEGG data is ingested for human (only if Neo4j is available)
-    if neo4j_available:
-        try:
-            from k_sites.neo4j.graph_client import get_pathway_neighbors
-            # Try to get pathway neighbors for a test gene
-            neighbors = get_pathway_neighbors("BRCA1", "9606")
-            if neighbors:
-                logger.info("✓ KEGG data ingested for human")
-            else:
-                logger.warning("⚠ KEGG data may not be fully ingested for human")
-        except Exception as e:
-            logger.warning(f"⚠ Could not verify KEGG data: {e}")
-    
     return True
 
 
 def generate_csv_export(pipeline_output, output_path):
-    """Generate a CSV export of the gRNA designs."""
+    """Generate a gene-level CSV export of the safety results."""
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     
     with open(output_path, 'w', newline='') as csvfile:
         fieldnames = [
             'gene_symbol', 'gene_description', 'pleiotropy_score', 
-            'grna_sequence', 'position', 'doench_score', 'cfd_off_targets', 'pathway_conflict'
+            'specificity_score', 'composite_score', 'kegg_pathway_count',
+            'safety_level', 'primary_recommendation'
         ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         
         writer.writeheader()
         for gene in pipeline_output.get('genes', []):
-            for guide in gene.get('guides', []):
-                writer.writerow({
-                    'gene_symbol': gene.get('symbol', ''),
-                    'gene_description': gene.get('description', ''),
-                    'pleiotropy_score': gene.get('pleiotropy_score', ''),
-                    'grna_sequence': guide.get('seq', ''),
-                    'position': guide.get('position', ''),
-                    'doench_score': guide.get('doench_score', ''),
-                    'cfd_off_targets': guide.get('cfd_off_targets', ''),
-                    'pathway_conflict': guide.get('pathway_conflict', '')
-                })
+            safety_rec = gene.get('safety_recommendation', {})
+            writer.writerow({
+                'gene_symbol': gene.get('symbol', ''),
+                'gene_description': gene.get('description', ''),
+                'pleiotropy_score': gene.get('pleiotropy_score', ''),
+                'specificity_score': gene.get('specificity_score', ''),
+                'composite_score': gene.get('composite_score', ''),
+                'kegg_pathway_count': gene.get('kegg_pathway_count', ''),
+                'safety_level': safety_rec.get('safety_level', ''),
+                'primary_recommendation': safety_rec.get('primary_recommendation', '')
+            })
     
     logger.info(f"CSV export saved to {output_path}")
 
@@ -140,8 +114,7 @@ def run_demo():
         pipeline_output = run_k_sites_pipeline(
             go_term=go_term,
             organism=organism,
-            max_pleiotropy=max_pleiotropy,
-            use_graph=True  # Will fall back to GO-only if Neo4j unavailable
+            max_pleiotropy=max_pleiotropy
         )
         
         end_time = datetime.now()
@@ -154,22 +127,15 @@ def run_demo():
         
         genes = pipeline_output.get('genes', [])
         total_genes = len(genes)
-        total_guides = sum(len(gene.get('guides', [])) for gene in genes)
         
         logger.info(f"  ✓ {total_genes} genes passed pleiotropy filter")
-        logger.info(f"  ✓ {total_guides} gRNAs designed")
         
-        # Check if we have at least one gene and one gRNA
+        # Check that at least one gene passed
         if total_genes == 0:
             logger.error("✗ No genes passed the pleiotropy filter")
             return False
         
-        if total_guides == 0:
-            logger.error("✗ No gRNAs were designed")
-            return False
-        
         logger.info("  ✓ At least one gene passed pleiotropy filter")
-        logger.info("  ✓ At least one gRNA was designed")
         
         # Generate HTML report
         html_report_path = output_dir / "report.html"
@@ -178,7 +144,7 @@ def run_demo():
         logger.info("  ✓ HTML report generated successfully")
         
         # Generate CSV export
-        csv_path = output_dir / "guides.csv"
+        csv_path = output_dir / "genes.csv"
         logger.info(f"\nGenerating CSV export at {csv_path}...")
         generate_csv_export(pipeline_output, str(csv_path))
         logger.info("  ✓ CSV export generated successfully")
@@ -192,8 +158,6 @@ def run_demo():
         logger.info(f"Max pleiotropy: {max_pleiotropy}")
         logger.info(f"Execution time: {execution_time:.2f} seconds")
         logger.info(f"Genes passing filter: {total_genes}")
-        logger.info(f"Total gRNAs designed: {total_guides}")
-        logger.info(f"Average gRNAs per gene: {total_guides/total_genes:.1f}" if total_genes > 0 else "N/A")
         logger.info(f"Output HTML report: {html_report_path}")
         logger.info(f"Output CSV export: {csv_path}")
         
@@ -203,8 +167,8 @@ def run_demo():
             for i, gene in enumerate(genes[:3]):  # Show first 3 genes
                 gene_symbol = gene.get('symbol', 'Unknown')
                 gene_score = gene.get('pleiotropy_score', 'N/A')
-                guide_count = len(gene.get('guides', []))
-                logger.info(f"  Gene {i+1}: {gene_symbol} (pleiotropy: {gene_score}, gRNAs: {guide_count})")
+                safety_level = (gene.get('safety_recommendation') or {}).get('safety_level', 'UNKNOWN')
+                logger.info(f"  Gene {i+1}: {gene_symbol} (pleiotropy: {gene_score}, safety: {safety_level})")
         
         logger.info("\n✓ Demo completed successfully!")
         return True

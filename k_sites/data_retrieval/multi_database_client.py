@@ -6,12 +6,13 @@ This is a CRITICAL component for non-pleiotropic gene identification.
 """
 
 import logging
-import requests
 import time
 from typing import Dict, List, Optional, Tuple
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
+
+from k_sites.data_retrieval.http import get_session, http_get
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -20,11 +21,22 @@ logger = logging.getLogger(__name__)
 RATE_LIMIT_DELAY = 0.34  # ~3 requests per second
 
 
+class LookupFailure(Exception):
+    """Raised when a database could not be queried (as opposed to returning no data)."""
+
+
+# Higher number = stronger evidence when the same GO term is seen several times.
+EVIDENCE_PRIORITY = {"experimental": 4, "computational": 3, "curatorial": 2, "IEA": 1, "unknown": 0}
+
+
 class MultiDatabaseClient:
     """
     Client for querying GO.org, UniProt, and KEGG simultaneously.
+
+    Each ``_query_*`` method returns data when the lookup worked (including "gene not
+    found") and raises ``LookupFailure`` when the database itself could not be queried.
     """
-    
+
     # Evidence code classifications - EXPLICIT as per requirements
     EXPERIMENTAL_EVIDENCE_CODES = {
         "IDA",  # Inferred from Direct Assay
@@ -32,13 +44,14 @@ class MultiDatabaseClient:
         "IGI",  # Inferred from Genetic Interaction
         "IPI",  # Inferred from Physical Interaction
         "IEP",  # Inferred from Expression Pattern
+        "EXP",  # Inferred from Experiment
         "HTP",  # High Throughput experimental
         "HDA",  # High Throughput Direct Assay
         "HMP",  # High Throughput Mutant Phenotype
         "HGI",  # High Throughput Genetic Interaction
         "HEP",  # High Throughput Expression Pattern
     }
-    
+
     COMPUTATIONAL_EVIDENCE_CODES = {
         "ISS",  # Inferred from Sequence or Structural Similarity
         "ISO",  # Inferred from Sequence Orthology
@@ -51,17 +64,17 @@ class MultiDatabaseClient:
         "IRD",  # Inferred from Rapid Divergence
         "RCA",  # Reviewed Computational Analysis
     }
-    
+
     # IEA is specifically called out as computational PREDICTION (not evidence)
     IEA_CODE = {"IEA"}  # Inferred from Electronic Annotation
-    
+
     CURATORIAL_CODES = {
         "TAS",  # Traceable Author Statement
         "NAS",  # Non-traceable Author Statement
         "IC",   # Inferred by Curator
         "ND",   # No biological Data available
     }
-    
+
     # Model organisms for cross-species validation (human, mouse, fly, worm)
     MODEL_ORGANISMS = {
         "9606": "Homo sapiens",      # Human
@@ -69,7 +82,7 @@ class MultiDatabaseClient:
         "7227": "Drosophila melanogaster",  # Fly
         "6239": "Caenorhabditis elegans",   # Worm
     }
-    
+
     # KEGG organism codes
     KEGG_ORGANISM_CODES = {
         "9606": "hsa",
@@ -80,30 +93,32 @@ class MultiDatabaseClient:
         "7955": "dre",
     }
 
+    QUICKGO_URL = "https://www.ebi.ac.uk/QuickGO/services/annotation/search"
+    QUICKGO_PAGE_SIZE = 200  # QuickGO rejects larger pages with HTTP 400
+    UNIPROT_URL = "https://rest.uniprot.org/uniprotkb/search"
+
     def __init__(self):
-        self.session = requests.Session()
-        self.session.headers.update({
-            "User-Agent": "K-Sites/1.0 (CRISPR Guide Design Platform)",
-            "Accept": "application/json"
-        })
-    
+        self.session = get_session()
+
     def query_all_databases_simultaneously(
-        self, 
-        gene_symbol: str, 
+        self,
+        gene_symbol: str,
         taxid: str
     ) -> Dict[str, any]:
         """
         Query GO.org, UniProt, and KEGG simultaneously for a gene.
-        
+
         Args:
             gene_symbol: Gene symbol (e.g., "BRCA1")
             taxid: NCBI Taxonomy ID
-            
+
         Returns:
-            Comprehensive gene data from all three databases
+            Comprehensive gene data from all three databases. ``query_status`` says per
+            database whether the lookup worked; ``data_issues`` lists human-readable
+            problems (failed lookups, unresolved gene).
         """
         logger.info(f"Querying all databases simultaneously for {gene_symbol} in {taxid}")
-        
+
         results = {
             "gene_symbol": gene_symbol,
             "taxid": taxid,
@@ -111,10 +126,11 @@ class MultiDatabaseClient:
             "uniprot_data": {},
             "kegg_data": {},
             "combined_bp_terms": [],
-            "combined_evidence": [],
-            "query_status": {}
+            "combined_evidence": {},
+            "query_status": {},
+            "data_issues": []
         }
-        
+
         # Execute queries in parallel
         with ThreadPoolExecutor(max_workers=3) as executor:
             futures = {
@@ -122,305 +138,318 @@ class MultiDatabaseClient:
                 executor.submit(self._query_uniprot, gene_symbol, taxid): "uniprot",
                 executor.submit(self._query_kegg, gene_symbol, taxid): "kegg",
             }
-            
+
             for future in as_completed(futures):
                 db_name = futures[future]
                 try:
-                    data = future.result(timeout=30)
+                    data = future.result()
                     results[f"{db_name}_data"] = data
                     results["query_status"][db_name] = "success"
                 except Exception as e:
-                    logger.warning(f"Failed to query {db_name}: {e}")
+                    logger.warning(f"Failed to query {db_name} for {gene_symbol}: {e}")
                     results["query_status"][db_name] = f"failed: {str(e)}"
-        
+                    results["data_issues"].append(f"{db_name} lookup failed: {e}")
+
         # Combine and deduplicate BP terms from all sources
         results["combined_bp_terms"] = self._combine_bp_terms(results)
         results["combined_evidence"] = self._combine_evidence(results)
-        
+
         return results
-    
+
     def _query_quickgo(self, gene_symbol: str, taxid: str) -> Dict:
-        """Query QuickGO (GO.org) for gene annotations."""
+        """Query QuickGO (GO.org) for the Biological Process annotations of a gene."""
         logger.debug(f"Querying QuickGO for {gene_symbol}")
-        
-        try:
-            # First resolve to UniProt ID
-            uniprot_id = self._resolve_gene_to_uniprot(gene_symbol, taxid)
-            if not uniprot_id:
-                return {"error": "Could not resolve gene to UniProt ID", "annotations": []}
-            
-            base_url = "https://www.ebi.ac.uk/QuickGO/services/annotation/search"
+
+        uniprot_id = self._resolve_gene_to_uniprot(gene_symbol, taxid)
+        if not uniprot_id:
+            return {"found": False, "uniprot_id": None, "annotations": [], "bp_terms": [],
+                    "bp_term_count": 0, "total_annotations": 0}
+
+        raw_results = self._fetch_quickgo_bp_annotations(uniprot_id)
+
+        annotations = []
+        for result in raw_results:
+            qualifier = str(result.get("qualifier", "")).upper().split("|")
+            if "NOT" in qualifier:
+                continue  # a NOT annotation says the gene is NOT involved in the process
+
+            evidence_code = result.get("goEvidence", "")
+            annotations.append({
+                "go_id": result.get("goId", ""),
+                "go_name": result.get("goName") or "",
+                "aspect": result.get("goAspect", "biological_process"),
+                "evidence_codes": [evidence_code] if evidence_code else [],
+                "evidence_type": self._classify_evidence([evidence_code]),
+                "source": "QuickGO"
+            })
+
+        return {
+            "found": True,
+            "uniprot_id": uniprot_id,
+            "total_annotations": len(annotations),
+            "bp_term_count": len({a["go_id"] for a in annotations}),
+            "annotations": annotations,
+            "bp_terms": annotations  # request is already limited to Biological Process
+        }
+
+    def _fetch_quickgo_bp_annotations(self, uniprot_id: str) -> List[Dict]:
+        """Fetch every Biological Process annotation for a UniProt accession (paginated)."""
+        collected: List[Dict] = []
+        page = 1
+
+        while True:
             params = {
                 "geneProductId": uniprot_id,
-                "limit": 1000,
-                "includeFields": "goId,evidenceCode,goAspect,qualifier,goName"
+                "aspect": "biological_process",
+                "limit": self.QUICKGO_PAGE_SIZE,
+                "page": page,
+                "includeFields": "goName",
             }
-            
             time.sleep(RATE_LIMIT_DELAY)
-            response = self.session.get(base_url, params=params, timeout=30)
-            
-            if response.status_code == 400:
-                logger.warning(f"QuickGO returned 400 for {gene_symbol}")
-                return {"error": "Bad request", "annotations": []}
-            
-            response.raise_for_status()
+            try:
+                response = http_get(self.QUICKGO_URL, params=params)
+            except Exception as e:
+                raise LookupFailure(f"QuickGO request failed: {e}")
+
+            if response.status_code != 200:
+                raise LookupFailure(f"QuickGO returned HTTP {response.status_code}: {response.text[:200]}")
+
             data = response.json()
-            
-            annotations = []
-            bp_terms = []
-            
-            for result in data.get("results", []):
-                go_id = result.get("goId", "")
-                aspect = result.get("goAspect", "")
-                evidence_codes = result.get("evidenceCode", [])
-                go_name = result.get("goName", "")
-                
-                # Classify evidence
-                evidence_type = self._classify_evidence(evidence_codes)
-                
-                annotation = {
-                    "go_id": go_id,
-                    "go_name": go_name,
-                    "aspect": aspect,
-                    "evidence_codes": evidence_codes,
-                    "evidence_type": evidence_type,
-                    "source": "QuickGO"
-                }
-                annotations.append(annotation)
-                
-                # Track BP terms specifically
-                if aspect == "biological_process" or aspect == "P":
-                    bp_terms.append(annotation)
-            
-            return {
-                "uniprot_id": uniprot_id,
-                "total_annotations": len(annotations),
-                "bp_term_count": len(bp_terms),
-                "annotations": annotations,
-                "bp_terms": bp_terms
-            }
-            
-        except Exception as e:
-            logger.error(f"QuickGO query failed: {e}")
-            return {"error": str(e), "annotations": []}
-    
+            results = data.get("results", [])
+            collected.extend(results)
+
+            total_hits = data.get("numberOfHits", len(collected))
+            if not results or len(collected) >= total_hits or page >= 50:
+                break
+            page += 1
+
+        return collected
+
     def _query_uniprot(self, gene_symbol: str, taxid: str) -> Dict:
         """Query UniProt for gene/protein data."""
         logger.debug(f"Querying UniProt for {gene_symbol}")
-        
+
+        params = {
+            "query": f"gene:{gene_symbol} AND organism_id:{taxid}",
+            "format": "json",
+            "fields": "accession,id,gene_names,protein_name,go_p,go_f,go_c,organism_name",
+            "size": 10
+        }
+
+        time.sleep(RATE_LIMIT_DELAY)
         try:
-            # UniProt REST API
-            base_url = "https://rest.uniprot.org/uniprotkb/search"
-            
-            # Build query
-            query = f"gene:{gene_symbol} AND organism_id:{taxid}"
-            params = {
-                "query": query,
-                "format": "json",
-                "fields": "accession,id,gene_names,protein_name,go_p,go_f,go_c,organism_name",
-                "size": 10
-            }
-            
-            time.sleep(RATE_LIMIT_DELAY)
-            response = self.session.get(base_url, params=params, timeout=30)
-            
-            if response.status_code == 400:
-                logger.warning(f"UniProt returned 400 for {gene_symbol}")
-                return {"error": "Bad request", "entries": []}
-            
-            response.raise_for_status()
-            data = response.json()
-            
-            entries = []
-            bp_terms = []
-            
-            for result in data.get("results", []):
-                accession = result.get("primaryAccession", "")
-                
-                # Extract GO terms from UniProt response
-                go_annotations = []
-                
-                # Biological Process GO terms
-                for go in result.get("uniProtKBCrossReferences", []):
-                    if go.get("database") == "GO":
-                        go_id = go.get("id", "")
-                        properties = {p["key"]: p["value"] for p in go.get("properties", [])}
-                        go_term = properties.get("GoTerm", "")
-                        evidence = properties.get("GoEvidenceType", "")
-                        
-                        # Determine aspect from GO term prefix
-                        aspect = "unknown"
-                        if go_term.startswith("P:"):
-                            aspect = "P"
-                            bp_terms.append({
-                                "go_id": go_id,
-                                "go_name": go_term[2:],
-                                "evidence_type": self._classify_evidence([evidence]),
-                                "source": "UniProt"
-                            })
-                        elif go_term.startswith("F:"):
-                            aspect = "F"
-                        elif go_term.startswith("C:"):
-                            aspect = "C"
-                        
-                        go_annotations.append({
-                            "go_id": go_id,
-                            "go_term": go_term,
-                            "aspect": aspect,
-                            "evidence": evidence
-                        })
-                
-                entries.append({
-                    "accession": accession,
-                    "go_annotations": go_annotations
+            response = http_get(self.UNIPROT_URL, params=params)
+        except Exception as e:
+            raise LookupFailure(f"UniProt request failed: {e}")
+
+        if response.status_code != 200:
+            raise LookupFailure(f"UniProt returned HTTP {response.status_code}: {response.text[:200]}")
+
+        data = response.json()
+
+        entries = []
+        bp_terms = []
+
+        for result in data.get("results", []):
+            accession = result.get("primaryAccession", "")
+            go_annotations = []
+
+            for go in result.get("uniProtKBCrossReferences", []):
+                if go.get("database") != "GO":
+                    continue
+                go_id = go.get("id", "")
+                properties = {p["key"]: p["value"] for p in go.get("properties", [])}
+                go_term = properties.get("GoTerm", "")
+                evidence = properties.get("GoEvidenceType", "")  # e.g. "IDA:UniProtKB"
+
+                aspect = "unknown"
+                if go_term.startswith("P:"):
+                    aspect = "P"
+                    bp_terms.append({
+                        "go_id": go_id,
+                        "go_name": go_term[2:],
+                        "aspect": "biological_process",
+                        "evidence_codes": [self._normalize_code(evidence)],
+                        "evidence_type": self._classify_evidence([evidence]),
+                        "source": "UniProt"
+                    })
+                elif go_term.startswith("F:"):
+                    aspect = "F"
+                elif go_term.startswith("C:"):
+                    aspect = "C"
+
+                go_annotations.append({
+                    "go_id": go_id,
+                    "go_term": go_term,
+                    "aspect": aspect,
+                    "evidence": evidence
                 })
-            
-            return {
-                "total_entries": len(entries),
-                "bp_term_count": len(bp_terms),
-                "entries": entries,
-                "bp_terms": bp_terms
-            }
-            
-        except Exception as e:
-            logger.error(f"UniProt query failed: {e}")
-            return {"error": str(e), "entries": []}
-    
+
+            entries.append({
+                "accession": accession,
+                "go_annotations": go_annotations
+            })
+
+        return {
+            "found": bool(entries),
+            "total_entries": len(entries),
+            "bp_term_count": len({t["go_id"] for t in bp_terms}),
+            "entries": entries,
+            "bp_terms": bp_terms
+        }
+
     def _query_kegg(self, gene_symbol: str, taxid: str) -> Dict:
-        """Query KEGG for pathway data."""
+        """Query KEGG for the pathways a gene belongs to."""
         logger.debug(f"Querying KEGG for {gene_symbol}")
-        
+
+        org_code = self.KEGG_ORGANISM_CODES.get(taxid)
+        if not org_code:
+            return {"found": False, "pathway_count": 0, "pathways": [],
+                    "note": f"No KEGG organism code for taxid {taxid}"}
+
+        time.sleep(RATE_LIMIT_DELAY)
         try:
-            org_code = self.KEGG_ORGANISM_CODES.get(taxid)
-            if not org_code:
-                return {"error": f"No KEGG org code for taxid {taxid}", "pathways": []}
-            
-            # KEGG API: Find gene
-            find_url = f"https://rest.kegg.jp/find/{org_code}/{gene_symbol}"
-            
-            time.sleep(RATE_LIMIT_DELAY)
-            response = self.session.get(find_url, timeout=30)
-            
-            if response.status_code != 200:
-                return {"error": "Gene not found in KEGG", "pathways": []}
-            
-            # Parse gene IDs from response
-            gene_ids = []
+            response = http_get(f"https://rest.kegg.jp/find/{org_code}/{gene_symbol}")
+        except Exception as e:
+            raise LookupFailure(f"KEGG request failed: {e}")
+
+        if response.status_code == 404:
+            return {"found": False, "pathway_count": 0, "pathways": []}
+        if response.status_code != 200:
+            raise LookupFailure(f"KEGG returned HTTP {response.status_code}")
+
+        # KEGG "find" is a fuzzy search; keep only the entry whose gene names include the symbol
+        kegg_gene_id = None
+        for line in response.text.strip().split('\n'):
+            parts = line.split('\t')
+            if len(parts) < 2:
+                continue
+            names = [n.strip().upper() for n in parts[1].split(';')[0].split(',')]
+            if gene_symbol.upper() in names:
+                kegg_gene_id = parts[0]
+                break
+
+        if not kegg_gene_id:
+            return {"found": False, "pathway_count": 0, "pathways": []}
+
+        time.sleep(RATE_LIMIT_DELAY)
+        try:
+            response = http_get(f"https://rest.kegg.jp/link/pathway/{kegg_gene_id}")
+        except Exception as e:
+            raise LookupFailure(f"KEGG request failed: {e}")
+
+        if response.status_code not in (200, 404):
+            raise LookupFailure(f"KEGG returned HTTP {response.status_code}")
+
+        pathways = []
+        if response.status_code == 200:
             for line in response.text.strip().split('\n'):
-                if line:
-                    parts = line.split('\t')
-                    if parts:
-                        gene_ids.append(parts[0])
-            
-            if not gene_ids:
-                return {"error": "No gene IDs found", "pathways": []}
-            
-            # Get pathway information for first gene ID
-            kegg_gene_id = gene_ids[0]
-            link_url = f"https://rest.kegg.jp/link/pathway/{kegg_gene_id}"
-            
-            time.sleep(RATE_LIMIT_DELAY)
-            response = self.session.get(link_url, timeout=30)
-            
-            pathways = []
-            if response.status_code == 200:
-                for line in response.text.strip().split('\n'):
-                    if line:
-                        parts = line.split('\t')
-                        if len(parts) >= 2:
-                            pathway_id = parts[1].replace("path:", "")
-                            pathways.append({
-                                "pathway_id": pathway_id,
-                                "gene_id": kegg_gene_id
-                            })
-            
-            return {
-                "kegg_gene_id": kegg_gene_id,
-                "pathway_count": len(pathways),
-                "pathways": pathways
-            }
-            
-        except Exception as e:
-            logger.error(f"KEGG query failed: {e}")
-            return {"error": str(e), "pathways": []}
-    
+                parts = line.split('\t')
+                if len(parts) >= 2:
+                    pathways.append({
+                        "pathway_id": parts[1].replace("path:", ""),
+                        "gene_id": kegg_gene_id
+                    })
+
+        return {
+            "found": True,
+            "kegg_gene_id": kegg_gene_id,
+            "pathway_count": len(pathways),
+            "pathways": pathways
+        }
+
     def _resolve_gene_to_uniprot(self, gene_symbol: str, taxid: str) -> Optional[str]:
-        """Resolve gene symbol to UniProt ID."""
+        """
+        Resolve gene symbol to a UniProt accession.
+
+        Returns None when UniProt has no such gene; raises ``LookupFailure`` when UniProt
+        could not be queried.
+        """
+        params = {
+            "query": f"gene:{gene_symbol} AND organism_id:{taxid} AND reviewed:true",
+            "format": "json",
+            "fields": "accession",
+            "size": 1
+        }
+
+        time.sleep(RATE_LIMIT_DELAY)
         try:
-            base_url = "https://rest.uniprot.org/uniprotkb/search"
-            query = f"gene:{gene_symbol} AND organism_id:{taxid} AND reviewed:true"
-            params = {
-                "query": query,
-                "format": "json",
-                "fields": "accession",
-                "size": 1
-            }
-            
-            time.sleep(RATE_LIMIT_DELAY)
-            response = self.session.get(base_url, params=params, timeout=15)
-            
-            if response.status_code == 200:
-                data = response.json()
-                results = data.get("results", [])
-                if results:
-                    return results[0].get("primaryAccession")
-            
-            return None
-            
+            response = http_get(self.UNIPROT_URL, params=params)
         except Exception as e:
-            logger.warning(f"Failed to resolve {gene_symbol} to UniProt: {e}")
-            return None
-    
-    def _classify_evidence(self, evidence_codes: List[str]) -> str:
+            raise LookupFailure(f"UniProt request failed: {e}")
+
+        if response.status_code != 200:
+            raise LookupFailure(f"UniProt returned HTTP {response.status_code}")
+
+        results = response.json().get("results", [])
+        return results[0].get("primaryAccession") if results else None
+
+    @staticmethod
+    def _normalize_code(code) -> str:
+        """Reduce 'IDA:UniProtKB' or 'ida' to the bare GO evidence code 'IDA'."""
+        if not code:
+            return ""
+        return str(code).split(":")[0].strip().upper()
+
+    def _classify_evidence(self, evidence_codes) -> str:
         """
         Classify evidence codes into experimental, computational, or IEA.
-        
+
         CRITICAL: IDA, IMP, IGI must be classified as EXPERIMENTAL.
         IEA must be classified as computational PREDICTION.
         """
-        if not evidence_codes:
+        if isinstance(evidence_codes, str):
+            evidence_codes = [evidence_codes]
+        codes = {self._normalize_code(c) for c in (evidence_codes or []) if c}
+        codes.discard("")
+        if not codes:
             return "unknown"
-        
+
         # Check for experimental evidence FIRST (highest priority)
-        if any(code in self.EXPERIMENTAL_EVIDENCE_CODES for code in evidence_codes):
+        if codes & self.EXPERIMENTAL_EVIDENCE_CODES:
             return "experimental"
-        
+
         # Check for computational analysis (not IEA)
-        if any(code in self.COMPUTATIONAL_EVIDENCE_CODES for code in evidence_codes):
+        if codes & self.COMPUTATIONAL_EVIDENCE_CODES:
             return "computational"
-        
-        # Check for IEA (electronic annotation - lowest quality)
-        if any(code in self.IEA_CODE for code in evidence_codes):
-            return "IEA"
-        
+
         # Check for curatorial evidence
-        if any(code in self.CURATORIAL_CODES for code in evidence_codes):
+        if codes & self.CURATORIAL_CODES:
             return "curatorial"
-        
+
+        # IEA (electronic annotation - lowest quality)
+        if codes & self.IEA_CODE:
+            return "IEA"
+
         return "unknown"
-    
+
     def _combine_bp_terms(self, results: Dict) -> List[Dict]:
-        """Combine and deduplicate BP terms from all sources."""
-        all_bp_terms = {}
-        
-        # From QuickGO
-        go_data = results.get("go_data", {})
-        for term in go_data.get("bp_terms", []):
-            go_id = term.get("go_id", "")
-            if go_id and go_id not in all_bp_terms:
-                all_bp_terms[go_id] = term
-        
-        # From UniProt
-        uniprot_data = results.get("uniprot_data", {})
-        for term in uniprot_data.get("bp_terms", []):
-            go_id = term.get("go_id", "")
-            if go_id and go_id not in all_bp_terms:
-                all_bp_terms[go_id] = term
-        
-        return list(all_bp_terms.values())
-    
+        """
+        Combine and deduplicate BP terms from all sources.
+
+        When a term is seen more than once, the strongest evidence type wins.
+        """
+        merged: Dict[str, Dict] = {}
+
+        for source_key in ("go_data", "uniprot_data"):
+            for term in results.get(source_key, {}).get("bp_terms", []):
+                go_id = term.get("go_id", "")
+                if not go_id:
+                    continue
+                evidence_type = term.get("evidence_type", "unknown")
+                existing = merged.get(go_id)
+                if existing is None:
+                    merged[go_id] = dict(term)
+                elif EVIDENCE_PRIORITY.get(evidence_type, 0) > EVIDENCE_PRIORITY.get(existing.get("evidence_type", "unknown"), 0):
+                    existing["evidence_type"] = evidence_type
+                    existing["evidence_codes"] = term.get("evidence_codes", existing.get("evidence_codes", []))
+                    if not existing.get("go_name"):
+                        existing["go_name"] = term.get("go_name", "")
+
+        return list(merged.values())
+
     def _combine_evidence(self, results: Dict) -> Dict:
-        """Combine evidence statistics from all sources."""
+        """Count the combined BP terms by their strongest evidence type."""
         evidence_counts = {
             "experimental": 0,
             "computational": 0,
@@ -428,19 +457,11 @@ class MultiDatabaseClient:
             "curatorial": 0,
             "unknown": 0
         }
-        
-        # From QuickGO
-        go_data = results.get("go_data", {})
-        for annotation in go_data.get("annotations", []):
-            evidence_type = annotation.get("evidence_type", "unknown")
-            evidence_counts[evidence_type] = evidence_counts.get(evidence_type, 0) + 1
-        
-        # From UniProt (already classified in bp_terms)
-        uniprot_data = results.get("uniprot_data", {})
-        for term in uniprot_data.get("bp_terms", []):
+
+        for term in results.get("combined_bp_terms", []):
             evidence_type = term.get("evidence_type", "unknown")
             evidence_counts[evidence_type] = evidence_counts.get(evidence_type, 0) + 1
-        
+
         return evidence_counts
 
 

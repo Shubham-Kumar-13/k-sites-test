@@ -722,7 +722,7 @@ class PhenotypeExtractor:
             (r"embryonic\s+lethal|embryo\s+lethal|prenatal\s+lethal|e\d+\.\d", "Embryonic"),
             (r"perinatal\s+lethal|perinatal\s+death|birth\s+lethal", "Perinatal"),
             (r"postnatal\s+lethal|adult\s+lethal|juvenile\s+lethal|p\d+\.\d", "Postnatal"),
-            (r"larval\s+lethal|l\d+\s+lethal", "Larval"),
+            (r"larval\s+(?:stage\s+)?(?:lethal|death)|l\d+\s+lethal", "Larval"),
             (r"neonatal\s+lethal|newborn\s+lethal", "Neonatal")
         ]
         

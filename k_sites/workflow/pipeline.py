@@ -5,7 +5,7 @@ This module orchestrates the complete K-Sites workflow by integrating all compon
 - Organism resolution
 - GO term to gene mapping
 - Pleiotropy scoring
-- gRNA design with pathway-aware filtering
+- Safety recommendation for gene knockout
 """
 
 import logging
@@ -21,7 +21,6 @@ def run_k_sites_pipeline(
     go_term: str, 
     organism: str, 
     max_pleiotropy: int = 3, 
-    use_graph: bool = True,
     evidence_filter: str = "experimental",
     species_validation: List[str] = None,
     predict_phenotypes: bool = False,
@@ -34,7 +33,6 @@ def run_k_sites_pipeline(
         go_term: GO term identifier (e.g., "GO:0006281")
         organism: Organism identifier (TaxID or scientific name)
         max_pleiotropy: Maximum allowed pleiotropy score (default: 3)
-        use_graph: Whether to use Neo4j graph functionality (default: True)
         evidence_filter: Type of evidence to include ("experimental", "computational", "all")
         species_validation: List of species taxids for cross-species validation
         predict_phenotypes: Whether to predict knockout phenotypes using RAG (default: False)
@@ -63,8 +61,11 @@ def run_k_sites_pipeline(
                     "composite_score": 8.5,
                     "cross_species_validation": {...},
                     "phenotype_prediction": {...},  # Present if predict_phenotypes=True
-                    "guides": [...]
+                    "safety_recommendation": {...}
                 }
+            ],
+            "insufficient_data_genes": [
+                {"symbol": "...", "lookup_failed": true, "reasons": ["..."]}
             ],
             "statistics": {
                 "total_genes_screened": 45,
@@ -73,45 +74,6 @@ def run_k_sites_pipeline(
                 "most_specific_gene": {...},
                 "least_specific_gene": {...}
             }
-        }
-    """
-    """
-    Execute the complete K-Sites pipeline.
-    
-    Args:
-        go_term: GO term identifier (e.g., "GO:0006281")
-        organism: Organism identifier (TaxID or scientific name)
-        max_pleiotropy: Maximum allowed pleiotropy score (default: 3)
-        use_graph: Whether to use Neo4j graph functionality (default: True)
-        evidence_filter: Type of evidence to include ("experimental", "computational", "all")
-        species_validation: List of species taxids for cross-species validation
-        predict_phenotypes: Whether to predict knockout phenotypes using RAG (default: False)
-        
-    Returns:
-        Dictionary with pipeline results:
-        {
-            "metadata": {
-                "go_term": "...",
-                "organism": "...",
-                "timestamp": "...",
-                "max_pleiotropy": 3,
-                "evidence_filter": "experimental",
-                "species_validation": [...],
-                "predict_phenotypes": false
-            },
-            "genes": [
-                {
-                    "symbol": "BRCA1",
-                    "pleiotropy_score": 2,
-                    "specificity_score": 8.0,
-                    "evidence_quality": 0.9,
-                    "conservation_score": 0.8,
-                    "composite_score": 8.5,
-                    "cross_species_validation": {...},
-                    "phenotype_prediction": {...},  # Present if predict_phenotypes=True
-                    "guides": [...]
-                }
-            ]
         }
     """
     logger.info(f"Starting K-Sites pipeline for GO term {go_term} in organism {organism}")
@@ -151,10 +113,19 @@ def run_k_sites_pipeline(
         )
         logger.info(f"Ranked {len(ranked_genes)} genes by specificity")
         
+        # Genes whose data could not be retrieved are reported separately; they are never
+        # treated as "specific" just because nothing came back.
+        scored_genes = [g for g in ranked_genes if g.get("data_status", "ok") == "ok"]
+        insufficient_genes = [g for g in ranked_genes if g.get("data_status", "ok") != "ok"]
+        if insufficient_genes:
+            logger.warning(
+                f"{len(insufficient_genes)} of {len(ranked_genes)} genes have insufficient data and are not scored"
+            )
+
         # Step 4: Process each gene
         processed_genes = []
-        logger.info(f"Step 4: Processing {len(ranked_genes)} ranked genes...")
-        
+        logger.info(f"Step 4: Processing {len(scored_genes)} scored genes...")
+
         # Initialize phenotype predictor if needed
         phenotype_predictor = None
         if predict_phenotypes:
@@ -166,17 +137,20 @@ def run_k_sites_pipeline(
                 logger.warning(f"Could not initialize phenotype predictor: {e}")
                 predict_phenotypes = False  # Disable if dependencies missing
         
-        for i, gene_info in enumerate(ranked_genes):
+        for i, gene_info in enumerate(scored_genes):
             gene_symbol = gene_info.get("symbol", "unknown")
-            logger.info(f"Processing gene {i+1}/{len(ranked_genes)}: {gene_symbol}")
+            logger.info(f"Processing gene {i+1}/{len(scored_genes)}: {gene_symbol}")
             
             try:
-                # a. Get comprehensive pleiotropy score
-                logger.debug(f"Computing comprehensive pleiotropy score for {gene_symbol}...")
-                from k_sites.gene_analysis.pleiotropy_scorer import score_pleiotropy
-                pleiotropy_score = score_pleiotropy(gene_symbol, taxid, go_term, evidence_filter)
-                
-                # b. Perform cross-species validation if requested
+                # a. Pleiotropy score from the ranking step (computed once, from the same data)
+                pleiotropy_score = gene_info["pleiotropy_score"]
+
+                # b. Skip if score exceeds threshold (before any further lookups)
+                if pleiotropy_score > max_pleiotropy:
+                    logger.info(f"Skipping {gene_symbol} (pleiotropy score {pleiotropy_score} > {max_pleiotropy})")
+                    continue
+
+                # c. Perform cross-species validation if requested
                 cross_species_validation = {}
                 if species_validation:
                     logger.debug(f"Performing cross-species validation for {gene_symbol}...")
@@ -184,8 +158,8 @@ def run_k_sites_pipeline(
                     cross_species_validation = validate_gene_specificity_across_species(
                         gene_symbol, go_term, species_validation
                     )
-                
-                # c. Predict phenotype if requested
+
+                # d. Predict phenotype if requested
                 phenotype_prediction = None
                 if predict_phenotypes and phenotype_predictor:
                     logger.debug(f"Predicting knockout phenotype for {gene_symbol}...")
@@ -193,32 +167,16 @@ def run_k_sites_pipeline(
                         phenotype_prediction = phenotype_predictor.predict_phenotype(gene_symbol, taxid)
                     except Exception as e:
                         logger.warning(f"Failed to predict phenotype for {gene_symbol}: {str(e)}")
-                
-                # d. Skip if score exceeds threshold
-                if pleiotropy_score > max_pleiotropy:
-                    logger.info(f"Skipping {gene_symbol} (pleiotropy score {pleiotropy_score} > {max_pleiotropy})")
-                    continue
-                
-                # e. Design gRNAs
-                logger.debug(f"Designing gRNAs for {gene_symbol}...")
-                from k_sites.crispr_design.guide_designer import design_guides
-                guides = design_guides(gene_symbol, taxid, max_pleiotropy)
-                
-                # f. Filter out gRNAs with pathway-conflicting off-targets
-                if use_graph:
-                    logger.debug(f"Applying pathway-aware filtering for {gene_symbol}...")
-                    guides = _filter_pathway_conflicts(guides, gene_symbol, taxid)
-                
-                # g. Generate comprehensive safety recommendation using the safety recommender
+
+                # e. Generate comprehensive safety recommendation using the safety recommender
                 from k_sites.workflow.safety_recommender import SafetyRecommender, get_safety_recommendation
                 
                 safety_rec = get_safety_recommendation(
                     gene_symbol=gene_symbol,
                     pleiotropy_score=pleiotropy_score,
                     phenotype_prediction=phenotype_prediction.__dict__ if phenotype_prediction else None,
-                    guides=[g.__dict__ if hasattr(g, '__dict__') else g for g in (guides or [])],
                     cross_species_validation=cross_species_validation,
-                    literature_support=gene_info.get("literature_support", 0.5)
+                    literature_support=gene_info.get("literature_score", 0.5)
                 )
                 
                 logger.info(f"Safety recommendation for {gene_symbol}: {safety_rec.safety_level.value} - {safety_rec.primary_recommendation.value}")
@@ -227,12 +185,14 @@ def run_k_sites_pipeline(
                 gene_result = {
                     "symbol": gene_symbol,
                     "pleiotropy_score": pleiotropy_score,
-                    "specificity_score": gene_info.get("specificity_score", 10 - pleiotropy_score),
+                    "specificity_score": gene_info.get("specificity_score"),
                     "evidence_quality": gene_info.get("evidence_quality", 0.5),
-                    "literature_support": gene_info.get("literature_support", 0.5),
+                    "literature_support": gene_info.get("literature_score", 0.5),
                     "conservation_score": gene_info.get("conservation_score", 0.0),
                     "composite_score": gene_info.get("composite_score", 5.0),
                     "bp_term_count": gene_info.get("bp_term_count", 0),
+                    "data_issues": gene_info.get("data_issues", []),
+                    "kegg_pathway_count": gene_info.get("kegg_pathway_count", 0),
                     "experimental_evidence_count": gene_info.get("experimental_evidence_count", 0),
                     "computational_evidence_count": gene_info.get("computational_evidence_count", 0),
                     "iea_evidence_count": gene_info.get("iea_evidence_count", 0),
@@ -250,12 +210,11 @@ def run_k_sites_pipeline(
                     },
                     "safety_recommendation_object": safety_rec,  # Keep object for report generation
                     "description": gene_info.get("description", ""),
-                    "entrez_id": gene_info.get("entrez_id", ""),
-                    "guides": guides
+                    "entrez_id": gene_info.get("entrez_id", "")
                 }
                 
                 processed_genes.append(gene_result)
-                logger.info(f"Successfully processed {gene_symbol} with {len(guides)} gRNAs")
+                logger.info(f"Successfully processed {gene_symbol}")
                 
             except Exception as e:
                 logger.warning(f"Failed to process gene {gene_symbol}: {str(e)}")
@@ -271,6 +230,7 @@ def run_k_sites_pipeline(
         statistics = {
             "total_genes_screened": len(ranked_genes),
             "genes_passed_filter": len(processed_genes),
+            "genes_insufficient_data": len(insufficient_genes),
             "avg_pleiotropy": 0.0,
             "most_specific_gene": None,
             "least_specific_gene": None
@@ -293,65 +253,29 @@ def run_k_sites_pipeline(
                 "timestamp": start_time.isoformat(),
                 "execution_duration": duration,
                 "max_pleiotropy": max_pleiotropy,
-                "use_graph": use_graph,
                 "evidence_filter": evidence_filter,
                 "species_validation": species_validation,
                 "predict_phenotypes": predict_phenotypes,
                 "databases": databases or ['all']
             },
             "genes": processed_genes,
+            "insufficient_data_genes": [
+                {
+                    "symbol": g.get("symbol", ""),
+                    "description": g.get("description", ""),
+                    "lookup_failed": g.get("lookup_failed", False),
+                    "reasons": g.get("data_issues", []),
+                }
+                for g in insufficient_genes
+            ],
             "statistics": statistics
         }
         
-        logger.info(f"Pipeline completed successfully. Processed {len(processed_genes)} genes out of {len(ranked_genes)} total.")
+        logger.info(f"Pipeline completed successfully. Processed {len(processed_genes)} genes out of {len(ranked_genes)} total "
+                    f"({len(insufficient_genes)} with insufficient data).")
         return results
         
     except Exception as e:
         logger.error(f"Pipeline failed: {str(e)}")
         logger.debug(f"Full traceback: {traceback.format_exc()}")
         raise
-
-
-def _filter_pathway_conflicts(guides: List[Dict], gene_symbol: str, taxid: str) -> List[Dict]:
-    """
-    Filter out gRNAs with pathway-conflicting off-targets.
-    
-    Args:
-        guides: List of gRNA designs
-        gene_symbol: Target gene symbol
-        taxid: NCBI Taxonomy ID
-        
-    Returns:
-        Filtered list of gRNA designs
-    """
-    try:
-        from k_sites.neo4j.graph_client import get_pathway_neighbors
-        
-        # Get genes in the same pathways as the target gene
-        pathway_neighbors = get_pathway_neighbors(gene_symbol, taxid)
-        pathway_neighbor_set = set(pathway_neighbors)
-        
-        filtered_guides = []
-        for guide in guides:
-            # Check if this guide has pathway conflicts
-            if not guide.get("pathway_conflict", False):
-                # If no pathway conflict, include the guide
-                filtered_guides.append(guide)
-            else:
-                # If there's a pathway conflict, we might still include it
-                # depending on the overall score, but log it
-                logger.warning(f"Guide for {gene_symbol} has pathway conflicts: {guide['seq']}")
-                # For now, we'll include pathway-conflicting guides but mark them
-                guide_copy = guide.copy()
-                guide_copy["included_despite_conflict"] = True
-                filtered_guides.append(guide_copy)
-        
-        logger.info(f"Applied pathway filtering: {len(guides)} -> {len(filtered_guides)} guides for {gene_symbol}")
-        return filtered_guides
-        
-    except ImportError:
-        logger.warning("Neo4j graph client not available, skipping pathway conflict filtering")
-        return guides
-    except Exception as e:
-        logger.warning(f"Could not apply pathway conflict filtering: {str(e)}, proceeding without filtering")
-        return guides

@@ -32,10 +32,6 @@ class Config:
     K_SITES_NCBI_EMAIL = os.environ.get('K_SITES_NCBI_EMAIL') or MAIL_USERNAME or 'user@example.com'
     K_SITES_NCBI_API_KEY = os.environ.get('K_SITES_NCBI_API_KEY')
     
-    # Neo4j Configuration
-    K_SITES_NEO4J_URI = os.environ.get('K_SITES_NEO4J_URI', 'bolt://localhost:7687')
-    K_SITES_NEO4J_USER = os.environ.get('K_SITES_NEO4J_USER', 'neo4j')
-    K_SITES_NEO4J_PASSWORD = os.environ.get('K_SITES_NEO4J_PASSWORD', 'password')
 
 
 class DevelopmentConfig(Config):

@@ -2,7 +2,7 @@
 Report Generator for K-Sites
 
 This module generates publication-ready HTML reports from K-Sites pipeline output.
-Includes comprehensive CSV, Excel, FASTA, and GenBank export functionality.
+Includes comprehensive CSV and Excel export functionality.
 """
 
 import json
@@ -31,31 +31,25 @@ def generate_html_report(pipeline_output: dict, output_path: str) -> None:
         # Extract data from pipeline output
         metadata = pipeline_output.get("metadata", {})
         genes = pipeline_output.get("genes", [])
-        
+        insufficient_genes = pipeline_output.get("insufficient_data_genes", [])
+
         # Count statistics
         total_genes_screened = len(genes)
-        total_guides = sum(len(gene.get("guides", [])) for gene in genes)
-        pathway_conflict_guides = sum(
-            1 for gene in genes 
-            for guide in gene.get("guides", []) 
-            if guide.get("pathway_conflict", False)
-        )
         
         # Generate the HTML report
         html_content = _generate_report_html(
             metadata, 
             genes, 
-            total_genes_screened, 
-            total_guides, 
-            pathway_conflict_guides,
-            output_path
+            total_genes_screened,
+            output_path,
+            insufficient_genes
         )
         
         # Write to file
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
         
-        # Generate additional output formats (CSV, Excel, FASTA)
+        # Generate additional output formats (CSV, Excel)
         _generate_additional_outputs(pipeline_output, output_path)
         
         logger.info(f"Successfully generated HTML report at {output_path}")
@@ -88,18 +82,6 @@ def _generate_additional_outputs(pipeline_output: dict, output_path: str) -> Non
         excel_path = f"{base_path}_comprehensive.xlsx"
         _generate_excel_report(pipeline_output, excel_path)
         
-        # Generate FASTA file
-        fasta_path = f"{base_path}_grna_sequences.fasta"
-        _generate_fasta_report(pipeline_output, fasta_path)
-        
-        # Generate GenBank file if available
-        try:
-            from k_sites.reporting.genbank_export import generate_genbank_from_pipeline
-            genbank_path = f"{base_path}_sequences.gb"
-            generate_genbank_from_pipeline(pipeline_output, genbank_path)
-        except ImportError:
-            logger.warning("GenBank export not available, skipping")
-        
         logger.info(f"Generated all additional output formats")
         
     except Exception as e:
@@ -122,7 +104,7 @@ def _generate_csv_report(pipeline_output: dict, csv_path: str) -> None:
         rows = []
         
         # Add metadata as header comments
-        rows.append([f"# K-Sites CRISPR Design Report"])
+        rows.append([f"# K-Sites Gene Selection Report"])
         rows.append([f"# GO Term: {metadata.get('go_term', 'N/A')}"])
         rows.append([f"# Organism: {metadata.get('organism', 'N/A')}"])
         rows.append([f"# Timestamp: {metadata.get('timestamp', 'N/A')}"])
@@ -137,8 +119,6 @@ def _generate_csv_report(pipeline_output: dict, csv_path: str) -> None:
             "Conservation_Score", "Composite_Score", "BP_Term_Count",
             "Experimental_Evidence_Count", "Computational_Evidence_Count", 
             "IEA_Evidence_Count", "KEGG_Pathway_Count", "PubMed_Count",
-            "Guide_Sequence", "Guide_Position", "Doench_Score", 
-            "CFD_Off_Targets", "Pathway_Conflict",
             "Phenotype_Severity", "Phenotype_Risk_Level", "Phenotype_Confidence",
             "Phenotype_Lethality_Stage", "Safety_Level", "Safety_Recommendation",
             "Safety_Justification"
@@ -176,39 +156,14 @@ def _generate_csv_report(pipeline_output: dict, csv_path: str) -> None:
             primary_rec = safety_rec.get("primary_recommendation", "")
             safety_justification = safety_rec.get("justification", "")
             
-            # Add rows for each guide
-            guides = gene.get("guides", [])
-            for guide in guides:
-                guide_seq = guide.get("seq", "") if isinstance(guide, dict) else ""
-                guide_position = guide.get("position", "") if isinstance(guide, dict) else ""
-                doench_score = guide.get("doench_score", "") if isinstance(guide, dict) else ""
-                cfd_off_targets = guide.get("cfd_off_targets", "") if isinstance(guide, dict) else ""
-                pathway_conflict = guide.get("pathway_conflict", "") if isinstance(guide, dict) else ""
-                
-                row = [
-                    gene_symbol, gene_description, entrez_id, pleiotropy_score,
-                    specificity_score, evidence_quality, literature_score,
-                    conservation_score, composite_score, bp_term_count,
-                    exp_count, comp_count, iea_count, kegg_count, pubmed_count,
-                    guide_seq, guide_position, doench_score,
-                    cfd_off_targets, pathway_conflict,
-                    phenotype_severity, phenotype_risk, phenotype_confidence,
-                    phenotype_stage, safety_level, primary_rec, safety_justification
-                ]
-                rows.append(row)
-            
-            # If no guides, still add the gene information
-            if not guides:
-                row = [
-                    gene_symbol, gene_description, entrez_id, pleiotropy_score,
-                    specificity_score, evidence_quality, literature_score,
-                    conservation_score, composite_score, bp_term_count,
-                    exp_count, comp_count, iea_count, kegg_count, pubmed_count,
-                    "", "", "", "", "",
-                    phenotype_severity, phenotype_risk, phenotype_confidence,
-                    phenotype_stage, safety_level, primary_rec, safety_justification
-                ]
-                rows.append(row)
+            rows.append([
+                gene_symbol, gene_description, entrez_id, pleiotropy_score,
+                specificity_score, evidence_quality, literature_score,
+                conservation_score, composite_score, bp_term_count,
+                exp_count, comp_count, iea_count, kegg_count, pubmed_count,
+                phenotype_severity, phenotype_risk, phenotype_confidence,
+                phenotype_stage, safety_level, primary_rec, safety_justification
+            ])
         
         # Write CSV file
         with open(csv_path, 'w', newline='', encoding='utf-8') as csvfile:
@@ -240,7 +195,7 @@ def _generate_gene_summary_csv(pipeline_output: dict, csv_path: str) -> None:
                 'evidence_quality', 'literature_score', 'conservation_score',
                 'bp_term_count', 'experimental_evidence_count', 
                 'computational_evidence_count', 'iea_evidence_count',
-                'kegg_pathway_count', 'pubmed_count', 'guide_count',
+                'kegg_pathway_count', 'pubmed_count',
                 'phenotype_severity', 'phenotype_risk_level', 
                 'safety_level', 'safety_recommendation', 'safety_justification'
             ]
@@ -267,7 +222,6 @@ def _generate_gene_summary_csv(pipeline_output: dict, csv_path: str) -> None:
                     'iea_evidence_count': gene.get('iea_evidence_count', ''),
                     'kegg_pathway_count': gene.get('kegg_pathway_count', ''),
                     'pubmed_count': gene.get('pubmed_count', ''),
-                    'guide_count': len(gene.get('guides', [])),
                     'phenotype_severity': _extract_enum_value(phenotype_pred.get('severity', '')),
                     'phenotype_risk_level': _extract_enum_value(phenotype_pred.get('risk_level', '')),
                     'safety_level': safety_rec.get('safety_level', ''),
@@ -295,6 +249,7 @@ def _generate_excel_report(pipeline_output: dict, excel_path: str) -> None:
             from openpyxl import Workbook
             from openpyxl.styles import Font, Fill, PatternFill, Alignment, Border, Side
             from openpyxl.utils.dataframe import dataframe_to_rows
+            from openpyxl.utils import get_column_letter
         except ImportError:
             logger.warning("openpyxl not available, generating CSV fallback instead of Excel")
             # Generate CSV as fallback
@@ -317,7 +272,7 @@ def _generate_excel_report(pipeline_output: dict, excel_path: str) -> None:
         header_fill = PatternFill(start_color="2C3E50", end_color="2C3E50", fill_type="solid")
         
         # Add metadata
-        ws_summary['A1'] = "K-Sites CRISPR Design Report"
+        ws_summary['A1'] = "K-Sites Gene Selection Report"
         ws_summary['A1'].font = Font(bold=True, size=16)
         ws_summary.merge_cells('A1:D1')
         
@@ -372,33 +327,7 @@ def _generate_excel_report(pipeline_output: dict, excel_path: str) -> None:
             safety_rec = gene.get('safety_recommendation', {}) or {}
             ws_genes.cell(row=row, column=10, value=safety_rec.get('safety_level', ''))
         
-        # ===== Sheet 3: gRNA Designs =====
-        ws_guides = wb.create_sheet("gRNA Designs")
-        
-        guide_headers = [
-            "Gene Symbol", "gRNA Sequence", "Position", "Doench Score",
-            "CFD Off-targets", "Pathway Conflict"
-        ]
-        
-        for col, header in enumerate(guide_headers, 1):
-            cell = ws_guides.cell(row=1, column=col, value=header)
-            cell.font = header_font
-            cell.fill = header_fill
-        
-        guide_row = 2
-        for gene in genes:
-            gene_symbol = gene.get('symbol', '')
-            for guide in gene.get('guides', []):
-                if isinstance(guide, dict):
-                    ws_guides.cell(row=guide_row, column=1, value=gene_symbol)
-                    ws_guides.cell(row=guide_row, column=2, value=guide.get('seq', ''))
-                    ws_guides.cell(row=guide_row, column=3, value=guide.get('position', ''))
-                    ws_guides.cell(row=guide_row, column=4, value=guide.get('doench_score', ''))
-                    ws_guides.cell(row=guide_row, column=5, value=guide.get('cfd_off_targets', ''))
-                    ws_guides.cell(row=guide_row, column=6, value=guide.get('pathway_conflict', False))
-                    guide_row += 1
-        
-        # ===== Sheet 4: Safety Recommendations =====
+        # ===== Sheet 3: Safety Recommendations =====
         ws_safety = wb.create_sheet("Safety Recommendations")
         
         safety_headers = [
@@ -416,15 +345,16 @@ def _generate_excel_report(pipeline_output: dict, excel_path: str) -> None:
             ws_safety.cell(row=row, column=1, value=gene.get('symbol', ''))
             ws_safety.cell(row=row, column=2, value=safety_rec.get('safety_level', ''))
             ws_safety.cell(row=row, column=3, value=safety_rec.get('primary_recommendation', ''))
-            ws_safety.cell(row=row, column=4, value=safety_rec.get('justification', ''))
+            ws_safety.cell(row=row, column=4, value=_excel_text(safety_rec.get('justification', '')))
             ws_safety.cell(row=row, column=5, value='; '.join(safety_rec.get('concerns', [])))
             ws_safety.cell(row=row, column=6, value='; '.join(safety_rec.get('mitigation_strategies', [])))
         
         # Auto-adjust column widths
-        for ws in [ws_summary, ws_genes, ws_guides, ws_safety]:
+        for ws in [ws_summary, ws_genes, ws_safety]:
             for column in ws.columns:
                 max_length = 0
-                column_letter = column[0].column_letter
+                # column[0] can be a merged cell (title row), which has no column_letter
+                column_letter = get_column_letter(column[0].column)
                 for cell in column:
                     try:
                         if len(str(cell.value)) > max_length:
@@ -442,51 +372,11 @@ def _generate_excel_report(pipeline_output: dict, excel_path: str) -> None:
         logger.error(f"Failed to generate Excel report: {str(e)}")
 
 
-def _generate_fasta_report(pipeline_output: dict, fasta_path: str) -> None:
-    """
-    Generate a FASTA file with all gRNA sequences.
-    
-    Args:
-        pipeline_output: Output dictionary from run_k_sites_pipeline
-        fasta_path: Path to save the FASTA report
-    """
-    try:
-        genes = pipeline_output.get("genes", [])
-        metadata = pipeline_output.get("metadata", {})
-        
-        with open(fasta_path, 'w', encoding='utf-8') as fasta_file:
-            # Write header comment
-            fasta_file.write(f"; K-Sites gRNA sequences\n")
-            fasta_file.write(f"; GO Term: {metadata.get('go_term', 'N/A')}\n")
-            fasta_file.write(f"; Organism: {metadata.get('organism', 'N/A')}\n")
-            fasta_file.write(f"; Generated from K-Sites pipeline\n\n")
-            
-            # Write sequences
-            for gene in genes:
-                gene_symbol = gene.get("symbol", "Unknown")
-                guides = gene.get("guides", [])
-                
-                for i, guide in enumerate(guides):
-                    if isinstance(guide, dict):
-                        guide_seq = guide.get("seq", "")
-                        if guide_seq:
-                            # Create header with gene info and guide properties
-                            header_parts = [
-                                f"gene={gene_symbol}",
-                                f"pos={guide.get('position', 'N/A')}",
-                                f"doench={guide.get('doench_score', 'N/A'):.2f}" if isinstance(guide.get('doench_score'), (int, float)) else f"doench={guide.get('doench_score', 'N/A')}"
-                            ]
-                            if guide.get("pathway_conflict", False):
-                                header_parts.append("pathway_conflict=YES")
-                            
-                            header_info = " ".join(header_parts)
-                            fasta_file.write(f">gRNA_{gene_symbol}_{i+1} {header_info}\n")
-                            fasta_file.write(f"{guide_seq}\n")
-        
-        logger.info(f"Generated FASTA report at {fasta_path}")
-        
-    except Exception as e:
-        logger.error(f"Failed to generate FASTA report: {str(e)}")
+def _excel_text(value) -> str:
+    """Excel cells hold scalars: join lists into one string."""
+    if isinstance(value, (list, tuple, set)):
+        return "; ".join(str(v) for v in value)
+    return value if value is not None else ""
 
 
 def _extract_enum_value(value) -> str:
@@ -499,10 +389,9 @@ def _extract_enum_value(value) -> str:
 def _generate_report_html(
     metadata: Dict[str, Any], 
     genes: list, 
-    total_genes_screened: int, 
-    total_guides: int, 
-    pathway_conflict_guides: int,
-    output_path: str
+    total_genes_screened: int,
+    output_path: str,
+    insufficient_genes: list = None
 ) -> str:
     """
     Generate the complete HTML report.
@@ -517,13 +406,22 @@ def _generate_report_html(
     evidence_filter = metadata.get("evidence_filter", "experimental")
     max_pleiotropy = metadata.get("max_pleiotropy", 10)
     
+    insufficient_genes = insufficient_genes or []
+
+    # Safety tallies for the executive summary
+    def _level(g):
+        return (g.get("safety_recommendation", {}) or {}).get("safety_level", "")
+    safe_count = sum(1 for g in genes if _level(g) == "SAFE")
+    caution_count = sum(1 for g in genes if _level(g) in ("CAUTION", "MODERATE_CONCERN"))
+    concern_count = sum(1 for g in genes if _level(g) in ("HIGH_CONCERN", "AVOID"))
+    
     # Build the HTML content
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>K-Sites CRISPR Design Report - {escaped_go_term}</title>
+    <title>K-Sites Gene Selection Report - {escaped_go_term}</title>
     <style>
         :root {{
             --primary-color: #2c3e50;
@@ -612,27 +510,11 @@ def _generate_report_html(
         tr:nth-child(even) {{ background-color: #f8f9fa; }}
         tr:hover {{ background-color: #e9f7fe; }}
         
-        .sequence {{
-            font-family: 'SF Mono', Consolas, Monaco, monospace;
-            font-size: 0.9em;
-            letter-spacing: 0.5px;
-            background-color: #f8f9fa;
-            padding: 2px 6px;
-            border-radius: 4px;
-            border: 1px solid #e9ecef;
-        }}
         
         .score-high {{ color: var(--success-color); font-weight: bold; }}
         .score-medium {{ color: var(--warning-color); font-weight: bold; }}
         .score-low {{ color: var(--danger-color); font-weight: bold; }}
         
-        .pathway-conflict {{
-            background-color: #fff3cd;
-            color: #856404;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: bold;
-        }}
         
         .phenotype-severity, .risk-level, .safety-level {{
             display: inline-block;
@@ -677,16 +559,6 @@ def _generate_report_html(
         
         .specificity-fill {{ height: 100%; background-color: #28a745; }}
         
-        .btn-copy {{
-            background-color: #e9ecef;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8em;
-        }}
-        .btn-copy:hover {{ background-color: #dee2e6; }}
-        
         .download-section {{
             text-align: center;
             margin: 40px 0;
@@ -711,28 +583,6 @@ def _generate_report_html(
             transform: translateY(-2px);
         }}
         
-        .accordion {{
-            background-color: white;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            margin-bottom: 10px;
-            overflow: hidden;
-        }}
-        
-        .accordion-header {{
-            background-color: #f8f9fa;
-            padding: 15px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: 600;
-        }}
-        
-        .accordion-content {{ padding: 0; max-height: 0; overflow: hidden; transition: max-height 0.2s ease-out; }}
-        .accordion.active .accordion-content {{ max-height: 2000px; }}
-        .accordion-body {{ padding: 20px; }}
-        
         .justification-box {{
             background-color: #f8f9fa;
             padding: 10px;
@@ -752,7 +602,7 @@ def _generate_report_html(
 <body>
     <div class="container">
         <header>
-            <h1>🧬 K-Sites CRISPR Design Report</h1>
+            <h1>🧬 K-Sites Gene Selection Report</h1>
             <div class="subtitle">
                 GO Term: <strong>{escaped_go_term}</strong> | 
                 Organism: <strong>{escaped_scientific_name}</strong> | 
@@ -772,16 +622,20 @@ def _generate_report_html(
                     <div class="summary-label">Genes Screened</div>
                 </div>
                 <div class="summary-item">
-                    <div class="summary-value">{total_guides}</div>
-                    <div class="summary-label">gRNAs Designed</div>
+                    <div class="summary-value">{safe_count}</div>
+                    <div class="summary-label">Safe to Delete</div>
                 </div>
                 <div class="summary-item">
-                    <div class="summary-value">{len([g for gene in genes for g in gene.get('guides', []) if isinstance(g, dict) and g.get('doench_score', 0) >= 0.7])}</div>
-                    <div class="summary-label">High-Efficacy gRNAs</div>
+                    <div class="summary-value">{caution_count}</div>
+                    <div class="summary-label">Proceed with Caution</div>
                 </div>
                 <div class="summary-item">
-                    <div class="summary-value">{pathway_conflict_guides}</div>
-                    <div class="summary-label">Pathway Conflicts</div>
+                    <div class="summary-value">{concern_count}</div>
+                    <div class="summary-label">High Concern / Avoid</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">{len(insufficient_genes)}</div>
+                    <div class="summary-label">Not Scored (Insufficient Data)</div>
                 </div>
             </div>
         </div>
@@ -803,8 +657,8 @@ def _generate_report_html(
                         <th>Visual</th>
                         <th>Composite Score</th>
                         <th>Safety Level</th>
+                        <th>KEGG Pathways</th>
                         <th>Recommendation</th>
-                        <th>gRNAs</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -846,7 +700,7 @@ def _generate_report_html(
         elif safety_level == "MODERATE":
             safety_class = "safety-caution"
         
-        guide_count = len(gene.get("guides", []))
+        kegg_count = gene.get("kegg_pathway_count", "N/A")
         
         html_content += f"""
                     <tr>
@@ -862,11 +716,11 @@ def _generate_report_html(
                         </td>
                         <td>{composite_score:.3f}</td>
                         <td><span class="safety-level {safety_class}">{safety_level}</span></td>
+                        <td>{kegg_count}</td>
                         <td>
                             {primary_rec}
                             {f'<div class="justification-box">{html.escape(str(safety_justification))}</div>' if safety_justification else ''}
                         </td>
-                        <td>{guide_count}</td>
                     </tr>
 """
     
@@ -875,88 +729,41 @@ def _generate_report_html(
             </table>
         </div>
         
-        <div class="section">
-            <h2 class="section-title">🔬 Detailed gRNA Designs</h2>
 """
     
-    # Add detailed gRNA information for each gene
-    for gene in genes:
-        symbol = html.escape(str(gene.get("symbol", "Unknown")))
-        guides = gene.get("guides", [])
-        
-        if not guides:
-            continue
-            
-        html_content += f"""
-            <div class="accordion">
-                <div class="accordion-header" onclick="toggleAccordion(this)">
-                    <span>{symbol} - {len(guides)} gRNA{'s' if len(guides) != 1 else ''}</span>
-                    <span>▼</span>
-                </div>
-                <div class="accordion-content">
-                    <div class="accordion-body">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>gRNA Sequence (5'→3')</th>
-                                    <th>Position</th>
-                                    <th>Doench Score</th>
-                                    <th>CFD Off-targets</th>
-                                    <th>Pathway Conflict</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-"""
-        
-        for guide in guides:
-            if isinstance(guide, dict):
-                seq = html.escape(str(guide.get("seq", "")))
-                position = guide.get("position", "N/A")
-                doench_score = guide.get("doench_score", 0)
-                cfd_off_targets = guide.get("cfd_off_targets", "N/A")
-                pathway_conflict = guide.get("pathway_conflict", False)
-                
-                # Determine score class
-                if isinstance(doench_score, (int, float)):
-                    if doench_score >= 0.7:
-                        score_class = "score-high"
-                    elif doench_score >= 0.5:
-                        score_class = "score-medium"
-                    else:
-                        score_class = "score-low"
-                    doench_display = f"{doench_score:.2f}"
-                else:
-                    score_class = ""
-                    doench_display = str(doench_score)
-                
-                conflict_indicator = '<span class="pathway-conflict">⚠️ Yes</span>' if pathway_conflict else "No"
-                
-                html_content += f"""
-                                <tr>
-                                    <td><span class="sequence">{seq}</span></td>
-                                    <td>{position}</td>
-                                    <td class="{score_class}">{doench_display}</td>
-                                    <td>{cfd_off_targets}</td>
-                                    <td>{conflict_indicator}</td>
-                                    <td><button class="btn-copy" onclick="copyToClipboard('{seq}')">📋 Copy</button></td>
-                                </tr>
-"""
-        
+    if insufficient_genes:
         html_content += """
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+        <div class="section">
+            <h2 class="section-title">⚠️ Genes Not Scored (Insufficient Data)</h2>
+            <p style="margin-bottom: 15px; color: var(--text-light);">
+                These genes could not be assessed, so they are not ranked and no safety level is given.
+                "Lookup failed" means a database could not be reached; the gene may be fine on retry.
+            </p>
+            <table>
+                <thead>
+                    <tr><th>Gene Symbol</th><th>Reason</th><th>Lookup Failed</th></tr>
+                </thead>
+                <tbody>
 """
-    
+        for gene in insufficient_genes:
+            reasons = "; ".join(str(r) for r in gene.get("reasons", [])) or "No data"
+            html_content += f"""
+                    <tr>
+                        <td><strong>{html.escape(str(gene.get("symbol", "")))}</strong></td>
+                        <td>{html.escape(reasons)}</td>
+                        <td>{"Yes" if gene.get("lookup_failed") else "No"}</td>
+                    </tr>
+"""
+        html_content += """
+                </tbody>
+            </table>
+        </div>
+"""
+
     # Get base filename for download links
     base_name = os.path.basename(output_path).replace('.html', '')
     
     html_content += f"""
-        </div>
-        
         <div class="download-section">
             <h2>📥 Download Results</h2>
             <p style="margin-bottom: 20px; color: var(--text-light);">
@@ -965,37 +772,14 @@ def _generate_report_html(
             <a href="./{base_name}_comprehensive.csv" class="download-btn">📄 Comprehensive CSV</a>
             <a href="./{base_name}_gene_summary.csv" class="download-btn">📊 Gene Summary CSV</a>
             <a href="./{base_name}_comprehensive.xlsx" class="download-btn">📗 Excel Report</a>
-            <a href="./{base_name}_grna_sequences.fasta" class="download-btn">🧬 FASTA Sequences</a>
         </div>
         
         <footer style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border-color); color: var(--text-light); font-size: 0.9em;">
-            <p>K-Sites CRISPR Design Platform | Non-Pleiotropic Gene Identification System</p>
+            <p>K-Sites Gene Selection Platform | Non-Pleiotropic Gene Identification System</p>
             <p>Execution time: {execution_duration:.2f}s | Evidence: {evidence_filter} | Max Pleiotropy: {max_pleiotropy}</p>
         </footer>
     </div>
     
-    <script>
-        function toggleAccordion(header) {{
-            const accordion = header.parentElement;
-            accordion.classList.toggle('active');
-            const arrow = header.querySelector('span:last-child');
-            arrow.textContent = accordion.classList.contains('active') ? '▲' : '▼';
-        }}
-        
-        function copyToClipboard(text) {{
-            navigator.clipboard.writeText(text).then(() => {{
-                alert('Copied to clipboard: ' + text);
-            }}).catch(err => {{
-                const textArea = document.createElement('textarea');
-                textArea.value = text;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                alert('Copied to clipboard: ' + text);
-            }});
-        }}
-    </script>
 </body>
 </html>"""
     
