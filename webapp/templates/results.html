@@ -46,10 +46,10 @@
                 </div>
             </div>
             
-            <!-- ETA -->
-            <div id="etaDisplay" class="text-muted mb-4" style="display: {{ 'block' if job.estimated_completion else 'none' }};">
+            <!-- Elapsed time -->
+            <div id="elapsedDisplay" class="text-muted mb-4" style="display: none;">
                 <i class="fas fa-clock me-2"></i>
-                Estimated completion: <span id="etaTime">{{ job.estimated_completion }}</span>
+                Running for <span id="elapsedTime"></span>
             </div>
             
             <!-- Progress Steps -->

@@ -113,33 +113,15 @@ function updateProgressDisplay(job) {
         currentStep.textContent = job.current_step;
     }
     
-    // Update ETA
-    const etaDisplay = document.getElementById('etaDisplay');
-    const etaTime = document.getElementById('etaTime');
-    if (etaDisplay && etaTime && job.estimated_completion) {
-        const eta = new Date(job.estimated_completion);
-        const now = new Date();
-        
-        if (eta > now) {
-            const diffMs = eta - now;
-            const diffMins = Math.round(diffMs / 60000);
-            
-            if (diffMins < 1) {
-                etaTime.textContent = 'Less than a minute';
-            } else if (diffMins === 1) {
-                etaTime.textContent = 'About 1 minute';
-            } else if (diffMins < 60) {
-                etaTime.textContent = `About ${diffMins} minutes`;
-            } else {
-                const hours = Math.floor(diffMins / 60);
-                const mins = diffMins % 60;
-                etaTime.textContent = `${hours}h ${mins}m`;
-            }
-            etaDisplay.style.display = 'block';
-        } else {
-            etaTime.textContent = 'Any moment now...';
-            etaDisplay.style.display = 'block';
-        }
+    // Time elapsed (the run time depends on the databases, so no completion time is predicted)
+    const elapsedDisplay = document.getElementById('elapsedDisplay');
+    const elapsedTime = document.getElementById('elapsedTime');
+    if (elapsedDisplay && elapsedTime && job.created_at) {
+        const created = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(job.created_at) ? job.created_at : job.created_at + 'Z');
+        const seconds = Math.max(0, Math.round((Date.now() - created.getTime()) / 1000));
+        const minutes = Math.floor(seconds / 60);
+        elapsedTime.textContent = minutes < 1 ? 'less than a minute' : `${minutes} min`;
+        elapsedDisplay.style.display = 'block';
     }
     
     // Update step indicators
