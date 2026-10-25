@@ -241,7 +241,7 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="max_genes" class="form-label">
-                                <i class="fas fa-list-ol me-2"></i>Maximum Genes
+                                <i class="fas fa-list-ol me-2"></i>Genes to Report
                                 <a href="/help#max-genes" class="text-decoration-none" target="_blank">
                                     <i class="fas fa-question-circle text-muted"></i>
                                 </a>
@@ -252,10 +252,11 @@
                                    name="max_genes"
                                    value="10"
                                    min="1"
-                                   max="50"
+                                   max="500"
                                    required>
                             <div class="form-text">
-                                Limit genes to analyze (1-50). Lower = faster results.
+                                How many top-ranked genes to show in the report (1-500). Every gene of the
+                                GO term is scored first, so this does not change the run time.
                             </div>
                         </div>
                         
@@ -271,11 +272,12 @@
                                    id="max_pleiotropy" 
                                    name="max_pleiotropy"
                                    value="5"
-                                   min="1"
-                                   max="20"
+                                   min="0"
+                                   max="10"
                                    required>
                             <div class="form-text">
-                                Higher = more pleiotropic genes. Lower = more specific targets.
+                                Cutoff on the 0-10 pleiotropy score: genes scoring above it are left out.
+                                0 = only the most specific genes, 10 = keep everything.
                                 <a href="/help#pleiotropy" target="_blank">Learn more</a>
                             </div>
                         </div>

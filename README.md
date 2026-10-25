@@ -103,7 +103,8 @@ k-sites --go-term-search "DNA repair" --organism "Homo sapiens" --output report.
 | `--go-term` | GO term to analyse (e.g. `GO:0006281`) | required |
 | `--organism` | NCBI TaxID or scientific name | required |
 | `--output` | Output HTML report path | required |
-| `--max-pleiotropy` | Maximum allowed pleiotropy (0–10) | 10 |
+| `--max-pleiotropy` | Cutoff on the 0–10 pleiotropy score: genes scoring above it are excluded (0 = only the most specific genes, 10 = keep everything) | 10 |
+| `--max-annotations` | Safety limit on GO annotations read for the GO term. If it cuts the read short, the report warns what share was read (e.g. "Only 39% of annotations were read"); raise it to read everything (slower) | 2000 |
 | `--evidence-filter` | Which GO evidence counts: `experimental` (roles proven in lab experiments; strict, but can flatter poorly studied genes), `computational` (predicted roles only) or `all` (every known role; most cautious) | `experimental` |
 | `--species-validation` | TaxIDs for cross-species validation | pipeline default (human, mouse, rat, fly, worm) |
 | `--predict-phenotypes` | Predict knockout phenotype from PubMed | off |
@@ -129,7 +130,11 @@ generate_html_report(results, "report.html")
 
 ### Web application
 
-A Flask interface is in [`webapp/`](webapp/README.md).
+A web interface (organism and GO-term pickers, live job progress, results, downloads) is in
+[`webapp/`](webapp/README.md). Run it locally with `python webapp/app.py`.
+
+For the lab it can be hosted for free: the website on GitHub Pages and the Python analysis on a
+Hugging Face Space. See [DEPLOYMENT.md](DEPLOYMENT.md) for the step-by-step guide.
 
 ---
 
@@ -169,7 +174,9 @@ demo/
 
 ## Known limitations
 
-- Scores depend on live queries to QuickGO, UniProt, KEGG and PubMed. If a lookup fails, the affected gene can currently be scored as if it were highly specific. Treat results with 0.00 pleiotropy and empty evidence counts with suspicion until this is fixed.
+- Very large GO terms can have more annotations than the safety limit (`--max-annotations`). The tool then warns how much was read, and genes that appear only in the unread part are missing.
+- Scores depend on live queries to QuickGO, UniProt, KEGG and PubMed. A gene whose data cannot be retrieved is listed as "not scored (insufficient data)" instead of being ranked; re-run if the reason says a lookup failed.
+- The evidence type you choose (`--evidence-filter`) changes the result: under `experimental`, a poorly studied gene with few lab-proven roles can look more specific than it is. Compare with `all` when in doubt.
 - Phenotype prediction is keyword-based and often returns `UNKNOWN` for poorly studied genes.
 - Annotation data can say a gene looks safe; it cannot guarantee safety in a particular cell line or animal. Always validate experimentally.
 

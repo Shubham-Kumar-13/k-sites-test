@@ -1,0 +1,48 @@
+name: Update the K-Sites backend on Hugging Face
+
+# Optional: keeps the Hugging Face Space in step with this repository.
+# Needs the secret HF_TOKEN (a Hugging Face token with write access) and the repository
+# variable HF_SPACE (for example  your-name/k-sites-backend). Without them this does nothing.
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - "k_sites/**"
+      - "webapp/app.py"
+      - "webapp/config.py"
+      - "webapp/utils/**"
+      - "deploy/huggingface/**"
+      - "tools/build_hf_space.py"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    if: ${{ vars.HF_SPACE != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Assemble the Space folder
+        run: python tools/build_hf_space.py --out hf_space
+
+      - name: Upload to the Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: |
+          pip install huggingface_hub
+          python - <<'PY'
+          import os
+          from huggingface_hub import HfApi
+          HfApi(token=os.environ["HF_TOKEN"]).upload_folder(
+              folder_path="hf_space",
+              repo_id=os.environ["HF_SPACE"],
+              repo_type="space",
+              commit_message="Update K-Sites backend from GitHub",
+          )
+          PY

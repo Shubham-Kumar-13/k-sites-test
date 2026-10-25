@@ -244,3 +244,37 @@ class TestCrossSpecies:
 
         assert result["conservation_score"] == 0.0
         assert result["species_queried"] == 0
+
+
+class TestCutoffAndProgress:
+    @patch(QUERY)
+    def test_passes_threshold_follows_the_zero_to_ten_score(self, mock_query):
+        # 12 BP terms: the 0-10 score is capped at 10, so a cutoff of 9 excludes the gene
+        mock_query.return_value = db_result(experimental=12)
+        broad = rank_genes_by_specificity(
+            [{"symbol": "BROAD"}], "9606", include_literature=False, include_cross_species=False,
+            max_pleiotropy_threshold=9,
+        )[0]
+        assert broad["pleiotropy_score"] == 10.0
+        assert broad["passes_threshold"] is False
+
+        mock_query.return_value = db_result(experimental=2)
+        narrow = rank_genes_by_specificity(
+            [{"symbol": "NARROW"}], "9606", include_literature=False, include_cross_species=False,
+            max_pleiotropy_threshold=9,
+        )[0]
+        assert narrow["passes_threshold"] is True
+
+    @patch(QUERY)
+    def test_progress_reported_for_every_gene(self, mock_query):
+        mock_query.return_value = db_result(experimental=2)
+        events = []
+
+        rank_genes_by_specificity(
+            [{"symbol": "A"}, {"symbol": "B"}, {"symbol": "C"}], "9606",
+            include_literature=False, include_cross_species=False,
+            progress_callback=lambda stage, done, total: events.append((stage, done, total)),
+        )
+
+        assert [e[1] for e in events] == [1, 2, 3]
+        assert all(e[0] == "Scoring genes" and e[2] == 3 for e in events)

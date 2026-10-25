@@ -9,7 +9,7 @@ This module orchestrates the complete K-Sites workflow by integrating all compon
 """
 
 import logging
-from typing import Dict, List, Any
+from typing import Callable, Dict, List, Any, Optional
 from datetime import datetime
 import traceback
 
@@ -24,7 +24,9 @@ def run_k_sites_pipeline(
     evidence_filter: str = "experimental",
     species_validation: List[str] = None,
     predict_phenotypes: bool = False,
-    databases: List[str] = None
+    databases: List[str] = None,
+    max_annotations: int = 2000,
+    progress_callback: Optional[Callable[[str, int, int], None]] = None
 ) -> Dict[str, Any]:
     """
     Execute the complete K-Sites pipeline.
@@ -32,11 +34,16 @@ def run_k_sites_pipeline(
     Args:
         go_term: GO term identifier (e.g., "GO:0006281")
         organism: Organism identifier (TaxID or scientific name)
-        max_pleiotropy: Maximum allowed pleiotropy score (default: 3)
+        max_pleiotropy: Pleiotropy cutoff on the 0-10 score; genes scoring above it are excluded
+            (0 keeps only the most specific genes, 10 keeps everything; default: 3)
         evidence_filter: Type of evidence to include ("experimental", "computational", "all")
         species_validation: List of species taxids for cross-species validation
         predict_phenotypes: Whether to predict knockout phenotypes using RAG (default: False)
         databases: List of databases to query (e.g., ['quickgo', 'uniprot', 'kegg'])
+        max_annotations: Safety limit on the GO annotations read for the GO term (default: 2000).
+            If the limit stops the read early, ``warnings`` says how much was read.
+        progress_callback: Optional ``callback(stage, done, total)`` for long runs; stages are
+            'Reading GO annotations', 'Scoring genes' and 'Assessing genes'
         
     Returns:
         Dictionary with pipeline results:
@@ -67,6 +74,7 @@ def run_k_sites_pipeline(
             "insufficient_data_genes": [
                 {"symbol": "...", "lookup_failed": true, "reasons": ["..."]}
             ],
+            "warnings": ["Only 39% of annotations were read (2,000 of 5,120). ..."],
             "statistics": {
                 "total_genes_screened": 45,
                 "genes_passed_filter": 12,
@@ -95,8 +103,15 @@ def run_k_sites_pipeline(
         
         # Step 2: Map GO term to genes with evidence filtering
         logger.info(f"Step 2: Mapping GO term to genes with {evidence_filter} evidence...")
-        from k_sites.data_retrieval.go_gene_mapper import get_genes_for_go_term
-        genes = get_genes_for_go_term(go_term, taxid, evidence_filter)
+        from k_sites.data_retrieval.go_gene_mapper import get_genes_for_go_term_with_coverage
+        genes, annotation_coverage = get_genes_for_go_term_with_coverage(
+            go_term, taxid, evidence_filter,
+            max_annotations=max_annotations,
+            progress_callback=progress_callback
+        )
+        warnings = []
+        if annotation_coverage.get("message"):
+            warnings.append(annotation_coverage["message"])
         logger.info(f"Found {len(genes)} genes associated with GO term {go_term} with {evidence_filter} evidence")
         
         # Step 3: Rank genes by specificity using multi-database integration
@@ -109,7 +124,8 @@ def run_k_sites_pipeline(
             evidence_filter=evidence_filter,
             include_literature=True,  # Real PubMed queries
             include_cross_species=species_validation is not None,
-            max_pleiotropy_threshold=max_pleiotropy
+            max_pleiotropy_threshold=max_pleiotropy,
+            progress_callback=progress_callback
         )
         logger.info(f"Ranked {len(ranked_genes)} genes by specificity")
         
@@ -140,6 +156,8 @@ def run_k_sites_pipeline(
         for i, gene_info in enumerate(scored_genes):
             gene_symbol = gene_info.get("symbol", "unknown")
             logger.info(f"Processing gene {i+1}/{len(scored_genes)}: {gene_symbol}")
+            if progress_callback:
+                progress_callback("Assessing genes", i, len(scored_genes))
             
             try:
                 # a. Pleiotropy score from the ranking step (computed once, from the same data)
@@ -221,6 +239,9 @@ def run_k_sites_pipeline(
                 logger.debug(f"Traceback: {traceback.format_exc()}")
                 continue  # Skip this gene and continue with others
         
+        if progress_callback:
+            progress_callback("Assessing genes", len(scored_genes), len(scored_genes))
+
         # Step 5: Aggregate results
         logger.info("Step 5: Aggregating results...")
         end_time = datetime.now()
@@ -256,7 +277,8 @@ def run_k_sites_pipeline(
                 "evidence_filter": evidence_filter,
                 "species_validation": species_validation,
                 "predict_phenotypes": predict_phenotypes,
-                "databases": databases or ['all']
+                "databases": databases or ['all'],
+                "annotation_coverage": annotation_coverage
             },
             "genes": processed_genes,
             "insufficient_data_genes": [
@@ -268,6 +290,7 @@ def run_k_sites_pipeline(
                 }
                 for g in insufficient_genes
             ],
+            "warnings": warnings,
             "statistics": statistics
         }
         

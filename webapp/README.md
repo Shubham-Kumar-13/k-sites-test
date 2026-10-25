@@ -4,6 +4,13 @@ A web interface for K-Sites, a tool that helps scientists pick a safe gene for k
 
 **Tagline:** Suite for Knock-out/down Studies
 
+## Two ways to run it
+
+- **Locally:** `python webapp/app.py` serves pages and API together (name + email sign-in).
+- **Hosted:** set `KSITES_ACCESS_TOKEN` and the app becomes an API-only backend that the static website
+  (built by `tools/build_static_site.py`) talks to. Settings: `KSITES_ACCESS_TOKEN`, `KSITES_ALLOWED_ORIGINS`,
+  `KSITES_DATA_DIR`, `KSITES_MAX_PARALLEL_JOBS`, `PORT`. See [DEPLOYMENT.md](../DEPLOYMENT.md).
+
 ## Features
 
 ### 🧬 Hierarchical Organism Selection
@@ -84,7 +91,7 @@ export MAIL_PORT=587
 4. **Choose Databases**: QuickGO is always used; add UniProt, NCBI, PubMed, KEGG as needed
 5. **Set Parameters**:
    - Max genes: 10-50 (lower = faster)
-   - Max pleiotropy: 1-20 (lower = more specific)
+   - Max pleiotropy: 0-10 cutoff on the pleiotropy score (lower = only more specific genes)
    - Enable RAG prediction (optional, adds ~1 min/gene)
 6. **Review Gene Count**: See available genes and estimated time
 7. **Start Analysis**: Submit and wait for completion

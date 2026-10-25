@@ -106,7 +106,7 @@ async function loadJobs() {
     `;
     
     try {
-        const response = await fetch('/api/jobs');
+        const response = await ksFetch('/api/jobs');
         const data = await response.json();
         
         allJobs = data.jobs || [];
@@ -155,7 +155,7 @@ function renderJobs(jobs) {
                 <small class="text-muted">${formatDate(job.created_at)}</small>
             </td>
             <td>
-                <a href="/results/${job.id}" class="btn btn-sm btn-primary">
+                <a href="${ksPage('results', { job: job.id })}" class="btn btn-sm btn-primary">
                     <i class="fas fa-eye"></i>
                 </a>
             </td>

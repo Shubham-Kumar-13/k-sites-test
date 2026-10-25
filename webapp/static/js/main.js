@@ -12,6 +12,12 @@ let geneCountCheckTimeout = null;
 
 // DOM Ready
 document.addEventListener('DOMContentLoaded', function() {
+    // Hosted mode remembers who is logged in; use that address for the job record
+    const emailField = document.getElementById('user_email');
+    if (emailField && !emailField.value && window.KSITES && window.KSITES.user().email) {
+        emailField.value = window.KSITES.user().email;
+    }
+
     loadKingdoms();
     loadGoCategories();
     loadDatabases();
@@ -24,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function loadKingdoms() {
     try {
-        const response = await fetch('/api/organisms/kingdoms');
+        const response = await ksFetch('/api/organisms/kingdoms');
         const data = await response.json();
         renderKingdoms(data.kingdoms);
     } catch (error) {
@@ -127,7 +133,7 @@ async function loadSpecies(kingdom, query = '') {
     
     try {
         const url = `/api/organisms/by-kingdom?kingdom=${encodeURIComponent(kingdom)}${query ? '&q=' + encodeURIComponent(query) : ''}`;
-        const response = await fetch(url);
+        const response = await ksFetch(url);
         const data = await response.json();
         renderSpecies(data.results);
     } catch (error) {
@@ -189,7 +195,7 @@ function resetOrganismSelection() {
 
 async function loadGoCategories() {
     try {
-        const response = await fetch('/api/go-terms/categories');
+        const response = await ksFetch('/api/go-terms/categories');
         const data = await response.json();
         renderGoCategories(data.categories);
     } catch (error) {
@@ -290,7 +296,7 @@ async function loadGoTerms(category, query = '') {
     
     try {
         const url = `/api/go-terms/by-category?category=${encodeURIComponent(category)}${query ? '&q=' + encodeURIComponent(query) : ''}`;
-        const response = await fetch(url);
+        const response = await ksFetch(url);
         const data = await response.json();
         renderGoTerms(data.results);
     } catch (error) {
@@ -356,7 +362,7 @@ async function loadDatabases() {
     const container = document.getElementById('databaseContainer');
     
     try {
-        const response = await fetch('/api/databases');
+        const response = await ksFetch('/api/databases');
         const data = await response.json();
         
         container.innerHTML = data.databases.map(db => `
@@ -462,7 +468,7 @@ async function checkGeneCount() {
     }
     
     try {
-        const response = await fetch('/api/analyze/validate', {
+        const response = await ksFetch('/api/analyze/validate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -521,7 +527,7 @@ async function handleFormSubmit(e) {
     
     // Validate
     try {
-        const validation = await fetch('/api/analyze/validate', {
+        const validation = await ksFetch('/api/analyze/validate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
@@ -542,7 +548,7 @@ async function handleFormSubmit(e) {
         // Start analysis
         showLoading('Starting analysis...');
         
-        const response = await fetch('/api/analyze/start', {
+        const response = await ksFetch('/api/analyze/start', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
@@ -553,7 +559,7 @@ async function handleFormSubmit(e) {
         hideLoading();
         
         if (data.success) {
-            window.location.href = `/results/${data.job_id}`;
+            window.location.href = ksPage('results', { job: data.job_id });
         } else {
             showValidationErrors([data.error || 'Failed to start analysis']);
         }

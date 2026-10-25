@@ -23,10 +23,14 @@ ANALYTICAL_TERMS = {
                 <table class="table table-sm">
                     <tr><td class="text-success"><strong>0-2</strong></td><td>Highly specific - excellent CRISPR target</td></tr>
                     <tr><td class="text-info"><strong>2-5</strong></td><td>Moderately specific - good target</td></tr>
-                    <tr><td class="text-warning"><strong>5-10</strong></td><td>Broadly involved - use with caution</td></tr>
-                    <tr><td class="text-danger"><strong>>10</strong></td><td>Highly pleiotropic - may cause unintended effects</td></tr>
+                    <tr><td class="text-warning"><strong>5-8</strong></td><td>Broadly involved - use with caution</td></tr>
+                    <tr><td class="text-danger"><strong>8-10</strong></td><td>Highly pleiotropic - may cause unintended effects</td></tr>
                 </table>
             </div>
+            
+            <h6>Max pleiotropy (cutoff):</h6>
+            <p>The score is always on a 0-10 scale. The <strong>max pleiotropy</strong> setting is a cutoff on that
+            score: genes scoring above it are left out. 0 keeps only the most specific genes, 10 keeps everything.</p>
             
             <h6>Why it matters:</h6>
             <p>Genes with low pleiotropy scores are preferred for CRISPR experiments because knocking them out 

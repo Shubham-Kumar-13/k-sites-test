@@ -9,7 +9,7 @@ import logging
 import requests
 import os
 import math
-from typing import List, Dict, Optional, Tuple
+from typing import Callable, List, Dict, Optional, Tuple
 from pathlib import Path
 import json
 import time
@@ -28,6 +28,16 @@ logger = logging.getLogger(__name__)
 # Shared evidence-code classifier (same rules as the multi-database client)
 _evidence_classifier = MultiDatabaseClient()
 
+# QuickGO returns at most this many annotations per page
+QUICKGO_PAGE_SIZE = 200
+
+# Safety limit on annotations read for one GO term (10 pages of 200). Very large GO terms
+# are cut off here and the user is warned how much was read.
+DEFAULT_MAX_ANNOTATIONS = 2000
+
+# Bump when the cached gene lists change shape, so old cache files are ignored
+CACHE_VERSION = 2
+
 # Cache configuration
 CACHE_DIR = Path.home() / ".k_sites_cache"
 CACHE_DIR.mkdir(exist_ok=True)
@@ -39,9 +49,10 @@ _cache_loaded = False
 _cache_lock = False
 
 
-def _get_cache_key(go_term: str, taxid: str, evidence_filter: str) -> str:
+def _get_cache_key(go_term: str, taxid: str, evidence_filter: str,
+                   max_annotations: int = DEFAULT_MAX_ANNOTATIONS) -> str:
     """Generate cache key for GO term lookup."""
-    key = f"{go_term.upper()}:{taxid}:{evidence_filter}"
+    key = f"v{CACHE_VERSION}:{go_term.upper()}:{taxid}:{evidence_filter}:{max_annotations}"
     return hashlib.md5(key.encode()).hexdigest()
 
 
@@ -108,7 +119,8 @@ def _fetch_quickgo_page(go_term: str, taxid: str, page: int, page_size: int, hea
         "goId": go_term,
         "taxonId": taxid,
         "limit": page_size,
-        "page": page
+        "page": page,
+        "includeFields": "name",  # the gene product name, shown as the gene description
     }
     
     try:
@@ -125,24 +137,81 @@ def _fetch_quickgo_page(go_term: str, taxid: str, page: int, page_size: int, hea
     return data.get("numberOfHits", 0), data.get("results", [])
 
 
-def get_genes_for_go_term(go_term: str, taxid: str, evidence_filter: str = "experimental") -> List[Dict[str, str]]:
+def get_genes_for_go_term(
+    go_term: str,
+    taxid: str,
+    evidence_filter: str = "experimental",
+    max_annotations: int = DEFAULT_MAX_ANNOTATIONS,
+    progress_callback: Optional[Callable[[str, int, int], None]] = None,
+) -> List[Dict[str, str]]:
     """
     Retrieve genes associated with a specific GO term for a given organism
     with evidence-based filtering.
-    
+
+    This returns only the gene list. Use ``get_genes_for_go_term_with_coverage`` to also learn
+    how much of the GO term's annotations were read (the safety limit may stop early).
+
+    Raises:
+        GoTermNotFoundError: If the GO term is not found
+        GeneRetrievalError: If gene retrieval fails
+    """
+    genes, _ = get_genes_for_go_term_with_coverage(
+        go_term, taxid, evidence_filter, max_annotations, progress_callback
+    )
+    return genes
+
+
+def _coverage_info(total_hits: int, annotations_read: int, max_annotations: int) -> Dict:
+    """Describe how much of a GO term's annotations were read."""
+    complete = annotations_read >= total_hits
+    info = {
+        "annotations_total": total_hits,
+        "annotations_read": annotations_read,
+        "coverage": 1.0 if total_hits == 0 else min(1.0, annotations_read / total_hits),
+        "complete": complete,
+        "limit": max_annotations,
+        "message": "",
+    }
+    if not complete:
+        # never show 100% for an incomplete read
+        percent = min(99, int(100 * annotations_read / total_hits))
+        info["message"] = (
+            f"Only {percent}% of annotations were read ({annotations_read:,} of {total_hits:,}). "
+            f"Genes that appear only in the unread part are missing from this analysis. "
+            f"Raise the limit (--max-annotations {total_hits}) to read everything; this takes longer."
+        )
+    return info
+
+
+def get_genes_for_go_term_with_coverage(
+    go_term: str,
+    taxid: str,
+    evidence_filter: str = "experimental",
+    max_annotations: int = DEFAULT_MAX_ANNOTATIONS,
+    progress_callback: Optional[Callable[[str, int, int], None]] = None,
+) -> Tuple[List[Dict[str, str]], Dict]:
+    """
+    Retrieve genes associated with a GO term, plus a coverage report.
+
     OPTIMIZED: Uses parallel pagination and caching for 3-5x speed improvement.
-    
+
+    A safety limit (``max_annotations``) stops very large GO terms from taking forever. When
+    the limit stops the read early, the coverage report says so (``complete`` is False and
+    ``message`` gives the percentage that was read) and a warning is logged.
+
     Args:
         go_term: GO term identifier (e.g., "GO:0006281")
         taxid: NCBI Taxonomy ID (e.g., "9606" for human)
         evidence_filter: Type of evidence to include ("experimental", "computational", "all")
-        
+        max_annotations: Safety limit on the number of annotations to read
+        progress_callback: Optional ``callback(stage, done, total)`` called after each page
+
     Returns:
-        List of dictionaries containing gene information:
+        ``(genes, coverage)``. ``genes`` is a list of dictionaries:
         [
             {
-                "symbol": "BRCA1", 
-                "entrez_id": "672", 
+                "symbol": "BRCA1",
+                "entrez_id": "672",
                 "description": "BRCA1 DNA repair associated",
                 "evidence_codes": ["IDA", "IMP"],
                 "go_evidence_type": "experimental",  # "experimental", "computational", or "other"
@@ -150,86 +219,108 @@ def get_genes_for_go_term(go_term: str, taxid: str, evidence_filter: str = "expe
             },
             ...
         ]
-        
+        ``coverage`` has ``annotations_total``, ``annotations_read``, ``coverage`` (0-1),
+        ``complete``, ``limit`` and ``message``.
+
     Raises:
         GoTermNotFoundError: If the GO term is not found
         GeneRetrievalError: If gene retrieval fails
     """
     global _go_gene_cache
-    
+
     # Load cache
     _load_cache()
-    
+
     # Check cache first
-    cache_key = _get_cache_key(go_term, taxid, evidence_filter)
+    cache_key = _get_cache_key(go_term, taxid, evidence_filter, max_annotations)
     if cache_key in _go_gene_cache:
         cached = _go_gene_cache[cache_key]
         cache_time = cached.get("timestamp", 0)
         # Cache valid for 24 hours
         if time.time() - cache_time < 86400:
             logger.info(f"Using cached results for {go_term} in {taxid}")
-            return cached.get("genes", [])
-    
+            coverage = cached.get("coverage") or _coverage_info(
+                cached.get("total_hits", 0), cached.get("total_hits", 0), max_annotations
+            )
+            if coverage.get("message"):
+                logger.warning(coverage["message"])
+            return cached.get("genes", []), coverage
+
     logger.info(f"Fetching genes for GO term {go_term} in organism {taxid} with {evidence_filter} evidence")
-    
+
     # Validate GO term format
     if not _validate_go_term(go_term):
         raise ValueError(f"Invalid GO term format: {go_term}. Expected format: GO:0000000")
-    
+
     try:
         headers = {"Accept": "application/json"}
-        page_size = 200
-        
+        page_size = QUICKGO_PAGE_SIZE
+
         # First request to get total count
         total_hits, first_results = _fetch_quickgo_page(go_term, taxid, 1, page_size, headers)
-        
+
         if not first_results and total_hits == 0:
             logger.warning(f"No results found for GO term {go_term} in organism {taxid}")
-            return []
-        
+            return [], _coverage_info(0, 0, max_annotations)
+
         logger.info(f"QuickGO returned {total_hits} total hits for {go_term}")
-        
+
         all_results = list(first_results)
-        
-        # Calculate total pages (limit to 10 pages = 2000 results max)
-        total_pages = min((total_hits + page_size - 1) // page_size, 10)
-        
+
+        # Pages needed for everything, and pages allowed by the safety limit
+        pages_needed = (total_hits + page_size - 1) // page_size
+        pages_allowed = max(1, (max_annotations + page_size - 1) // page_size)
+        total_pages = min(pages_needed, pages_allowed)
+
+        if progress_callback:
+            progress_callback("Reading GO annotations", 1, total_pages)
+
         # Fetch remaining pages in parallel
         if total_pages > 1:
+            pages_done = 1
             with ThreadPoolExecutor(max_workers=5) as executor:
                 future_to_page = {
                     executor.submit(_fetch_quickgo_page, go_term, taxid, page, page_size, headers): page
                     for page in range(2, total_pages + 1)
                 }
-                
+
                 for future in as_completed(future_to_page):
                     page_num = future_to_page[future]
                     _, results = future.result()  # a failed page must fail the whole lookup
                     all_results.extend(results)
-                    logger.debug(f"Fetched page {page_num} with {len(results)} results")
-        
-        logger.info(f"Fetched {len(all_results)} annotations for {go_term}")
-        
+                    pages_done += 1
+                    logger.info(f"Read GO annotations: page {pages_done}/{total_pages}")
+                    if progress_callback:
+                        progress_callback("Reading GO annotations", pages_done, total_pages)
+
+        coverage = _coverage_info(total_hits, len(all_results), max_annotations)
+        logger.info(f"Fetched {len(all_results)} of {total_hits} annotations for {go_term}")
+        if coverage["message"]:
+            logger.warning(coverage["message"])
+
         # Process the results
         gene_list = _process_annotations(all_results, evidence_filter)
-        
+
         # Cache results
         _go_gene_cache[cache_key] = {
             "timestamp": time.time(),
             "genes": gene_list,
-            "total_hits": total_hits
+            "total_hits": total_hits,
+            "coverage": coverage,
         }
         _save_cache()
-        
+
         logger.info(f"Retrieved {len(gene_list)} genes for GO term {go_term} in organism {taxid} with {evidence_filter} evidence")
-        
+
         # If we got no results with strict evidence filtering, try with less strict filtering
         if not gene_list and evidence_filter == "experimental":
             logger.info("No experimental evidence results found, trying computational evidence...")
-            return get_genes_for_go_term(go_term, taxid, "computational")
-        
-        return gene_list
-        
+            return get_genes_for_go_term_with_coverage(
+                go_term, taxid, "computational", max_annotations, progress_callback
+            )
+
+        return gene_list, coverage
+
     except (GoTermNotFoundError, GeneRetrievalError):
         raise
     except Exception as e:
@@ -237,19 +328,54 @@ def get_genes_for_go_term(go_term: str, taxid: str, evidence_filter: str = "expe
         raise GeneRetrievalError(f"Unexpected error retrieving genes for GO term {go_term} in organism {taxid}: {str(e)}")
 
 
+def _is_not_annotation(qualifier) -> bool:
+    """A NOT qualifier says the gene is NOT involved in the process."""
+    return "NOT" in str(qualifier or "").upper().split("|")
+
+
+def _pick_accession(accessions: List[str]) -> str:
+    """Prefer a canonical UniProt accession (no isoform suffix, Swiss-Prot style) over variants."""
+    def rank(accession: str):
+        bare = accession.split(":")[-1]
+        return ("-" in bare, not bare[:1] in "OPQ", len(bare), bare)
+    return sorted(accessions, key=rank)[0] if accessions else ""
+
+
+_GENERIC_NAME_PARTS = ("isoform", "domain-containing", "cra_", "fragment", "uncharacterized")
+
+
+def _pick_name(names: List[str], fallback: str = "") -> str:
+    """Choose a readable gene/protein name, avoiding isoform-specific or generic names."""
+    for name in names:
+        if name and not any(part in name.lower() for part in _GENERIC_NAME_PARTS):
+            return name
+    return names[0] if names else fallback
+
+
 def _process_annotations(all_results: List[Dict], evidence_filter: str) -> List[Dict[str, str]]:
-    """Process QuickGO annotations and extract gene information with evidence filtering."""
-    genes = {}
-    
+    """
+    Process QuickGO annotations and extract gene information with evidence filtering.
+
+    QuickGO lists every protein variant (reviewed entry, isoforms, unreviewed entries) of a
+    gene separately, so annotations are merged by gene symbol: one entry per gene.
+    """
+    genes: Dict[str, Dict] = {}
+    accessions: Dict[str, List[str]] = defaultdict(list)
+    names: Dict[str, List[str]] = defaultdict(list)
+
     # Define evidence code categories
-    experimental_codes = {"IDA", "IPI", "IMP", "IGI", "IEP", "HTP", "HDA", "HMP", "HGI", "HEP"}
+    experimental_codes = {"EXP", "IDA", "IPI", "IMP", "IGI", "IEP", "HTP", "HDA", "HMP", "HGI", "HEP"}
     computational_codes = {"ISS", "ISO", "ISA", "ISM", "IGC", "IBA", "IBD", "IKR", "IRD", "RCA"}
     curatorial_codes = {"TAS", "NAS", "IC", "ND", "IEA"}
-    
+    type_priority = {"experimental": 3, "computational": 2, "curatorial": 1, "other": 0}
+
     for result in all_results:
+        if _is_not_annotation(result.get("qualifier", "")):
+            continue
+
         go_evidence = result.get("goEvidence", "")
         qualifier = result.get("qualifier", "")
-        
+
         # Determine evidence type
         go_evidence_type = "other"
         if go_evidence in experimental_codes:
@@ -258,34 +384,37 @@ def _process_annotations(all_results: List[Dict], evidence_filter: str) -> List[
             go_evidence_type = "computational"
         elif go_evidence in curatorial_codes:
             go_evidence_type = "curatorial"
-        
+
         # Apply evidence filter
         if evidence_filter == "experimental" and go_evidence_type != "experimental":
             continue
         elif evidence_filter == "computational" and go_evidence_type not in ["computational", "curatorial"]:
             continue
-        
+
         # Extract gene information
         gene_symbol = result.get("symbol", "") or result.get("geneProductSymbol", "")
         gene_product_id = result.get("geneProductId", "")
         reference = result.get("reference", "")
-        
+
         if not gene_symbol or not gene_product_id:
             continue
-        
-        # Aggregate by gene
-        if gene_product_id in genes:
-            existing_codes = set(genes[gene_product_id]["evidence_codes"])
-            if go_evidence:
-                existing_codes.add(go_evidence)
-            genes[gene_product_id]["evidence_codes"] = list(existing_codes)
-            
-            if go_evidence_type == "experimental":
-                genes[gene_product_id]["go_evidence_type"] = "experimental"
-            elif go_evidence_type == "computational" and genes[gene_product_id]["go_evidence_type"] == "other":
-                genes[gene_product_id]["go_evidence_type"] = "computational"
+
+        key = gene_symbol.upper()
+        if gene_product_id not in accessions[key]:
+            accessions[key].append(gene_product_id)
+        name = result.get("name")
+        if name and name not in names[key]:
+            names[key].append(name)
+
+        # Aggregate by gene symbol
+        if key in genes:
+            existing = genes[key]
+            if go_evidence and go_evidence not in existing["evidence_codes"]:
+                existing["evidence_codes"].append(go_evidence)
+            if type_priority[go_evidence_type] > type_priority[existing["go_evidence_type"]]:
+                existing["go_evidence_type"] = go_evidence_type
         else:
-            genes[gene_product_id] = {
+            genes[key] = {
                 "symbol": gene_symbol,
                 "entrez_id": gene_product_id,
                 "description": reference,
@@ -293,7 +422,12 @@ def _process_annotations(all_results: List[Dict], evidence_filter: str) -> List[
                 "go_evidence_type": go_evidence_type,
                 "qualifier": qualifier
             }
-    
+
+    for key, gene in genes.items():
+        gene["entrez_id"] = _pick_accession(accessions[key]) or gene["entrez_id"]
+        gene["description"] = _pick_name(names[key], fallback=gene["description"])
+        gene["uniprot_accessions"] = accessions[key]
+
     return list(genes.values())
 
 

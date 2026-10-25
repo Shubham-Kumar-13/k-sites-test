@@ -32,9 +32,11 @@ def generate_html_report(pipeline_output: dict, output_path: str) -> None:
         metadata = pipeline_output.get("metadata", {})
         genes = pipeline_output.get("genes", [])
         insufficient_genes = pipeline_output.get("insufficient_data_genes", [])
+        warnings = pipeline_output.get("warnings", [])
+        statistics = pipeline_output.get("statistics", {})
 
         # Count statistics
-        total_genes_screened = len(genes)
+        total_genes_screened = statistics.get("total_genes_screened", len(genes))
         
         # Generate the HTML report
         html_content = _generate_report_html(
@@ -42,7 +44,8 @@ def generate_html_report(pipeline_output: dict, output_path: str) -> None:
             genes, 
             total_genes_screened,
             output_path,
-            insufficient_genes
+            insufficient_genes,
+            warnings
         )
         
         # Write to file
@@ -109,7 +112,9 @@ def _generate_csv_report(pipeline_output: dict, csv_path: str) -> None:
         rows.append([f"# Organism: {metadata.get('organism', 'N/A')}"])
         rows.append([f"# Timestamp: {metadata.get('timestamp', 'N/A')}"])
         rows.append([f"# Evidence Filter: {metadata.get('evidence_filter', 'N/A')}"])
-        rows.append([f"# Max Pleiotropy: {metadata.get('max_pleiotropy', 'N/A')}"])
+        rows.append([f"# Pleiotropy cutoff (0-10): {metadata.get('max_pleiotropy', 'N/A')}"])
+        for warning in pipeline_output.get("warnings", []):
+            rows.append([f"# WARNING: {warning}"])
         rows.append(["#"])
         
         # Add header row
@@ -284,7 +289,7 @@ def _generate_excel_report(pipeline_output: dict, excel_path: str) -> None:
         ws_summary['B5'] = metadata.get('timestamp', 'N/A')
         ws_summary['A6'] = "Evidence Filter:"
         ws_summary['B6'] = metadata.get('evidence_filter', 'N/A')
-        ws_summary['A7'] = "Max Pleiotropy:"
+        ws_summary['A7'] = "Pleiotropy cutoff (0-10):"
         ws_summary['B7'] = metadata.get('max_pleiotropy', 'N/A')
         
         # Add statistics
@@ -372,6 +377,28 @@ def _generate_excel_report(pipeline_output: dict, excel_path: str) -> None:
         logger.error(f"Failed to generate Excel report: {str(e)}")
 
 
+SAFETY_CLASSES = {
+    "SAFE": "safety-safe",                  # green
+    "CAUTION": "safety-caution",            # yellow
+    "MODERATE_CONCERN": "safety-concern",   # orange
+    "HIGH_CONCERN": "safety-warning",       # red
+    "AVOID": "safety-critical",             # dark red
+}
+
+
+def _safety_class(level) -> str:
+    """CSS class for a safety level (grey for anything unrecognised)."""
+    return SAFETY_CLASSES.get(str(level or "").upper(), "safety-unknown")
+
+
+def _safety_label(level) -> str:
+    """Readable label for a safety level, e.g. MODERATE_CONCERN -> 'Moderate concern'."""
+    text = str(level or "").strip()
+    if not text:
+        return "Unknown"
+    return text.replace("_", " ").capitalize()
+
+
 def _excel_text(value) -> str:
     """Excel cells hold scalars: join lists into one string."""
     if isinstance(value, (list, tuple, set)):
@@ -391,7 +418,8 @@ def _generate_report_html(
     genes: list, 
     total_genes_screened: int,
     output_path: str,
-    insufficient_genes: list = None
+    insufficient_genes: list = None,
+    warnings: list = None
 ) -> str:
     """
     Generate the complete HTML report.
@@ -407,6 +435,10 @@ def _generate_report_html(
     max_pleiotropy = metadata.get("max_pleiotropy", 10)
     
     insufficient_genes = insufficient_genes or []
+    warnings_html = "".join(
+        f'<div class="report-warning"><strong>Warning:</strong> {html.escape(str(w))}</div>'
+        for w in (warnings or [])
+    )
 
     # Safety tallies for the executive summary
     def _level(g):
@@ -528,7 +560,18 @@ def _generate_report_html(
         .safety-safe {{ background-color: #d4edda; color: #155724; }}
         .safety-caution {{ background-color: #fff3cd; color: #856404; }}
         .safety-warning {{ background-color: #f8d7da; color: #721c24; }}
+        .safety-concern {{ background-color: #ffe5d0; color: #8a4b08; }}
         .safety-critical {{ background-color: #dc3545; color: white; }}
+        .safety-unknown {{ background-color: #e2e3e5; color: #41464b; }}
+        
+        .report-warning {{
+            background-color: #fff3cd;
+            color: #664d03;
+            border-left: 4px solid #f39c12;
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin: 20px 0;
+        }}
         
         .risk-critical {{ background-color: #dc3545; color: white; }}
         .risk-high {{ background-color: #fd7e14; color: white; }}
@@ -610,10 +653,12 @@ def _generate_report_html(
             </div>
             <div class="subtitle">
                 Evidence Filter: <strong>{evidence_filter}</strong> | 
-                Max Pleiotropy: <strong>{max_pleiotropy}</strong>
+                Pleiotropy cutoff (0-10): <strong>{max_pleiotropy}</strong>
             </div>
         </header>
-        
+
+        {warnings_html}
+
         <div class="summary-card">
             <h2>📊 Executive Summary</h2>
             <div class="summary-grid">
@@ -692,13 +737,7 @@ def _generate_report_html(
             indicator_class = "low-specificity"
         
         # Determine safety class
-        safety_class = "safety-safe"
-        if safety_level in ["CRITICAL", "HIGH_RISK"]:
-            safety_class = "safety-critical"
-        elif safety_level in ["WARNING", "CAUTION"]:
-            safety_class = "safety-warning"
-        elif safety_level == "MODERATE":
-            safety_class = "safety-caution"
+        safety_class = _safety_class(safety_level)
         
         kegg_count = gene.get("kegg_pathway_count", "N/A")
         
@@ -715,7 +754,7 @@ def _generate_report_html(
                             </div>
                         </td>
                         <td>{composite_score:.3f}</td>
-                        <td><span class="safety-level {safety_class}">{safety_level}</span></td>
+                        <td><span class="safety-level {safety_class}">{html.escape(_safety_label(safety_level))}</span></td>
                         <td>{kegg_count}</td>
                         <td>
                             {primary_rec}
@@ -776,7 +815,7 @@ def _generate_report_html(
         
         <footer style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border-color); color: var(--text-light); font-size: 0.9em;">
             <p>K-Sites Gene Selection Platform | Non-Pleiotropic Gene Identification System</p>
-            <p>Execution time: {execution_duration:.2f}s | Evidence: {evidence_filter} | Max Pleiotropy: {max_pleiotropy}</p>
+            <p>Execution time: {execution_duration:.2f}s | Evidence: {evidence_filter} | Pleiotropy cutoff (0-10): {max_pleiotropy}</p>
         </footer>
     </div>
     

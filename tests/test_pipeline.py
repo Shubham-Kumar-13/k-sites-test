@@ -24,11 +24,18 @@ def unscorable(symbol):
     }
 
 
-def run(ranked, **kwargs):
+COMPLETE = {"annotations_total": 10, "annotations_read": 10, "coverage": 1.0, "complete": True,
+            "limit": 2000, "message": ""}
+PARTIAL = {"annotations_total": 5120, "annotations_read": 2000, "coverage": 0.39, "complete": False,
+           "limit": 2000, "message": "Only 39% of annotations were read (2,000 of 5,120)."}
+
+
+def run(ranked, coverage=COMPLETE, **kwargs):
+    genes = [{"symbol": g["symbol"]} for g in ranked]
     with patch("k_sites.data_retrieval.organism_resolver.resolve_organism",
                return_value={"taxid": "9606", "scientific_name": "Homo sapiens"}), \
-         patch("k_sites.data_retrieval.go_gene_mapper.get_genes_for_go_term",
-               return_value=[{"symbol": g["symbol"]} for g in ranked]), \
+         patch("k_sites.data_retrieval.go_gene_mapper.get_genes_for_go_term_with_coverage",
+               return_value=(genes, coverage)), \
          patch("k_sites.gene_analysis.pleiotropy_scorer.rank_genes_by_specificity", return_value=ranked), \
          patch("k_sites.gene_analysis.pleiotropy_scorer.validate_gene_specificity_across_species",
                return_value={"conservation_score": 0.5}):
@@ -64,3 +71,26 @@ class TestPipeline:
         results = run([scored("A", 2.0, 0.8), scored("B", 4.0, 0.6), unscorable("C")], max_pleiotropy=10)
 
         assert results["statistics"]["avg_pleiotropy"] == 3.0
+
+
+class TestCoverageAndProgress:
+    def test_complete_read_has_no_warning(self):
+        results = run([scored("A", 1.0, 0.9)], max_pleiotropy=5)
+
+        assert results["warnings"] == []
+        assert results["metadata"]["annotation_coverage"]["complete"] is True
+
+    def test_partial_read_is_reported_as_a_warning(self):
+        results = run([scored("A", 1.0, 0.9)], coverage=PARTIAL, max_pleiotropy=5)
+
+        assert results["warnings"] == ["Only 39% of annotations were read (2,000 of 5,120)."]
+        assert results["metadata"]["annotation_coverage"]["coverage"] == 0.39
+
+    def test_progress_callback_reports_gene_assessment(self):
+        events = []
+        run([scored("A", 1.0, 0.9), scored("B", 2.0, 0.8)], max_pleiotropy=5,
+            progress_callback=lambda stage, done, total: events.append((stage, done, total)))
+
+        assessing = [e for e in events if e[0] == "Assessing genes"]
+        assert assessing[0] == ("Assessing genes", 0, 2)
+        assert assessing[-1] == ("Assessing genes", 2, 2)

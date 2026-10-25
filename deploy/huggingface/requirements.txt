@@ -1,0 +1,22 @@
+# Backend image for the Hugging Face Space (torch is installed separately, CPU-only, in the Dockerfile)
+requests>=2.25.0
+biopython>=1.80
+pyyaml>=5.4.0
+tqdm>=4.60.0
+dataclasses-json>=0.5.0
+pandas>=1.3.0
+openpyxl>=3.0.0
+numpy>=1.21.0
+packaging>=21.0
+
+# phenotype prediction
+sentence-transformers>=2.2.0
+faiss-cpu>=1.7.4
+
+# web backend
+flask>=3.0.0
+flask-sqlalchemy>=3.0.0
+flask-cors>=4.0.0
+flask-mail>=0.9.1
+email-validator>=2.1.0
+gunicorn>=21.2.0

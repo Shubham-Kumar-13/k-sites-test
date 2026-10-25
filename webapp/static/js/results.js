@@ -9,20 +9,49 @@ let statusCheckInterval = null;
 
 // DOM Ready
 document.addEventListener('DOMContentLoaded', function() {
-    const jobId = document.getElementById('jobId')?.dataset.jobId;
-    
-    if (jobId) {
-        loadJobStatus(jobId);
-        
-        // If job is still running, start polling
-        if (document.getElementById('statusBadge')?.textContent.trim().toLowerCase() !== 'completed') {
-            startStatusPolling(jobId);
-        } else {
-            loadResults(jobId);
-        }
+    const jobId = document.getElementById('jobId')?.dataset.jobId
+        || new URLSearchParams(window.location.search).get('job');
+
+    if (!jobId) {
+        showError('No job selected. Open a job from the Job History page.');
+        return;
     }
-    
+
+    document.getElementById('jobId').dataset.jobId = jobId;
+    fillJobFields({ id: jobId });
+
+    // Check the job right away, then keep polling while it runs
+    checkJobStatus(jobId).then(() => {
+        if (currentJob && !['completed', 'failed'].includes(currentJob.status)) {
+            startStatusPolling(jobId);
+        }
+    });
 });
+
+/** Fill the parameter table and header from the job record (the static page ships empty). */
+function fillJobFields(job) {
+    const values = {
+        id: job.id,
+        organism: job.organism,
+        taxid: job.taxid,
+        go_term: job.go_term,
+        go_term_name: job.go_term_name,
+        max_genes: job.max_genes,
+        max_pleiotropy: job.max_pleiotropy,
+        evidence_filter: job.evidence_filter,
+        predict_phenotypes: job.predict_phenotypes === undefined ? undefined : (job.predict_phenotypes ? 'Enabled' : 'Disabled'),
+        selected_databases: job.selected_databases === undefined ? undefined : ((job.selected_databases || []).join(', ') || 'QuickGO'),
+        total_genes_found: job.total_genes_found,
+        genes_processed: job.genes_processed,
+    };
+    Object.keys(values).forEach(key => {
+        const value = values[key];
+        if (value === undefined) return;
+        document.querySelectorAll(`[data-job-field="${key}"]`).forEach(el => {
+            el.textContent = (value === null || value === '') ? '-' : value;
+        });
+    });
+}
 
 // ============================================================================
 // Status Polling
@@ -43,9 +72,15 @@ function stopStatusPolling() {
 
 async function checkJobStatus(jobId) {
     try {
-        const response = await fetch(`/api/jobs/${jobId}/status`);
+        const response = await ksFetch(`/api/jobs/${jobId}/status`);
         const data = await response.json();
+        if (!response.ok) {
+            showError(data.error || 'Could not load this job.');
+            return;
+        }
         
+        currentJob = data;
+        fillJobFields(data);
         updateStatusDisplay(data);
         updateProgressDisplay(data);
         
@@ -133,7 +168,7 @@ function updateProgressDisplay(job) {
 
 async function loadJobStatus(jobId) {
     try {
-        const response = await fetch(`/api/jobs/${jobId}/status`);
+        const response = await ksFetch(`/api/jobs/${jobId}/status`);
         const data = await response.json();
         currentJob = data;
         
@@ -156,10 +191,11 @@ function showResults(job) {
     document.getElementById('resultsContent').style.display = 'block';
     
     // Setup download links
-    document.getElementById('downloadHtml').href = `/api/jobs/${job.id}/download/html`;
-    document.getElementById('downloadHtml').style.display = 'inline-block';
-    document.getElementById('downloadJson').href = `/api/jobs/${job.id}/download/json`;
-    document.getElementById('downloadJson').style.display = 'inline-block';
+    ksBindDownload('downloadHtml', job.id, 'html');
+    ksBindDownload('downloadJson', job.id, 'json');
+    ksBindDownload('downloadCsv', job.id, 'csv');
+    ksBindDownload('downloadSummary', job.id, 'summary');
+    ksBindDownload('downloadXlsx', job.id, 'xlsx');
 }
 
 function showError(message) {
@@ -186,7 +222,7 @@ function addLogEntry(message) {
 
 async function loadResults(jobId) {
     try {
-        const response = await fetch(`/api/jobs/${jobId}/results`);
+        const response = await ksFetch(`/api/jobs/${jobId}/results`);
         const data = await response.json();
         
         if (data.error) {
@@ -198,11 +234,30 @@ async function loadResults(jobId) {
         
         renderGenes(resultsData.genes);
         renderInsufficientData(resultsData.insufficient_data_genes);
+        renderWarnings(resultsData.warnings);
         renderSummary(resultsData);
         
     } catch (error) {
         console.error('Error loading results:', error);
     }
+}
+
+function safetyLabel(level) {
+    if (!level) return 'Unknown';
+    const text = String(level).replace(/_/g, ' ').toLowerCase();
+    return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function renderWarnings(warnings) {
+    if (!warnings || warnings.length === 0) return;
+    const container = document.getElementById('genesContainer');
+    const items = warnings.map(w => `<li>${w}</li>`).join('');
+    container.insertAdjacentHTML('afterbegin', `
+        <div class="alert alert-warning">
+            <strong><i class="fas fa-exclamation-triangle me-2"></i>Warning</strong>
+            <ul class="mb-0">${items}</ul>
+        </div>
+    `);
 }
 
 function safetyBadgeClass(level) {
@@ -251,7 +306,7 @@ function renderGenes(genes) {
                         </div>
                         <div>
                             <span class="badge ${safetyBadgeClass(safety.safety_level)}">
-                                ${safety.safety_level || 'UNKNOWN'}
+                                ${safetyLabel(safety.safety_level)}
                             </span>
                         </div>
                     </div>

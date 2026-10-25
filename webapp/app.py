@@ -5,6 +5,7 @@ Flask backend for the K-Sites safe gene selection tool
 
 import os
 import sys
+import hmac
 import json
 import uuid
 import logging
@@ -45,13 +46,34 @@ logger = logging.getLogger(__name__)
 
 # Flask app configuration
 app = Flask(__name__, template_folder='templates', static_folder='static')
-CORS(app)
-app.config['SECRET_KEY'] = os.urandom(24)
+
+# Hosted mode: when KSITES_ACCESS_TOKEN is set, this server is an API-only backend for the
+# GitHub Pages front-end. Every API call must carry the lab access token, and only the
+# listed origins may call it from a browser.
+ACCESS_TOKEN = os.environ.get('KSITES_ACCESS_TOKEN', '').strip()
+HOSTED_MODE = bool(ACCESS_TOKEN)
+ALLOWED_ORIGINS = [o.strip().rstrip('/') for o in os.environ.get('KSITES_ALLOWED_ORIGINS', '').split(',') if o.strip()]
+MAX_PARALLEL_JOBS = max(1, int(os.environ.get('KSITES_MAX_PARALLEL_JOBS', '2')))
+
+if HOSTED_MODE:
+    CORS(app,
+         origins=ALLOWED_ORIGINS,
+         methods=['GET', 'POST', 'OPTIONS'],
+         allow_headers=['Content-Type', 'X-KSites-Token', 'X-KSites-User-Name', 'X-KSites-User-Email'],
+         expose_headers=['Content-Disposition'])
+    if not ALLOWED_ORIGINS:
+        logger.warning("KSITES_ACCESS_TOKEN is set but KSITES_ALLOWED_ORIGINS is empty: "
+                       "browsers will be blocked. Set it to your GitHub Pages address.")
+else:
+    CORS(app)
+
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or os.urandom(24)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Database configuration
-RESULTS_DIR = Path(__file__).parent / 'results'
-RESULTS_DIR.mkdir(exist_ok=True)
+# KSITES_DATA_DIR lets a deployment keep the database and results on a writable disk
+RESULTS_DIR = Path(os.environ.get('KSITES_DATA_DIR') or Path(__file__).parent / 'results')
+RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{RESULTS_DIR}/ksites_jobs.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -177,6 +199,17 @@ class AnalysisJob(db.Model):
 # Initialize database
 with app.app_context():
     db.create_all()
+    try:
+        interrupted = AnalysisJob.query.filter(AnalysisJob.status.in_(['pending', 'running'])).all()
+        for stale in interrupted:
+            stale.status = 'failed'
+            stale.current_step = 'Failed'
+            stale.error_message = 'The server restarted while this job was running. Please submit it again.'
+        if interrupted:
+            db.session.commit()
+    except Exception as startup_error:  # a fresh database may not have every column yet
+        db.session.rollback()
+        logger.warning(f"Could not clean up interrupted jobs: {startup_error}")
 
 
 # ============================================================================
@@ -266,14 +299,51 @@ K-Sites Team
 # Login Required Decorator
 # ============================================================================
 
+def _token_is_valid() -> bool:
+    """True when hosted mode is on and the request carries the correct access token."""
+    if not HOSTED_MODE:
+        return False
+    supplied = request.headers.get('X-KSites-Token', '')
+    return hmac.compare_digest(supplied.encode('utf-8'), ACCESS_TOKEN.encode('utf-8'))
+
+
 def login_required(f):
-    """Decorator to require login for a route"""
+    """Decorator to require login (local session) or the lab access token (hosted mode)"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
+        if HOSTED_MODE:
+            if not _token_is_valid():
+                return jsonify({'error': 'Authentication required: missing or wrong access token'}), 401
+        elif 'user_id' not in session:
+            if request.path.startswith('/api/'):
+                return jsonify({'error': 'Authentication required'}), 401
             return redirect(url_for('login', next=request.url))
         return f(*args, **kwargs)
     return decorated_function
+
+
+@app.before_request
+def hosted_mode_api_only():
+    """In hosted mode the pages live on GitHub Pages; this server only answers API calls."""
+    if not HOSTED_MODE or request.path.startswith('/api/'):
+        return None
+    return (
+        "K-Sites backend is running. Open the K-Sites website to use it.\n", 200,
+        {'Content-Type': 'text/plain; charset=utf-8'}
+    )
+
+
+@app.route('/api/health')
+def health():
+    """Open endpoint the website uses to wake the backend and check it is reachable."""
+    return jsonify({'status': 'ok', 'hosted': HOSTED_MODE, 'version': '1.2.1'})
+
+
+@app.route('/api/auth/check')
+@login_required
+def auth_check():
+    """Lets the website confirm that the access token it holds is accepted."""
+    return jsonify({'ok': True, 'hosted': HOSTED_MODE})
 
 
 # ============================================================================
@@ -522,6 +592,7 @@ def validate_analysis():
     go_term = data.get('go_term', '').strip()
     max_genes = int(data.get('max_genes', 10))
     evidence_filter = data.get('evidence_filter', 'experimental')
+    max_pleiotropy = data.get('max_pleiotropy', 5)
     
     errors = []
     warnings = []
@@ -536,6 +607,13 @@ def validate_analysis():
     elif not go_term.upper().startswith('GO:'):
         errors.append('GO term must be in format GO:XXXXXXX')
     
+    # Validate pleiotropy cutoff (the 0-10 pleiotropy score)
+    try:
+        if not 0 <= int(max_pleiotropy) <= 10:
+            errors.append('Max pleiotropy must be between 0 and 10')
+    except (TypeError, ValueError):
+        errors.append('Max pleiotropy must be a number between 0 and 10')
+    
     # Validate evidence type
     if evidence_filter not in ('experimental', 'computational', 'all'):
         errors.append('Evidence filter must be experimental, computational or all')
@@ -543,8 +621,8 @@ def validate_analysis():
     # Validate max_genes
     if max_genes < 1:
         errors.append('Maximum genes must be at least 1')
-    elif max_genes > 50:
-        warnings.append('Large number of genes may take significant time (10-20 minutes). Consider limiting to 20-30 genes.')
+    elif max_genes > 500:
+        errors.append('Genes to report must be at most 500')
     
     # Check gene count estimate
     try:
@@ -631,13 +709,13 @@ def start_analysis():
         job = AnalysisJob(
             id=job_id,
             user_id=session.get('user_id'),
-            user_email=session.get('user_email') or data.get('user_email'),
+            user_email=session.get('user_email') or data.get('user_email') or request.headers.get('X-KSites-User-Email'),
             organism=data.get('organism'),
             taxid=data.get('taxid'),
             go_term=data.get('go_term'),
             go_term_name=data.get('go_term_name'),
             max_genes=int(data.get('max_genes', 10)),
-            max_pleiotropy=int(data.get('max_pleiotropy', 5)),
+            max_pleiotropy=max(0, min(10, int(data.get('max_pleiotropy', 5)))),
             evidence_filter=data.get('evidence_filter', 'experimental'),
             predict_phenotypes=data.get('predict_phenotypes', False),
             selected_databases=json.dumps(data.get('databases', ['quickgo'])),
@@ -684,7 +762,21 @@ def update_job_progress(job_id: str, step: str, percent: int):
             db.session.commit()
 
 
+JOB_SLOTS = threading.BoundedSemaphore(MAX_PARALLEL_JOBS)
+
+
 def run_analysis_job(job_id: str):
+    """Wait for a free analysis slot, then run the job."""
+    with app.app_context():
+        job = AnalysisJob.query.get(job_id)
+        if job:
+            job.current_step = 'Waiting for a free analysis slot'
+            db.session.commit()
+    with JOB_SLOTS:
+        _run_analysis_job(job_id)
+
+
+def _run_analysis_job(job_id: str):
     """Run the analysis job with progress tracking"""
     with app.app_context():
         job = AnalysisJob.query.get(job_id)
@@ -729,17 +821,35 @@ def run_analysis_job(job_id: str):
             job.progress_percent = 30
             db.session.commit()
             
+            # Progress: reading annotations 30-35%, scoring genes 35-60%, assessing genes 60-83%
+            progress_ranges = {
+                'Reading GO annotations': (30, 5),
+                'Scoring genes': (35, 25),
+                'Assessing genes': (60, 23),
+            }
+            last_reported = {'percent': job.progress_percent}
+
+            def report_progress(stage, done, total):
+                base, span = progress_ranges.get(stage, (30, 0))
+                percent = int(base + span * (done / total if total else 1))
+                job.current_step = f"{stage} ({done}/{total})"
+                if percent != last_reported['percent']:
+                    job.progress_percent = percent
+                    last_reported['percent'] = percent
+                db.session.commit()
+
             pipeline_output = run_k_sites_pipeline(
                 go_term=job.go_term,
                 organism=job.organism,
                 max_pleiotropy=job.max_pleiotropy,
                 evidence_filter=job.evidence_filter,
-                predict_phenotypes=job.predict_phenotypes
+                predict_phenotypes=job.predict_phenotypes,
+                progress_callback=report_progress
             )
             
             # Update progress during pipeline
-            job.current_step = 'Processing gene annotations'
-            job.progress_percent = 60
+            job.current_step = 'Processing results'
+            job.progress_percent = 83
             db.session.commit()
             
             # Limit genes if needed
@@ -861,6 +971,15 @@ def download_results(job_id, file_type):
     elif file_type == 'json':
         files = list(results_dir.glob('results_*.json'))
         mime_type = 'application/json'
+    elif file_type == 'csv':
+        files = list(results_dir.glob('report_*_comprehensive.csv'))
+        mime_type = 'text/csv'
+    elif file_type == 'summary':
+        files = list(results_dir.glob('report_*_gene_summary.csv'))
+        mime_type = 'text/csv'
+    elif file_type == 'xlsx':
+        files = list(results_dir.glob('report_*_comprehensive.xlsx'))
+        mime_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     else:
         return jsonify({'error': 'Invalid file type'}), 400
     
@@ -896,8 +1015,10 @@ if __name__ == '__main__':
     print(f"Results directory: {RESULTS_DIR}")
     print(f"Database: {app.config['SQLALCHEMY_DATABASE_URI']}")
     print("=" * 70)
-    print("Starting server on http://127.0.0.1:5000")
-    print("Help documentation at: http://127.0.0.1:5000/help")
+    print(f"Starting server on http://127.0.0.1:{os.environ.get('PORT', 5000)}")
+    print(f"Help documentation at: http://127.0.0.1:{os.environ.get('PORT', 5000)}/help")
     print("=" * 70)
     
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    host = os.environ.get('HOST', '0.0.0.0')
+    app.run(host=host, port=port, debug=not HOSTED_MODE)

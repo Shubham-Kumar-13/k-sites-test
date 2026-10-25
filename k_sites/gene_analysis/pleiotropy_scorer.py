@@ -6,7 +6,7 @@ This module calculates pleiotropy scores for genes based on:
 - Multi-database integration (GO.org, UniProt, KEGG)
 - Evidence-based filtering (IDA, IMP, IGI = experimental; IEA = computational prediction)
 - Cross-species validation across model organisms (human, mouse, fly, worm)
-- Customizable thresholds (0-10 other GO terms)
+- Customizable pleiotropy cutoff (genes scoring above it on the 0-10 scale are excluded)
 - Weighted ranking combining specificity, evidence quality, literature support, conservation
 
 CRITICAL: Pleiotropy score is 0-10 based on number of OTHER BP GO terms.
@@ -17,7 +17,7 @@ import logging
 import math
 import requests
 import time
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Set up logging
@@ -568,7 +568,7 @@ def _rank_single_gene(
             "pubmed_count": pubmed_count,
             "specificity_consistency": specificity_consistency,
             "database_sources": scoring.get("database_sources", []),
-            "passes_threshold": bp_term_count <= max_pleiotropy_threshold
+            "passes_threshold": pleiotropy_score <= max_pleiotropy_threshold
         }
         
     except Exception as e:
@@ -586,7 +586,8 @@ def rank_genes_by_specificity(
     evidence_filter: str = "experimental",
     include_literature: bool = True,
     include_cross_species: bool = True,
-    max_pleiotropy_threshold: int = 10
+    max_pleiotropy_threshold: int = 10,
+    progress_callback: Optional[Callable[[str, int, int], None]] = None
 ) -> List[Dict]:
     """
     Rank genes by specificity using weighted scoring combining:
@@ -604,8 +605,10 @@ def rank_genes_by_specificity(
         evidence_filter: Evidence type filter
         include_literature: Whether to query PubMed (slower but more accurate)
         include_cross_species: Whether to validate across species
-        max_pleiotropy_threshold: Maximum BP term threshold (0-10)
-        
+        max_pleiotropy_threshold: Pleiotropy cutoff on the 0-10 score; a gene scoring above it
+            has ``passes_threshold`` False
+        progress_callback: Optional ``callback(stage, done, total)`` called as each gene is scored
+
     Returns:
         Ranked list of genes with comprehensive scoring
     """
@@ -631,15 +634,25 @@ def rank_genes_by_specificity(
             for gene_info in gene_list
         }
         
+        done = 0
+        total = len(future_to_gene)
         for future in as_completed(future_to_gene):
+            gene_info = future_to_gene[future]
             try:
                 result = future.result(timeout=120)  # 2 minute timeout per gene
                 if result:
                     ranked_genes.append(result)
             except Exception as e:
-                gene_info = future_to_gene[future]
                 logger.warning(f"Failed to rank gene {gene_info.get('symbol', 'unknown')}: {e}")
-    
+                ranked_genes.append(_insufficient_data_record(gene_info, {
+                    "data_issues": [f"Ranking failed: {e}"],
+                    "lookup_failed": True,
+                }))
+            done += 1
+            logger.info(f"Scored {done}/{total} genes")
+            if progress_callback:
+                progress_callback("Scoring genes", done, total)
+
     # Scored genes first, highest composite score first; unscorable genes go last
     ranked_genes.sort(key=lambda x: (x.get("data_status") == DATA_OK, x["composite_score"]), reverse=True)
 

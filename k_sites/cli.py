@@ -97,6 +97,33 @@ def validate_go_term(go_term):
     return go_term.upper()
 
 
+def make_progress_printer(stream=None):
+    """
+    Build a ``callback(stage, done, total)`` that shows progress on stderr.
+
+    On a terminal it redraws one line; when output is redirected it prints a line about
+    every 10% so logs stay short.
+    """
+    stream = stream or sys.stderr
+    state = {"stage": None, "last": -1}
+
+    def show(stage, done, total):
+        total = max(total, 1)
+        if stream.isatty():
+            stream.write(f"\r  {stage}: {done}/{total}  ")
+            if done >= total:
+                stream.write("\n")
+            stream.flush()
+            return
+        step = max(1, total // 10)
+        if stage != state["stage"] or done >= total or done - state["last"] >= step:
+            stream.write(f"  {stage}: {done}/{total} ({100 * done // total}%)\n")
+            stream.flush()
+            state["stage"], state["last"] = stage, done
+
+    return show
+
+
 def run_k_sites_analysis(args):
     """
     Execute the main K-Sites analysis workflow.
@@ -128,7 +155,9 @@ def run_k_sites_analysis(args):
             'evidence_filter': getattr(args, 'evidence_filter', 'experimental'),  # Default evidence filter
             'species_validation': getattr(args, 'species_validation', None),  # Default species list
             'predict_phenotypes': getattr(args, 'predict_phenotypes', False),  # Default to False
-            'databases': getattr(args, 'databases', ['all'])  # Databases to query
+            'databases': getattr(args, 'databases', ['all']),  # Databases to query
+            'max_annotations': getattr(args, 'max_annotations', 2000),  # Safety limit on annotations read
+            'progress_callback': make_progress_printer()
         }
         
         # Execute the main pipeline
@@ -151,6 +180,9 @@ def run_k_sites_analysis(args):
             if most_specific:
                 print(f"- Most specific gene: {most_specific.get('symbol', 'N/A')} (score: {most_specific.get('specificity_score', 0):.2f})")
         
+        for warning in results.get("warnings", []):
+            print(f"\nWARNING: {warning}")
+
         # Generate RAG reports if requested
         if getattr(args, 'rag_report', False) and getattr(args, 'predict_phenotypes', False):
             logger.info("Generating detailed RAG literature reports...")
@@ -249,9 +281,19 @@ Note:
         default=10,
         choices=range(0, 11),
         metavar="[0-10]",
-        help='Maximum allowed OTHER BP GO terms (0-10 scale, default: 10). Genes with more BP terms than this are excluded.'
+        help='Pleiotropy cutoff on the 0-10 score (default: 10). Genes scoring above it are excluded: '
+             '0 keeps only the most specific genes, 10 keeps everything.'
     )
     
+    parser.add_argument(
+        '--max-annotations',
+        type=int,
+        default=2000,
+        help='Safety limit on GO annotations read for the GO term (default: 2000). Very large GO terms '
+             'are cut off here and the report says what share was read; raise it to read everything '
+             '(slower).'
+    )
+
     parser.add_argument(
         '--evidence-filter',
         choices=['experimental', 'computational', 'all'],

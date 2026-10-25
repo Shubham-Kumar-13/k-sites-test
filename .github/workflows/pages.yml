@@ -1,0 +1,60 @@
+name: Deploy the K-Sites website to GitHub Pages
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - "webapp/templates/**"
+      - "webapp/static/**"
+      - "webapp/utils/help_content.py"
+      - "tools/build_static_site.py"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the site builder
+        run: pip install jinja2
+
+      - name: Build the static site
+        env:
+          API_BASE: ${{ vars.KSITES_API_BASE }}
+        run: |
+          if [ -z "$API_BASE" ]; then
+            echo "Set the repository variable KSITES_API_BASE to your backend address (Settings > Secrets and variables > Actions > Variables)."
+            exit 1
+          fi
+          python tools/build_static_site.py --api-base "$API_BASE" --out site
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
