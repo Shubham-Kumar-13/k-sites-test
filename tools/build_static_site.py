@@ -6,8 +6,10 @@ The pages are rendered from the same Flask templates the local app uses, so ther
 source for the interface. The result talks to the K-Sites backend (hosted elsewhere, for
 example a Hugging Face Space) through the address given with --api-base.
 
-    python tools/build_static_site.py --api-base https://your-space.hf.space --out site
+    python tools/build_static_site.py --out site                                  # analysis in the browser
+    python tools/build_static_site.py --api-base https://your-space.hf.space --out site   # separate backend
 
+The browser version also needs the KEGG data files: python tools/build_kegg_data.py --out site/kegg-data
 Only Jinja2 is needed; the K-Sites analysis code is not imported.
 """
 
@@ -30,8 +32,9 @@ PAGES = {
     "jobs.html": ("jobs.html", False),
     "help.html": ("help.html", True),
     "results.html": ("results.html", False),
-    "login.html": ("hosted_login.html", False),
 }
+# The sign-in page is only needed when a separate backend with an access code is used
+REMOTE_ONLY_PAGES = {"login.html": ("hosted_login.html", False)}
 
 # Site-absolute links in the templates -> the static page that replaces them
 LINKS = {
@@ -87,6 +90,14 @@ def placeholder_job():
 
 
 def build(api_base: str, out: Path) -> list:
+    """
+    Build the site.
+
+    With an ``api_base`` the pages talk to a separate backend that needs an access code.
+    With ``api_base`` empty (the default) the analysis runs in each visitor's browser.
+    """
+    browser_mode = not api_base
+    pages = dict(PAGES) if browser_mode else {**PAGES, **REMOTE_ONLY_PAGES}
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
@@ -95,8 +106,8 @@ def build(api_base: str, out: Path) -> list:
     help_content = load_help_content()
     written = []
 
-    for filename, (template_name, needs_help) in PAGES.items():
-        context = {"hosted_build": True, "user_name": "", "job": placeholder_job()}
+    for filename, (template_name, needs_help) in pages.items():
+        context = {"hosted_build": True, "browser_build": browser_mode, "user_name": "", "job": placeholder_job()}
         if needs_help:
             context.update(
                 analytical_terms=help_content.ANALYTICAL_TERMS,
@@ -108,9 +119,8 @@ def build(api_base: str, out: Path) -> list:
         written.append(filename)
 
     shutil.copytree(WEBAPP / "static", out / "static")
-    (out / "config.js").write_text(
-        "window.KSITES_CONFIG = " + json.dumps({"apiBase": api_base.rstrip("/")}) + ";\n", encoding="utf-8"
-    )
+    config = {"mode": "browser", "keggBase": "kegg-data/"} if browser_mode else {"apiBase": api_base.rstrip("/")}
+    (out / "config.js").write_text("window.KSITES_CONFIG = " + json.dumps(config) + ";\n", encoding="utf-8")
     (out / ".nojekyll").write_text("", encoding="utf-8")
     (out / "robots.txt").write_text("User-agent: *\nDisallow: /\n", encoding="utf-8")
     (out / "404.html").write_text(
@@ -124,17 +134,19 @@ def build(api_base: str, out: Path) -> list:
 
 def main():
     parser = argparse.ArgumentParser(description="Build the static K-Sites website for GitHub Pages.")
-    parser.add_argument("--api-base", required=True,
-                        help="Address of the K-Sites backend, e.g. https://your-space.hf.space")
+    parser.add_argument("--api-base", default="",
+                        help="Address of a separate K-Sites backend (needs an access code). Leave out to run the "
+                             "analysis in each visitor's browser (default).")
     parser.add_argument("--out", default="site", help="Output folder (default: site)")
     args = parser.parse_args()
 
-    if not re.match(r"^https?://", args.api_base):
+    if args.api_base and not re.match(r"^https?://", args.api_base):
         sys.exit("--api-base must start with http:// or https://")
 
     out = Path(args.out)
     written = build(args.api_base, out)
-    print(f"Built the K-Sites site in {out.resolve()} (backend: {args.api_base})")
+    mode = f"separate backend {args.api_base}" if args.api_base else "analysis runs in the visitor's browser"
+    print(f"Built the K-Sites site in {out.resolve()} ({mode})")
     for name in written:
         print(f"  {name}")
 

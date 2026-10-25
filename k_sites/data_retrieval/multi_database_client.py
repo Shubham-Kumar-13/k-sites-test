@@ -318,17 +318,22 @@ class MultiDatabaseClient:
         if response.status_code != 200:
             raise LookupFailure(f"KEGG returned HTTP {response.status_code}")
 
-        # KEGG "find" is a fuzzy search; keep only the entry whose gene names include the symbol
-        kegg_gene_id = None
+        # KEGG "find" is a fuzzy search. Prefer the gene whose MAIN symbol is the query; a gene that
+        # merely lists it as a synonym (LRIG1 lists "LIG1", POLK lists "POLQ") is a different gene.
+        primary_match = None
+        synonym_match = None
         for line in response.text.strip().split('\n'):
             parts = line.split('\t')
             if len(parts) < 2:
                 continue
             names = [n.strip().upper() for n in parts[1].split(';')[0].split(',')]
-            if gene_symbol.upper() in names:
-                kegg_gene_id = parts[0]
+            if names and names[0] == gene_symbol.upper():
+                primary_match = parts[0]
                 break
-
+            if synonym_match is None and gene_symbol.upper() in names:
+                synonym_match = parts[0]
+        kegg_gene_id = primary_match or synonym_match
+        
         if not kegg_gene_id:
             return {"found": False, "pathway_count": 0, "pathways": []}
 

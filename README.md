@@ -133,8 +133,8 @@ generate_html_report(results, "report.html")
 A web interface (organism and GO-term pickers, live job progress, results, downloads) is in
 [`webapp/`](webapp/README.md). Run it locally with `python webapp/app.py`.
 
-For the lab it can be hosted for free: the website on GitHub Pages and the Python analysis on a
-Hugging Face Space. See [DEPLOYMENT.md](DEPLOYMENT.md) for the step-by-step guide.
+For the lab it can be hosted for free on GitHub Pages: the analysis runs in each visitor's browser, so
+no server is needed. See [DEPLOYMENT.md](DEPLOYMENT.md) for the step-by-step guide and its limits.
 
 ---
 

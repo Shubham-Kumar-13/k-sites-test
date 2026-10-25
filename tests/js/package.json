@@ -1,0 +1,13 @@
+{
+  "name": "ksites-js-tests",
+  "private": true,
+  "type": "module",
+  "description": "Tests for the in-browser K-Sites engine. Run: npm install && node --test *.test.mjs",
+  "scripts": {
+    "test": "node --test *.test.mjs"
+  },
+  "devDependencies": {
+    "@huggingface/transformers": "3.0.2",
+    "linkedom": "0.18.5"
+  }
+}

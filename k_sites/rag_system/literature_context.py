@@ -31,6 +31,30 @@ except ImportError:
 # Set up logging
 logger = logging.getLogger(__name__)
 
+# Minimum cosine similarity (0-1) between a query and an abstract for the abstract to count as
+# relevant. Short queries against abstracts rarely exceed 0.5 with MiniLM (the median is about
+# 0.25), so the previous cut-off of 0.6 on 1/(1+d^2) -- which equals a cosine of 0.67 -- kept
+# nothing and the prediction was always UNKNOWN.
+DEFAULT_RELEVANCE_THRESHOLD = 0.30
+
+# "synthetic lethal", "non-lethal" and "sublethal" do not say the gene itself is lethal when deleted
+_NOT_LETHAL_PHRASES = re.compile(r"(?:synthetic[\s-]+lethal(?:ity)?|non-?lethal|sub-?lethal)", re.IGNORECASE)
+_NOT_LETHAL_PREFIX = re.compile(r"(?:synthetic[\s-]+|non-?|sub-?)$", re.IGNORECASE)
+
+# A sentence is evidence about deleting a gene when it names the gene AND describes losing it.
+# Counting every "lethal" in 20 abstracts would call almost any gene lethal.
+_LOSS_OF_FUNCTION = re.compile(
+    r"knock-?out|knock-?down|\bko\b|\bnull\b|[-\u2212]/[-\u2212]|deficien|deletion|deleted|\bablat|disrupt"
+    r"|loss[\s-]of|\black(?:s|ing|ed)?\b|inactivat|homozygous|mutant|essential",
+    re.IGNORECASE,
+)
+_DRUG_CONTEXT = re.compile(
+    r"inhibitor|inhibition|inhibiting|\bparpi?\b|olaparib|talazoparib|niraparib|rucaparib|trapping|therap|clinical|resistan",
+    re.IGNORECASE,
+)
+_SENTENCE_BREAK = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9(\[])")
+
+
 # Define phenotype severity categories
 class PhenotypeSeverity(Enum):
     LETHAL = "LETHAL"
@@ -122,6 +146,7 @@ class LiteratureMiner:
             "viability": f"{gene_symbol}[Gene] AND (viability[Title/Abstract] OR viable[Title/Abstract] OR lethal[Title/Abstract] OR lethality[Title/Abstract] OR survival[Title/Abstract] OR 'embryonic lethal'[Title/Abstract])",
             "crispr": f"{gene_symbol}[Gene] AND (CRISPR[Title/Abstract] OR 'guide RNA'[Title/Abstract] OR gRNA[Title/Abstract] OR 'gene editing'[Title/Abstract])",
             "compensatory": f"{gene_symbol}[Gene] AND (compensatory[Title/Abstract] OR compensation[Title/Abstract] OR 'redundant gene'[Title/Abstract] OR paralog[Title/Abstract] OR 'genetic buffering'[Title/Abstract])",
+            "mouse_knockout": f"{gene_symbol}[Gene] AND (mice[MeSH Terms] OR mouse[Title/Abstract] OR murine[Title/Abstract]) AND (knockout[Title/Abstract] OR 'null mutation'[Title/Abstract] OR deficient[Title/Abstract] OR targeted[Title/Abstract]) AND (lethal[Title/Abstract] OR lethality[Title/Abstract] OR viable[Title/Abstract] OR embryonic[Title/Abstract] OR survival[Title/Abstract])",
             "comprehensive": f"{gene_symbol}[Gene] AND (knockout[Title/Abstract] OR phenotype[Title/Abstract] OR mutant[Title/Abstract] OR viability[Title/Abstract] OR CRISPR[Title/Abstract])"
         }
         
@@ -204,13 +229,14 @@ class LiteratureMiner:
             
             # Get title
             title_elem = article.find('.//ArticleTitle')
-            title = title_elem.text if title_elem is not None else ""
+            title = "".join(title_elem.itertext()) if title_elem is not None else ""
             
             # Get abstract
             abstract_texts = []
             for abstract in article.findall('.//Abstract/AbstractText'):
-                if abstract.text:
-                    abstract_texts.append(abstract.text)
+                abstract_text = "".join(abstract.itertext())
+                if abstract_text.strip():
+                    abstract_texts.append(abstract_text)
             abstract = " ".join(abstract_texts)
             
             # Get authors
@@ -395,7 +421,8 @@ class DiversityAwareVectorStore:
             texts.append(text)
         
         # Generate embeddings
-        embeddings = self.model.encode(texts, show_progress_bar=False)
+        embeddings = np.asarray(self.model.encode(texts, show_progress_bar=False), dtype="float32")
+        embeddings = embeddings / np.maximum(np.linalg.norm(embeddings, axis=1, keepdims=True), 1e-12)
         
         # Create FAISS index if doesn't exist
         if self.index is None:
@@ -411,7 +438,7 @@ class DiversityAwareVectorStore:
         
         logger.info(f"Added {len(documents)} documents to vector store (total: {len(self.documents)})")
     
-    def search(self, query: str, k: int = 10, relevance_threshold: float = 0.7,
+    def search(self, query: str, k: int = 10, relevance_threshold: float = DEFAULT_RELEVANCE_THRESHOLD,
                diversity_weight: float = 0.3, context_aware: bool = True) -> List[Tuple[LiteratureRecord, float]]:
         """
         Perform semantic search with adaptive retrieval and diversity weighting.
@@ -419,7 +446,7 @@ class DiversityAwareVectorStore:
         Args:
             query: Search query
             k: Number of results to return (will be adapted based on diversity)
-            relevance_threshold: Minimum similarity threshold (0-1)
+            relevance_threshold: Minimum cosine similarity (0-1) between the query and a document
             diversity_weight: Weight for diversity vs relevance (0-1, higher = more diversity)
             context_aware: Whether to adapt k based on query context
             
@@ -435,7 +462,8 @@ class DiversityAwareVectorStore:
             k = self._adapt_k_for_context(query, k)
         
         # Generate query embedding
-        query_embedding = self.model.encode([query])
+        query_embedding = np.asarray(self.model.encode([query]), dtype="float32")
+        query_embedding = query_embedding / np.maximum(np.linalg.norm(query_embedding, axis=1, keepdims=True), 1e-12)
         
         # Search for more results than needed for diversity reranking
         search_k = min(k * 3, len(self.documents))
@@ -443,9 +471,9 @@ class DiversityAwareVectorStore:
         # Perform similarity search
         distances, indices = self.index.search(query_embedding.astype('float32'), search_k)
         
-        # Convert distances to similarities (FAISS returns L2 distances)
-        # Convert: similarity = 1 / (1 + distance)
-        similarities = 1.0 / (1.0 + distances[0])
+        # FAISS returns squared L2 distances. For unit-length vectors d^2 = 2 - 2*cos, so the
+        # cosine similarity is 1 - d^2 / 2.
+        similarities = 1.0 - distances[0] / 2.0
         
         # Filter by relevance threshold
         candidates = []
@@ -509,10 +537,6 @@ class DiversityAwareVectorStore:
         selected = []
         remaining = list(candidates)
         
-        # Get embeddings for candidates
-        candidate_indices = [idx for _, _, idx in candidates]
-        candidate_embeddings = self.embeddings[candidate_indices]
-        
         while len(selected) < k and remaining:
             if not selected:
                 # Select highest relevance first
@@ -525,9 +549,9 @@ class DiversityAwareVectorStore:
                 selected_embeddings = self.embeddings[selected_indices]
                 
                 mmr_scores = []
-                for i, (doc, rel_score, idx) in enumerate(remaining):
+                for doc, rel_score, idx in remaining:
                     # Calculate max similarity to already selected documents
-                    emb = candidate_embeddings[i].reshape(1, -1)
+                    emb = self.embeddings[idx].reshape(1, -1)
                     sims = np.dot(selected_embeddings, emb.T).flatten()
                     max_sim = np.max(sims) if len(sims) > 0 else 0
                     
@@ -591,7 +615,9 @@ class PhenotypeExtractor:
                 r"\blethal\b", r"\blethality\b", r"embryonic\s+lethal", 
                 r"perinatal\s+lethal", r"postnatal\s+lethal", r"early\s+lethal",
                 r"100%\s+lethal", r"complete\s+lethality", r"fully\s+lethal",
-                r"non-viable", r"inviable"
+                r"non-viable", r"inviable",
+                r"\bdie[sd]?\b", r"(?:embryonic|perinatal|postnatal|neonatal|early|premature)\s+(?:death|mortality|demise)",
+                r"fail(?:s|ed)?\s+to\s+survive"
             ],
             PhenotypeSeverity.SEVERE: [
                 r"\bsevere\b", r"\bsevere\s+defect\b", r"major\s+defect", 
@@ -605,7 +631,9 @@ class PhenotypeExtractor:
             ],
             PhenotypeSeverity.MILD: [
                 r"\bmild\b", r"\bsubtle\b", r"\bminor\b", r"\bslight\b", 
-                r"\bsmall\s+change\b", r"\bminimal\b", r"\bweak\s+phenotype\b"
+                r"\bsmall\s+change\b", r"\bminimal\b", r"\bweak\s+phenotype\b",
+                r"(?<!non-)(?<!not\s)\bviable\b", r"\bfertile\b", r"normal\s+(?:development|lifespan|viability)",
+                r"no\s+(?:obvious|overt|apparent|detectable|gross)\s+(?:phenotype|abnormalit)", r"\btolerated\b"
             ]
         }
         
@@ -617,6 +645,27 @@ class PhenotypeExtractor:
             r"homeostatic\s+mechanism", r"feedback\s+mechanism"
         ]
     
+    @staticmethod
+    def gene_evidence_sentences(text: str, gene_symbol: str, require_loss: bool = True,
+                                aliases: Optional[List[str]] = None) -> List[str]:
+        """
+        Sentences that mention the gene (by symbol or by an alias such as its protein name) and,
+        unless require_loss is False, describe losing it (knockout, null, deficient, deletion, -/- ...).
+        """
+        if not text or not gene_symbol:
+            return []
+        names = [gene_symbol] + [a.strip() for a in (aliases or []) if a and len(a.strip()) >= 8]
+        alternatives = "|".join(re.escape(n) for n in names)
+        mention = re.compile(r"(?<![A-Za-z0-9])(?:" + alternatives + r")(?![A-Za-z0-9])", re.IGNORECASE)
+        sentences = []
+        for sentence in _SENTENCE_BREAK.split(text):
+            if not mention.search(sentence):
+                continue
+            if require_loss and (not _LOSS_OF_FUNCTION.search(sentence) or _DRUG_CONTEXT.search(sentence)):
+                continue
+            sentences.append(sentence.strip())
+        return sentences
+
     def extract_phenotypes_from_text(self, text: str) -> List[Dict]:
         """
         Extract phenotype terms from text using pattern matching.
@@ -637,9 +686,11 @@ class PhenotypeExtractor:
         for category, patterns in self.phenotype_patterns.items():
             for pattern in patterns:
                 for match in re.finditer(pattern, text_lower, re.IGNORECASE):
+                    if "lethal" in match.group() and _NOT_LETHAL_PREFIX.search(text_lower[max(0, match.start() - 12):match.start()]):
+                        continue  # "synthetic lethal", "non-lethal", "sublethal"
                     context_start = max(0, match.start() - 100)
                     context_end = min(len(text), match.end() + 100)
-                    
+
                     phenotype = {
                         "category": category,
                         "term": match.group(),
@@ -682,7 +733,7 @@ class PhenotypeExtractor:
         if not phenotypes and not text:
             return PhenotypeSeverity.UNKNOWN, "No phenotype data available"
         
-        combined_text = text.lower()
+        combined_text = _NOT_LETHAL_PHRASES.sub(" ", text.lower())
         for pheno in phenotypes:
             combined_text += " " + pheno.get("term", "").lower()
         
@@ -797,7 +848,8 @@ class RAGPhenotypePredictor:
         self.logger = logging.getLogger(__name__)
     
     def predict_phenotype(self, gene_symbol: str, organism_taxid: str = "9606",
-                         include_compensatory: bool = True) -> PhenotypePrediction:
+                         include_compensatory: bool = True,
+                         aliases: Optional[List[str]] = None) -> PhenotypePrediction:
         """
         Predict knockout phenotype for a gene using RAG.
         
@@ -805,14 +857,15 @@ class RAGPhenotypePredictor:
             gene_symbol: Gene symbol to predict phenotype for
             organism_taxid: NCBI Taxonomy ID for the organism
             include_compensatory: Whether to search for compensatory mechanisms
-            
+            aliases: Other names used for the gene in papers (e.g. its protein name)
+
         Returns:
             PhenotypePrediction object with results
         """
         self.logger.info(f"Predicting phenotype for gene {gene_symbol} in organism {organism_taxid}")
         
         # Step 1: Mine literature with multiple search strategies
-        search_types = ["knockout", "phenotype", "viability"]
+        search_types = ["knockout", "phenotype", "viability", "mouse_knockout"]
         if include_compensatory:
             search_types.append("compensatory")
         
@@ -856,7 +909,7 @@ class RAGPhenotypePredictor:
             relevant_docs = self.vector_store.search(
                 query, 
                 k=5, 
-                relevance_threshold=0.6,
+                relevance_threshold=DEFAULT_RELEVANCE_THRESHOLD,
                 diversity_weight=0.3,
                 context_aware=True
             )
@@ -874,6 +927,7 @@ class RAGPhenotypePredictor:
         all_phenotypes = []
         all_compensatory = []
         supporting_evidence = []
+        evidence_texts = []
         has_full_text = False
         
         for doc, score in unique_docs:
@@ -884,13 +938,18 @@ class RAGPhenotypePredictor:
                 has_full_text = True
             
             text_content = " ".join(filter(None, text_parts))
-            
+
+            # Only sentences about losing THIS gene count as evidence
+            evidence_text = " ".join(self.phenotype_extractor.gene_evidence_sentences(text_content, gene_symbol, aliases=aliases))
+            gene_text = " ".join(self.phenotype_extractor.gene_evidence_sentences(text_content, gene_symbol, require_loss=False, aliases=aliases))
+            evidence_texts.append(evidence_text)
+
             # Extract phenotypes
-            phenotypes = self.phenotype_extractor.extract_phenotypes_from_text(text_content)
+            phenotypes = self.phenotype_extractor.extract_phenotypes_from_text(evidence_text)
             all_phenotypes.extend(phenotypes)
-            
+
             # Extract compensatory mechanisms
-            compensatory = self.phenotype_extractor.extract_compensatory_mechanisms(text_content)
+            compensatory = self.phenotype_extractor.extract_compensatory_mechanisms(gene_text)
             all_compensatory.extend(compensatory)
             
             # Add supporting evidence
@@ -907,10 +966,13 @@ class RAGPhenotypePredictor:
             supporting_evidence.append(evidence)
         
         # Step 5: Classify severity
-        combined_text = " ".join([doc.title + " " + doc.abstract for doc, _ in unique_docs])
+        combined_text = " ".join(evidence_texts)
         severity, severity_reasoning = self.phenotype_extractor.classify_severity(
             all_phenotypes, combined_text
         )
+        if not combined_text.strip():
+            severity_reasoning = (f"None of the {len(unique_publications)} retrieved papers has a sentence "
+                                  f"describing the effect of losing {gene_symbol}")
         
         # Step 6: Determine risk level
         risk_mapping = {

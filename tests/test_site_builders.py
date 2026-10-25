@@ -143,3 +143,29 @@ class TestSpaceFolder:
                         "biopython", "pandas", "openpyxl", "sentence-transformers", "faiss-cpu",
                         "dataclasses-json", "pyyaml"):
             assert package in requirements, package
+
+
+class TestBrowserSite:
+    """Without a backend address the analysis runs in the visitor's browser."""
+
+    @pytest.fixture(scope="class")
+    def browser_site(self, tmp_path_factory):
+        out = tmp_path_factory.mktemp("browser") / "site"
+        load_tool("build_static_site").build("", out)
+        return out
+
+    def test_pages_and_engine_are_built_without_a_sign_in_page(self, browser_site):
+        for page in ("index.html", "jobs.html", "help.html", "results.html", "config.js"):
+            assert (browser_site / page).exists(), page
+        assert not (browser_site / "login.html").exists()
+        for module in ("pipeline.js", "rag.js", "browserBackend.js", "localApi.js", "store.js"):
+            assert (browser_site / "static" / "js" / "engine" / module).exists(), module
+
+    def test_config_selects_browser_mode_and_the_kegg_data_folder(self, browser_site):
+        config = (browser_site / "config.js").read_text(encoding="utf-8")
+
+        assert '"mode": "browser"' in config
+        assert '"keggBase": "kegg-data/"' in config
+
+    def test_footer_says_nothing_is_sent_to_a_server(self, browser_site):
+        assert "nothing is sent to a K-Sites server" in (browser_site / "index.html").read_text(encoding="utf-8")

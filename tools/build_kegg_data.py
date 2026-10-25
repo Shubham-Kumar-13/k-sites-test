@@ -1,0 +1,206 @@
+#!/usr/bin/env python3
+"""
+Build the KEGG data files the browser version of K-Sites reads.
+
+KEGG's web service cannot be called from a web page (it sends no CORS header), so the site ships
+two small data sets instead, built here from KEGG:
+
+  kegg-data/organisms.json   every KEGG organism with its kingdom (for the organism picker)
+  kegg-data/<code>.json      gene symbol -> number of KEGG pathways, for the main model organisms
+  kegg-data/index.json       NCBI taxonomy id -> KEGG organism code
+
+Only the pathway COUNT per gene is kept (it is shown next to each gene, not used in the score).
+KEGG is free for academic use; the files carry the attribution and a build date.
+
+    python tools/build_kegg_data.py --out site/kegg-data
+"""
+
+import argparse
+import json
+import re
+import sys
+import time
+from datetime import date
+from pathlib import Path
+
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+REST = "https://rest.kegg.jp"
+BRITE = "https://www.genome.jp/kegg-bin/download_htext?htext=br08601.keg&format=htext"
+
+# KEGG organism code -> NCBI taxonomy ids that map to it (QuickGO uses strain-level ids for some)
+ORGANISMS = {
+    "hsa": ["9606"],
+    "mmu": ["10090"],
+    "rno": ["10116"],
+    "dre": ["7955"],
+    "dme": ["7227"],
+    "cel": ["6239"],
+    "ath": ["3702"],
+    "sce": ["559292", "4932"],
+    "eco": ["83333", "511145"],
+    "bta": ["9913"],
+    "ssc": ["9823"],
+    "gga": ["9031"],
+    "xla": ["8355"],
+    "osa": ["39947", "4530"],
+    "zma": ["4577"],
+}
+
+KNOWN_TAXIDS = {code: ids[0] for code, ids in ORGANISMS.items()}
+
+
+def session():
+    s = requests.Session()
+    retry = Retry(total=4, backoff_factor=1.0, status_forcelist=(429, 500, 502, 503, 504), allowed_methods=("GET",))
+    s.mount("https://", HTTPAdapter(max_retries=retry))
+    s.headers["User-Agent"] = "K-Sites data builder (https://github.com/Shubham-Kumar-13/k-sites-test)"
+    return s
+
+
+def classify_organism(taxonomy: str) -> str:
+    """Kingdom for the organism picker (same rules as webapp/utils/hierarchical_data.py)."""
+    parts = [p.strip() for p in taxonomy.split(";")]
+    if any(p in ("Bacteria", "Archaea") for p in parts):
+        return "Microbes"
+    if "Plants" in parts or any("Plant" in p for p in parts):
+        return "Plants"
+    if "Fungi" in parts:
+        return "Fungi"
+    if "Animals" in parts:
+        return "Animals"
+    return "Other Eukaryotes"
+
+
+def parse_organisms(htext: str) -> list:
+    """Parse KEGG's organism hierarchy (br08601) into one record per organism."""
+    organisms = []
+    levels = {}
+    for line in htext.splitlines():
+        if not line or line[0] not in "ABCDE" or line.startswith("+"):
+            continue
+        letter, content = line[0], line[1:].strip()
+        if not content:
+            continue
+        if letter != "E":
+            level = "ABCDE".index(letter)
+            levels[level] = re.sub(r"\s*\(\d+\)\s*$", "", content)
+            for deeper in [k for k in levels if k > level]:
+                del levels[deeper]
+            continue
+        match = re.match(r"^(\S+)\s+(.+)$", content)
+        if not match:
+            continue
+        code, label = match.groups()
+        taxonomy = ";".join(levels[k] for k in sorted(levels))
+        common = ""
+        name = label
+        paren = re.match(r"^(.*?)\s*\(([^)]*)\)\s*$", label)
+        if paren:
+            name, common = paren.group(1).strip(), paren.group(2).strip()
+        organisms.append({
+            "name": name, "common_name": common, "taxid": KNOWN_TAXIDS.get(code, ""),
+            "kegg_code": code, "kingdom": classify_organism(taxonomy), "taxonomy": taxonomy,
+        })
+    return organisms
+
+
+def gene_names(description: str) -> list:
+    """'POLD1, CDC2, POLD; DNA polymerase delta ...' -> ['POLD1', 'CDC2', 'POLD'] (before the semicolon)."""
+    return [n.strip().upper() for n in description.split(";")[0].split(",") if n.strip()]
+
+
+def build_organism(http, code: str) -> dict:
+    """symbol -> [pathway count, KEGG gene id] for one organism."""
+    listing = http.get(f"{REST}/list/{code}", timeout=180)
+    listing.raise_for_status()
+    links = http.get(f"{REST}/link/pathway/{code}", timeout=180)
+    links.raise_for_status()
+
+    pathways = {}
+    for line in links.text.splitlines():
+        parts = line.split("\t")
+        if len(parts) >= 2:
+            pathways.setdefault(parts[0], set()).add(parts[1])
+
+    entries = []
+    for line in listing.text.splitlines():
+        parts = line.split("\t")
+        if len(parts) < 4:
+            continue
+        entries.append((parts[0], gene_names(parts[3])))
+
+    # A gene's main symbol (first name) always wins over another gene's synonym of the same
+    # spelling: LRIG1 lists "LIG1" and POLK lists "POLQ", but those are different genes.
+    claimed = {}
+    for gene_id, names in entries:
+        if names:
+            claimed.setdefault(names[0], gene_id)
+    for gene_id, names in entries:
+        for name in names[1:]:
+            claimed.setdefault(name, gene_id)
+
+    # a gene without pathways is reported as 0 either way, so only genes with pathways are stored
+    genes = {}
+    for name, gene_id in claimed.items():
+        count = len(pathways.get(gene_id, ()))
+        if count:
+            genes[name] = [count, gene_id]
+    return genes
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--out", default="site/kegg-data", help="Output folder")
+    parser.add_argument("--organisms", nargs="*", default=list(ORGANISMS), help="KEGG codes to build gene data for")
+    parser.add_argument("--strict", action="store_true", help="Exit with an error if anything could not be built")
+    args = parser.parse_args()
+
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    http = session()
+    problems = []
+
+    # organism list for the picker
+    try:
+        response = http.get(BRITE, timeout=120)
+        response.raise_for_status()
+        organisms = parse_organisms(response.text)
+        if len(organisms) < 100:
+            raise ValueError(f"only {len(organisms)} organisms were parsed")
+        (out / "organisms.json").write_text(json.dumps(organisms, separators=(",", ":")), encoding="utf-8")
+        print(f"organisms.json: {len(organisms)} organisms")
+    except Exception as error:
+        problems.append(f"organism list: {error}")
+        print(f"WARNING: could not build the organism list ({error}); the site falls back to a short built-in list")
+
+    # per-organism pathway counts
+    index = {}
+    for code in args.organisms:
+        try:
+            genes = build_organism(http, code)
+            payload = {
+                "code": code, "taxids": ORGANISMS.get(code, []), "built": date.today().isoformat(),
+                "source": "KEGG (rest.kegg.jp), Kanehisa Laboratories - free for academic use",
+                "genes": genes,
+            }
+            (out / f"{code}.json").write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
+            for taxid in ORGANISMS.get(code, []):
+                index[taxid] = {"code": code}
+            print(f"{code}.json: {len(genes)} gene names with pathways")
+            time.sleep(1)               # be gentle with the KEGG service
+        except Exception as error:
+            problems.append(f"{code}: {error}")
+            print(f"WARNING: could not build {code} ({error})")
+
+    (out / "index.json").write_text(json.dumps(index, separators=(",", ":")), encoding="utf-8")
+    print(f"index.json: {len(index)} taxonomy ids")
+
+    if problems and args.strict:
+        sys.exit("Problems: " + "; ".join(problems))
+
+
+if __name__ == "__main__":
+    main()

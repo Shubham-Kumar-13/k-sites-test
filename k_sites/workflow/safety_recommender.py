@@ -54,6 +54,21 @@ class SafetyRecommendation:
     supporting_evidence: Dict[str, Any]
 
 
+def _enum_text(value) -> str:
+    """
+    The plain text of an enum-like value: "CRITICAL" for RiskLevel.CRITICAL, for the string
+    "RiskLevel.CRITICAL" (what str() or a JSON round trip gives) and for {"value": "CRITICAL"}.
+    """
+    if value is None:
+        return ""
+    if isinstance(value, dict):
+        value = value.get("value", "")
+    if hasattr(value, "value"):
+        value = value.value
+    text = str(value)
+    return text.rsplit(".", 1)[-1] if text.startswith(("RiskLevel.", "PhenotypeSeverity.")) else text
+
+
 class SafetyRecommender:
     """
     Generates safety recommendations for gene knockout experiments.
@@ -113,8 +128,8 @@ class SafetyRecommender:
         compensatory_mechanisms = []
         
         if phenotype_prediction:
-            phenotype_severity = phenotype_prediction.get("severity", {}).get("value") if isinstance(phenotype_prediction.get("severity"), dict) else str(phenotype_prediction.get("severity", ""))
-            phenotype_risk = phenotype_prediction.get("risk_level", {}).get("value") if isinstance(phenotype_prediction.get("risk_level"), dict) else str(phenotype_prediction.get("risk_level", ""))
+            phenotype_severity = _enum_text(phenotype_prediction.get("severity"))
+            phenotype_risk = _enum_text(phenotype_prediction.get("risk_level"))
             phenotype_confidence = phenotype_prediction.get("confidence_score", 0.0)
             lethality_stage = phenotype_prediction.get("lethality_stage")
             compensatory_mechanisms = phenotype_prediction.get("compensatory_mechanisms", [])

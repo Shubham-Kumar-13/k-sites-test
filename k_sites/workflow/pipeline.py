@@ -182,7 +182,10 @@ def run_k_sites_pipeline(
                 if predict_phenotypes and phenotype_predictor:
                     logger.debug(f"Predicting knockout phenotype for {gene_symbol}...")
                     try:
-                        phenotype_prediction = phenotype_predictor.predict_phenotype(gene_symbol, taxid)
+                        # the protein name is how many papers refer to the gene ("DNA polymerase beta")
+                        description = gene_info.get("description", "")
+                        aliases = [description] if description and not description.startswith(("PMID:", "GO_REF:")) else []
+                        phenotype_prediction = phenotype_predictor.predict_phenotype(gene_symbol, taxid, aliases=aliases)
                     except Exception as e:
                         logger.warning(f"Failed to predict phenotype for {gene_symbol}: {str(e)}")
 
@@ -206,6 +209,8 @@ def run_k_sites_pipeline(
                     "specificity_score": gene_info.get("specificity_score"),
                     "evidence_quality": gene_info.get("evidence_quality", 0.5),
                     "literature_support": gene_info.get("literature_score", 0.5),
+                    "literature_score": gene_info.get("literature_score", 0.5),
+                    "pubmed_count": gene_info.get("pubmed_count", 0),
                     "conservation_score": gene_info.get("conservation_score", 0.0),
                     "composite_score": gene_info.get("composite_score", 5.0),
                     "bp_term_count": gene_info.get("bp_term_count", 0),

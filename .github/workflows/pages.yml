@@ -1,5 +1,6 @@
 name: Deploy the K-Sites website to GitHub Pages
 
+# The website runs the whole analysis in each visitor's browser, so Pages is all that is needed.
 on:
   push:
     branches: [master, main]
@@ -8,7 +9,10 @@ on:
       - "webapp/static/**"
       - "webapp/utils/help_content.py"
       - "tools/build_static_site.py"
+      - "tools/build_kegg_data.py"
       - ".github/workflows/pages.yml"
+  schedule:
+    - cron: "0 3 1 * *"   # refresh the KEGG pathway data on the 1st of every month
   workflow_dispatch:
 
 permissions:
@@ -31,17 +35,13 @@ jobs:
           python-version: "3.12"
 
       - name: Install the site builder
-        run: pip install jinja2
+        run: pip install jinja2 requests
 
       - name: Build the static site
-        env:
-          API_BASE: ${{ vars.KSITES_API_BASE }}
-        run: |
-          if [ -z "$API_BASE" ]; then
-            echo "Set the repository variable KSITES_API_BASE to your backend address (Settings > Secrets and variables > Actions > Variables)."
-            exit 1
-          fi
-          python tools/build_static_site.py --api-base "$API_BASE" --out site
+        run: python tools/build_static_site.py --out site
+
+      - name: Download the KEGG pathway data
+        run: python tools/build_kegg_data.py --out site/kegg-data
 
       - uses: actions/configure-pages@v5
 

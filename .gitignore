@@ -150,3 +150,6 @@ Thumbs.db
 # Built deployment output
 site/
 hf_space/
+
+# JavaScript test dependencies
+node_modules/

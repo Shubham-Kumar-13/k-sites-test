@@ -1,16 +1,22 @@
 /**
  * K-Sites API helper.
  *
- * The same pages run in two modes:
- *  - local:  served by the Flask app; relative URLs and the cookie login are used.
- *  - hosted: static pages on GitHub Pages calling a separate backend. config.js sets
- *            window.KSITES_CONFIG = { apiBase: "https://....hf.space" } and the lab
- *            access token is kept in this browser (localStorage).
+ * The same pages run in three modes:
+ *  - local:   served by the Flask app; relative URLs and the cookie login are used.
+ *  - remote:  static pages calling a separate backend. config.js sets
+ *             window.KSITES_CONFIG = { apiBase: "https://....hf.space" } and the lab
+ *             access token is kept in this browser (localStorage).
+ *  - browser: static pages (GitHub Pages) where the analysis itself runs in this browser.
+ *             config.js sets window.KSITES_CONFIG = { mode: "browser", keggBase: "kegg-data/" };
+ *             there is no server and no sign-in.
  */
 (function () {
     const config = window.KSITES_CONFIG || {};
     const apiBase = String(config.apiBase || '').replace(/\/+$/, '');
-    const hosted = apiBase !== '';
+    const browserMode = config.mode === 'browser';
+    const hosted = apiBase !== '' && !browserMode;     // a separate backend with an access token
+    const staticSite = hosted || browserMode;          // pages are plain .html files
+    const scriptUrl = document.currentScript ? document.currentScript.src : '';
     const KEYS = { token: 'ksites.token', name: 'ksites.userName', email: 'ksites.userEmail' };
     const memory = {};  // used when localStorage is blocked (private windows)
 
@@ -39,7 +45,7 @@
     /** Address of one of the site's pages, in either mode. */
     function page(name, params) {
         params = params || {};
-        if (hosted) {
+        if (staticSite) {
             if (name === 'results') return 'results.html?job=' + encodeURIComponent(params.job || '');
             return { home: 'index.html', jobs: 'jobs.html', help: 'help.html', login: 'login.html' }[name] || 'index.html';
         }
@@ -108,9 +114,23 @@
         return awake;
     }
 
-    /** fetch() against the K-Sites API in either mode. */
+    let backendPromise = null;
+    function getBackend() {
+        if (!backendPromise) {
+            const engine = new URL('engine/browserBackend.js', scriptUrl).href;
+            const keggBase = new URL(config.keggBase || 'kegg-data/', window.location.href).href;
+            backendPromise = import(engine).then((module) => module.createBrowserBackend({ keggBase }));
+        }
+        return backendPromise;
+    }
+
+    /** fetch() against the K-Sites API in any mode. */
     async function apiFetch(path, options) {
         options = Object.assign({}, options);
+        if (browserMode) {
+            const backend = await getBackend();
+            return backend.handle(path, options);
+        }
         if (hosted) {
             await ensureAwake();
             const u = user();
@@ -152,7 +172,7 @@
         const el = document.getElementById(elementId);
         if (!el) return;
         el.style.display = 'inline-block';
-        if (hosted) {
+        if (staticSite) {
             el.href = '#';
             el.onclick = function (event) { event.preventDefault(); download(jobId, type); };
         } else {
@@ -160,7 +180,29 @@
         }
     }
 
+    function initBrowserMode() {
+        // no accounts: nothing to sign in to, and results stay in this browser
+        const dropdown = document.getElementById('userDropdown');
+        if (dropdown && dropdown.parentElement) dropdown.parentElement.remove();
+        const emailField = document.getElementById('user_email');
+        const emailCard = emailField && emailField.closest('.card');
+        if (emailCard) emailCard.remove();
+
+        const row = document.getElementById('ncbiKeyRow');
+        const input = document.getElementById('ncbi_api_key');
+        if (row && input) {
+            row.style.display = '';
+            try { input.value = localStorage.getItem('ksites.ncbiApiKey') || ''; } catch (e) { /* not available */ }
+            input.addEventListener('change', function () {
+                try { localStorage.setItem('ksites.ncbiApiKey', input.value.trim()); } catch (e) { /* not available */ }
+            });
+        }
+        const notes = document.querySelectorAll('[data-hosted-note]');
+        notes.forEach(function (note) { note.style.display = ''; });
+    }
+
     function initNav() {
+        if (browserMode) { initBrowserMode(); return; }
         if (!hosted) return;
         const u = user();
         const label = document.getElementById('userNameLabel');
@@ -172,7 +214,7 @@
     }
 
     window.KSITES = {
-        hosted: hosted, apiBase: apiBase, user: user, saveLogin: saveLogin, logout: logout,
+        hosted: hosted, browserMode: browserMode, apiBase: apiBase, user: user, saveLogin: saveLogin, logout: logout,
         page: page, ensureAwake: ensureAwake, bindDownload: bindDownload, banner: banner, clearBanner: clearBanner
     };
     window.ksFetch = apiFetch;

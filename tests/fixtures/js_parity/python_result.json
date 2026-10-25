@@ -1,0 +1,622 @@
+{
+ "input": {
+  "go_term": "GO:0006284",
+  "organism": "9606",
+  "evidence_filter": "experimental",
+  "genes": 6,
+  "max_pleiotropy": 10
+ },
+ "result": {
+  "metadata": {
+   "go_term": "GO:0006284",
+   "organism": "9606",
+   "resolved_organism": {
+    "taxid": "9606",
+    "scientific_name": "Homo sapiens",
+    "common_name": "human"
+   },
+   "max_pleiotropy": 10,
+   "evidence_filter": "experimental",
+   "species_validation": [
+    "9606",
+    "10090",
+    "10116",
+    "7227",
+    "6239"
+   ],
+   "predict_phenotypes": false,
+   "databases": [
+    "all"
+   ],
+   "annotation_coverage": {
+    "annotations_total": 291,
+    "annotations_read": 291,
+    "coverage": 1.0,
+    "complete": true,
+    "limit": 2000,
+    "message": ""
+   }
+  },
+  "genes": [
+   {
+    "symbol": "UNG",
+    "pleiotropy_score": 2.5918177931828215,
+    "specificity_score": 0.7408182206817179,
+    "evidence_quality": 0.65,
+    "literature_support": 1.0,
+    "literature_score": 1.0,
+    "pubmed_count": 1927,
+    "conservation_score": 0.75,
+    "composite_score": 0.7713272882726872,
+    "bp_term_count": 6,
+    "data_issues": [],
+    "kegg_pathway_count": 2,
+    "experimental_evidence_count": 2,
+    "computational_evidence_count": 0,
+    "iea_evidence_count": 2,
+    "cross_species_validation": {
+     "gene_symbol": "UNG",
+     "target_go_term": "GO:0006284",
+     "species_results": {
+      "10090": {
+       "taxid": "10090",
+       "organism": "Mus musculus",
+       "found": true,
+       "pleiotropy_score": 8.347011117784135,
+       "specificity_score": 0.16529888822158656,
+       "bp_term_count": 7
+      },
+      "7227": {
+       "taxid": "7227",
+       "organism": "Drosophila melanogaster",
+       "found": false,
+       "pleiotropy_score": null,
+       "specificity_score": null,
+       "bp_term_count": 0
+      },
+      "9606": {
+       "taxid": "9606",
+       "organism": "Homo sapiens",
+       "found": true,
+       "pleiotropy_score": 7.768698398515702,
+       "specificity_score": 0.2231301601484298,
+       "bp_term_count": 6
+      },
+      "10116": {
+       "taxid": "10116",
+       "organism": "Unknown",
+       "found": true,
+       "pleiotropy_score": 2.5918177931828215,
+       "specificity_score": 0.7408182206817179,
+       "bp_term_count": 2
+      },
+      "6239": {
+       "taxid": "6239",
+       "organism": "Caenorhabditis elegans",
+       "found": true,
+       "pleiotropy_score": 4.511883639059735,
+       "specificity_score": 0.5488116360940265,
+       "bp_term_count": 3
+      }
+     },
+     "conservation_score": 0.8,
+     "specificity_consistency": 0.763808225938837,
+     "found_in_species": 4,
+     "species_queried": 5,
+     "lookup_errors": 0
+    },
+    "phenotype_prediction": null,
+    "safety_recommendation": {
+     "safety_level": "SAFE",
+     "primary_recommendation": "Standard Knockout",
+     "alternative_recommendations": [],
+     "justification": [
+      "Low pleiotropy score (2.6) indicates specific function",
+      "Strong literature support for this gene"
+     ],
+     "concerns": [
+      "No major concerns identified"
+     ],
+     "mitigation_strategies": [
+      "Standard validation sufficient"
+     ],
+     "experimental_considerations": [
+      "Include appropriate controls (wild-type and non-targeting controls)",
+      "Plan for phenotypic scoring at multiple developmental stages"
+     ],
+     "confidence_score": 0.5666666666666667
+    },
+    "description": "Uracil-DNA glycosylase",
+    "entrez_id": "UniProtKB:P13051"
+   },
+   {
+    "symbol": "LIG1",
+    "pleiotropy_score": 0.0,
+    "specificity_score": 1.0,
+    "evidence_quality": 0.5285714285714286,
+    "literature_support": 0.5,
+    "literature_score": 0.5,
+    "pubmed_count": 0,
+    "conservation_score": 0.25,
+    "composite_score": 0.6696428571428571,
+    "bp_term_count": 12,
+    "data_issues": [],
+    "kegg_pathway_count": 5,
+    "experimental_evidence_count": 1,
+    "computational_evidence_count": 3,
+    "iea_evidence_count": 3,
+    "cross_species_validation": {
+     "gene_symbol": "LIG1",
+     "target_go_term": "GO:0006284",
+     "species_results": {
+      "9606": {
+       "taxid": "9606",
+       "organism": "Homo sapiens",
+       "found": true,
+       "pleiotropy_score": 9.327944872602503,
+       "specificity_score": 0.06720551273974973,
+       "bp_term_count": 10
+      },
+      "10116": {
+       "taxid": "10116",
+       "organism": "Unknown",
+       "found": true,
+       "pleiotropy_score": 9.092820467105875,
+       "specificity_score": 0.09071795328941246,
+       "bp_term_count": 9
+      },
+      "10090": {
+       "taxid": "10090",
+       "organism": "Mus musculus",
+       "found": false,
+       "pleiotropy_score": null,
+       "specificity_score": null,
+       "bp_term_count": 0
+      },
+      "7227": {
+       "taxid": "7227",
+       "organism": "Drosophila melanogaster",
+       "found": false,
+       "pleiotropy_score": null,
+       "specificity_score": null,
+       "bp_term_count": 0
+      },
+      "6239": {
+       "taxid": "6239",
+       "organism": "Caenorhabditis elegans",
+       "found": false,
+       "pleiotropy_score": null,
+       "specificity_score": null,
+       "bp_term_count": 0
+      }
+     },
+     "conservation_score": 0.4,
+     "specificity_consistency": 0.9882437797251686,
+     "found_in_species": 2,
+     "species_queried": 5,
+     "lookup_errors": 0
+    },
+    "phenotype_prediction": null,
+    "safety_recommendation": {
+     "safety_level": "SAFE",
+     "primary_recommendation": "Standard Knockout",
+     "alternative_recommendations": [],
+     "justification": [
+      "Low pleiotropy score (0.0) indicates specific function"
+     ],
+     "concerns": [
+      "No major concerns identified"
+     ],
+     "mitigation_strategies": [
+      "Standard validation sufficient"
+     ],
+     "experimental_considerations": [
+      "Include appropriate controls (wild-type and non-targeting controls)",
+      "Plan for phenotypic scoring at multiple developmental stages"
+     ],
+     "confidence_score": 0.39999999999999997
+    },
+    "description": "DNA ligase 1",
+    "entrez_id": "UniProtKB:P18858"
+   },
+   {
+    "symbol": "POLB",
+    "pleiotropy_score": 2.5918177931828215,
+    "specificity_score": 0.7408182206817179,
+    "evidence_quality": 0.48888888888888893,
+    "literature_support": 0.769165345971071,
+    "literature_score": 0.769165345971071,
+    "pubmed_count": 203,
+    "conservation_score": 0.5,
+    "composite_score": 0.6473825796891236,
+    "bp_term_count": 13,
+    "data_issues": [],
+    "kegg_pathway_count": 3,
+    "experimental_evidence_count": 2,
+    "computational_evidence_count": 1,
+    "iea_evidence_count": 6,
+    "cross_species_validation": {
+     "gene_symbol": "POLB",
+     "target_go_term": "GO:0006284",
+     "species_results": {
+      "7227": {
+       "taxid": "7227",
+       "organism": "Drosophila melanogaster",
+       "found": false,
+       "pleiotropy_score": null,
+       "specificity_score": null,
+       "bp_term_count": 0
+      },
+      "9606": {
+       "taxid": "9606",
+       "organism": "Homo sapiens",
+       "found": true,
+       "pleiotropy_score": 10.0,
+       "specificity_score": 0.0,
+       "bp_term_count": 12
+      },
+      "10116": {
+       "taxid": "10116",
+       "organism": "Unknown",
+       "found": true,
+       "pleiotropy_score": 10.0,
+       "specificity_score": 0.0,
+       "bp_term_count": 22
+      },
+      "10090": {
+       "taxid": "10090",
+       "organism": "Mus musculus",
+       "found": true,
+       "pleiotropy_score": 10.0,
+       "specificity_score": 0.0,
+       "bp_term_count": 22
+      },
+      "6239": {
+       "taxid": "6239",
+       "organism": "Caenorhabditis elegans",
+       "found": false,
+       "pleiotropy_score": null,
+       "specificity_score": null,
+       "bp_term_count": 0
+      }
+     },
+     "conservation_score": 0.6,
+     "specificity_consistency": 1.0,
+     "found_in_species": 3,
+     "species_queried": 5,
+     "lookup_errors": 0
+    },
+    "phenotype_prediction": null,
+    "safety_recommendation": {
+     "safety_level": "SAFE",
+     "primary_recommendation": "Standard Knockout",
+     "alternative_recommendations": [],
+     "justification": [
+      "Low pleiotropy score (2.6) indicates specific function"
+     ],
+     "concerns": [
+      "No major concerns identified"
+     ],
+     "mitigation_strategies": [
+      "Standard validation sufficient"
+     ],
+     "experimental_considerations": [
+      "Include appropriate controls (wild-type and non-targeting controls)",
+      "Plan for phenotypic scoring at multiple developmental stages"
+     ],
+     "confidence_score": 0.489721781990357
+    },
+    "description": "DNA polymerase beta",
+    "entrez_id": "UniProtKB:P06746"
+   },
+   {
+    "symbol": "POLQ",
+    "pleiotropy_score": 8.775435717470181,
+    "specificity_score": 0.12245642825298186,
+    "evidence_quality": 0.7916666666666666,
+    "literature_support": 0.769165345971071,
+    "literature_score": 0.769165345971071,
+    "pubmed_count": 203,
+    "conservation_score": 1.0,
+    "composite_score": 0.5507323071620737,
+    "bp_term_count": 13,
+    "data_issues": [],
+    "kegg_pathway_count": 0,
+    "experimental_evidence_count": 8,
+    "computational_evidence_count": 1,
+    "iea_evidence_count": 3,
+    "cross_species_validation": {
+     "gene_symbol": "POLQ",
+     "target_go_term": "GO:0006284",
+     "species_results": {
+      "9606": {
+       "taxid": "9606",
+       "organism": "Homo sapiens",
+       "found": true,
+       "pleiotropy_score": 10.0,
+       "specificity_score": 0.0,
+       "bp_term_count": 13
+      },
+      "10090": {
+       "taxid": "10090",
+       "organism": "Mus musculus",
+       "found": true,
+       "pleiotropy_score": 10.0,
+       "specificity_score": 0.0,
+       "bp_term_count": 13
+      },
+      "7227": {
+       "taxid": "7227",
+       "organism": "Drosophila melanogaster",
+       "found": true,
+       "pleiotropy_score": 8.347011117784135,
+       "specificity_score": 0.16529888822158656,
+       "bp_term_count": 7
+      },
+      "10116": {
+       "taxid": "10116",
+       "organism": "Unknown",
+       "found": true,
+       "pleiotropy_score": 10.0,
+       "specificity_score": 0.0,
+       "bp_term_count": 13
+      },
+      "6239": {
+       "taxid": "6239",
+       "organism": "Caenorhabditis elegans",
+       "found": true,
+       "pleiotropy_score": 8.347011117784135,
+       "specificity_score": 0.16529888822158656,
+       "bp_term_count": 7
+      }
+     },
+     "conservation_score": 1.0,
+     "specificity_consistency": 0.9190204137615521,
+     "found_in_species": 5,
+     "species_queried": 5,
+     "lookup_errors": 0
+    },
+    "phenotype_prediction": null,
+    "safety_recommendation": {
+     "safety_level": "HIGH_CONCERN",
+     "primary_recommendation": "CRISPR Interference (CRISPRi)",
+     "alternative_recommendations": [
+      "Heterozygous Knockout",
+      "Conditional Knockout (Cre-Lox)"
+     ],
+     "justification": [
+      "Very high pleiotropy score (8.8) indicates multiple biological functions",
+      "Highly conserved across species (1.00)"
+     ],
+     "concerns": [
+      "High pleiotropy may confound phenotype interpretation",
+      "Highly conserved gene - may be essential for basic cellular functions"
+     ],
+     "mitigation_strategies": [
+      "Use partial knockdown to study dose-dependent effects",
+      "Compare results with RNAi data if available",
+      "Phenotype Analysis of Stems cells & CRISPR-engineered (PASC) approach",
+      "Phenotype Suppression Screening to identify genetic interactors"
+     ],
+     "experimental_considerations": [
+      "Optimize dCas9-KRAB expression levels",
+      "Verify knockdown efficiency at mRNA and protein levels",
+      "Include appropriate controls (wild-type and non-targeting controls)",
+      "Plan for phenotypic scoring at multiple developmental stages"
+     ],
+     "confidence_score": 0.489721781990357
+    },
+    "description": "DNA polymerase theta",
+    "entrez_id": "UniProtKB:O75417"
+   },
+   {
+    "symbol": "RPA2",
+    "pleiotropy_score": 9.327944872602503,
+    "specificity_score": 0.06720551273974973,
+    "evidence_quality": 0.8384615384615385,
+    "literature_support": 0.8077486246456026,
+    "literature_score": 0.8077486246456026,
+    "pubmed_count": 265,
+    "conservation_score": 0.75,
+    "composite_score": 0.510547314640405,
+    "bp_term_count": 13,
+    "data_issues": [],
+    "kegg_pathway_count": 5,
+    "experimental_evidence_count": 10,
+    "computational_evidence_count": 0,
+    "iea_evidence_count": 3,
+    "cross_species_validation": {
+     "gene_symbol": "RPA2",
+     "target_go_term": "GO:0006284",
+     "species_results": {
+      "7227": {
+       "taxid": "7227",
+       "organism": "Drosophila melanogaster",
+       "found": true,
+       "pleiotropy_score": 2.5918177931828215,
+       "specificity_score": 0.7408182206817179,
+       "bp_term_count": 2
+      },
+      "10090": {
+       "taxid": "10090",
+       "organism": "Mus musculus",
+       "found": true,
+       "pleiotropy_score": 10.0,
+       "specificity_score": 0.0,
+       "bp_term_count": 12
+      },
+      "9606": {
+       "taxid": "9606",
+       "organism": "Homo sapiens",
+       "found": true,
+       "pleiotropy_score": 10.0,
+       "specificity_score": 0.0,
+       "bp_term_count": 13
+      },
+      "10116": {
+       "taxid": "10116",
+       "organism": "Unknown",
+       "found": true,
+       "pleiotropy_score": 10.0,
+       "specificity_score": 0.0,
+       "bp_term_count": 12
+      },
+      "6239": {
+       "taxid": "6239",
+       "organism": "Caenorhabditis elegans",
+       "found": false,
+       "pleiotropy_score": null,
+       "specificity_score": null,
+       "bp_term_count": 0
+      }
+     },
+     "conservation_score": 0.8,
+     "specificity_consistency": 0.679216300651623,
+     "found_in_species": 4,
+     "species_queried": 5,
+     "lookup_errors": 0
+    },
+    "phenotype_prediction": null,
+    "safety_recommendation": {
+     "safety_level": "HIGH_CONCERN",
+     "primary_recommendation": "CRISPR Interference (CRISPRi)",
+     "alternative_recommendations": [
+      "Heterozygous Knockout",
+      "Conditional Knockout (Cre-Lox)"
+     ],
+     "justification": [
+      "Very high pleiotropy score (9.3) indicates multiple biological functions",
+      "Strong literature support for this gene"
+     ],
+     "concerns": [
+      "High pleiotropy may confound phenotype interpretation"
+     ],
+     "mitigation_strategies": [
+      "Use partial knockdown to study dose-dependent effects",
+      "Compare results with RNAi data if available",
+      "Phenotype Analysis of Stems cells & CRISPR-engineered (PASC) approach",
+      "Phenotype Suppression Screening to identify genetic interactors"
+     ],
+     "experimental_considerations": [
+      "Optimize dCas9-KRAB expression levels",
+      "Verify knockdown efficiency at mRNA and protein levels",
+      "Include appropriate controls (wild-type and non-targeting controls)",
+      "Plan for phenotypic scoring at multiple developmental stages"
+     ],
+     "confidence_score": 0.5025828748818676
+    },
+    "description": "Replication protein A 32 kDa subunit",
+    "entrez_id": "UniProtKB:P15927"
+   },
+   {
+    "symbol": "PARP1",
+    "pleiotropy_score": 10.0,
+    "specificity_score": 0.0,
+    "evidence_quality": 0.72,
+    "literature_support": 1.0,
+    "literature_score": 1.0,
+    "pubmed_count": 6944,
+    "conservation_score": 0.75,
+    "composite_score": 0.4925,
+    "bp_term_count": 58,
+    "data_issues": [],
+    "kegg_pathway_count": 5,
+    "experimental_evidence_count": 30,
+    "computational_evidence_count": 7,
+    "iea_evidence_count": 18,
+    "cross_species_validation": {
+     "gene_symbol": "PARP1",
+     "target_go_term": "GO:0006284",
+     "species_results": {
+      "7227": {
+       "taxid": "7227",
+       "organism": "Drosophila melanogaster",
+       "found": true,
+       "pleiotropy_score": 10.0,
+       "specificity_score": 0.0,
+       "bp_term_count": 16
+      },
+      "10090": {
+       "taxid": "10090",
+       "organism": "Mus musculus",
+       "found": true,
+       "pleiotropy_score": 10.0,
+       "specificity_score": 0.0,
+       "bp_term_count": 61
+      },
+      "9606": {
+       "taxid": "9606",
+       "organism": "Homo sapiens",
+       "found": true,
+       "pleiotropy_score": 10.0,
+       "specificity_score": 0.0,
+       "bp_term_count": 58
+      },
+      "6239": {
+       "taxid": "6239",
+       "organism": "Caenorhabditis elegans",
+       "found": false,
+       "pleiotropy_score": null,
+       "specificity_score": null,
+       "bp_term_count": 0
+      },
+      "10116": {
+       "taxid": "10116",
+       "organism": "Unknown",
+       "found": true,
+       "pleiotropy_score": 10.0,
+       "specificity_score": 0.0,
+       "bp_term_count": 62
+      }
+     },
+     "conservation_score": 0.8,
+     "specificity_consistency": 1.0,
+     "found_in_species": 4,
+     "species_queried": 5,
+     "lookup_errors": 0
+    },
+    "phenotype_prediction": null,
+    "safety_recommendation": {
+     "safety_level": "HIGH_CONCERN",
+     "primary_recommendation": "CRISPR Interference (CRISPRi)",
+     "alternative_recommendations": [
+      "Heterozygous Knockout",
+      "Conditional Knockout (Cre-Lox)"
+     ],
+     "justification": [
+      "Very high pleiotropy score (10.0) indicates multiple biological functions",
+      "Strong literature support for this gene"
+     ],
+     "concerns": [
+      "High pleiotropy may confound phenotype interpretation"
+     ],
+     "mitigation_strategies": [
+      "Use partial knockdown to study dose-dependent effects",
+      "Compare results with RNAi data if available",
+      "Phenotype Analysis of Stems cells & CRISPR-engineered (PASC) approach",
+      "Phenotype Suppression Screening to identify genetic interactors"
+     ],
+     "experimental_considerations": [
+      "Optimize dCas9-KRAB expression levels",
+      "Verify knockdown efficiency at mRNA and protein levels",
+      "Include appropriate controls (wild-type and non-targeting controls)",
+      "Plan for phenotypic scoring at multiple developmental stages"
+     ],
+     "confidence_score": 0.5666666666666667
+    },
+    "description": "Poly [ADP-ribose] polymerase 1",
+    "entrez_id": "UniProtKB:P09874"
+   }
+  ],
+  "insufficient_data_genes": [],
+  "warnings": [],
+  "statistics": {
+   "total_genes_screened": 6,
+   "genes_passed_filter": 6,
+   "genes_insufficient_data": 0,
+   "avg_pleiotropy": 5.547836029406388,
+   "most_specific_gene": "LIG1",
+   "least_specific_gene": "PARP1"
+  }
+ }
+}
