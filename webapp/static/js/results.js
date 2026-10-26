@@ -499,6 +499,7 @@ function renderSummary(data) {
     const stat = data.statistics || {};
     const measuredCount = (stat.by_evidence_basis || {}).measured || 0;
     const orthologCount = (stat.by_evidence_basis || {}).ortholog || 0;
+    const estimateCount = (stat.by_evidence_basis || {}).estimate || 0;
     
     container.innerHTML = `
         <div class="row g-4">
@@ -521,6 +522,10 @@ function renderSummary(data) {
                                 <td class="text-muted">Verdict based on a measurement:</td>
                                 <td class="fw-bold">${measuredCount + orthologCount} of ${stats.totalGenes}</td>
                             </tr>
+                            ${estimateCount ? `<tr>
+                                <td class="text-muted">Verdict based on an estimate:</td>
+                                <td class="fw-bold">${estimateCount} of ${stats.totalGenes}</td>
+                            </tr>` : ''}
                             ${levelRows}
                         </table>
                     </div>
