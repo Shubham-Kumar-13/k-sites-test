@@ -496,10 +496,11 @@ function renderSummary(data) {
                                 <td class="text-muted"><span class="badge ${safetyBadgeClass(level)}">${safetyLabel(level)}</span></td>
                                 <td class="fw-bold">${levelCounts[level]}</td>
                             </tr>`).join('');
-    const stat = data.statistics || {};
-    const measuredCount = (stat.by_evidence_basis || {}).measured || 0;
-    const orthologCount = (stat.by_evidence_basis || {}).ortholog || 0;
-    const estimateCount = (stat.by_evidence_basis || {}).estimate || 0;
+    // counted over the genes shown (the statistics cover every gene assessed, which can be more than the report shows)
+    const basisOf = (g) => (g.safety_recommendation || {}).evidence_basis;
+    const measuredCount = genes.filter(g => basisOf(g) === 'measured').length;
+    const orthologCount = genes.filter(g => basisOf(g) === 'ortholog').length;
+    const estimateCount = genes.filter(g => basisOf(g) === 'estimate').length;
     
     container.innerHTML = `
         <div class="row g-4">
