@@ -177,6 +177,14 @@ class SafetyRecommender:
             primary_rec = RecommendationType.HETEROZYGOUS_KO
             alternative_recs = [RecommendationType.CONDITIONAL_KO, RecommendationType.VALIDATED_KO]
 
+        # A viable mouse ortholog is evidence against lethality: a long list of annotated roles alone (which predicts
+        # lethality only weakly, see VALIDATION.md) must not turn such a gene into HIGH_CONCERN or AVOID
+        viable_hint = bool(distant and not distant_risk)
+        if viable_hint and _LEVEL_ORDER.index(safety_level) > _LEVEL_ORDER.index(SafetyLevel.MODERATE_CONCERN):
+            safety_level = SafetyLevel.MODERATE_CONCERN
+            primary_rec = RecommendationType.VALIDATED_KO
+            alternative_recs = [RecommendationType.CONDITIONAL_KO]
+
         # Without a measurement nothing shows that the knockout is safe: the verdict is never better than CAUTION,
         # and every such gene says that its lethality has not been measured
         unverified = bool(knockout_evidence) and (not measured or estimated)

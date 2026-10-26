@@ -332,6 +332,22 @@ class TestViableMouseButEssentialHumanOrtholog:
         assert self.level({"v": "V", "n": [0, 0, 2]}).safety_level.value == "SAFE"
 
 
+class TestViableMouseOrthologHintInADistantOrganism:
+    def level(self, mouse, pleiotropy):
+        index = {"format": 1, "built": "2026-01-01", "stages": {}, "systems": [],
+                 "organisms": {"7955": {"name": "Danio rerio", "file": "7955.json", "layers": [], "distant": True}}, "sources": []}
+        record = {"o": ["wnt8a", "1:1"], "m": mouse}
+        provider = EvidenceProvider(DictSource({"index.json": index, "7955.json": {"genes": {"WNT8A": record}, "aliases": {}}}))
+        evidence = assess_gene(provider, "7955", "WNT8A", "organism")
+        return get_safety_recommendation("WNT8A", pleiotropy, knockout_evidence=evidence).safety_level.value
+
+    def test_many_annotated_roles_alone_do_not_make_a_gene_with_a_viable_mouse_ortholog_high_concern(self):
+        assert self.level({"v": "V", "n": [0, 0, 1]}, 10.0) in ("CAUTION", "MODERATE_CONCERN")
+
+    def test_a_lethal_mouse_ortholog_still_raises_the_concern(self):
+        assert self.level({"v": "L", "n": [2, 0, 0], "s": "E"}, 2.0) in ("MODERATE_CONCERN", "HIGH_CONCERN", "AVOID")
+
+
 class TestLethalityEstimate:
     """Genes without a knockout result get an estimate from their human ortholog; it is never a measurement."""
 

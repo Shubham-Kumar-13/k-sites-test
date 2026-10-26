@@ -521,6 +521,15 @@ export function getSafetyRecommendation({ symbol, pleiotropyScore, phenotypePred
         alternatives = [Recommendation.CONDITIONAL_KO, Recommendation.VALIDATED_KO];
     }
 
+    // A viable mouse ortholog is evidence against lethality: a long list of annotated roles alone (which predicts
+    // lethality only weakly, see VALIDATION.md) must not turn such a gene into HIGH_CONCERN or AVOID
+    const viableHint = !!(distant && !distantRisk);
+    if (viableHint && LEVEL_ORDER.indexOf(safetyLevel) > LEVEL_ORDER.indexOf(SafetyLevel.MODERATE_CONCERN)) {
+        safetyLevel = SafetyLevel.MODERATE_CONCERN;
+        primary = Recommendation.VALIDATED_KO;
+        alternatives = [Recommendation.CONDITIONAL_KO];
+    }
+
     // Without a measurement nothing shows that the knockout is safe: the verdict is never better than CAUTION,
     // and every such gene says that its lethality has not been measured
     const unverified = !!knockoutEvidence && (!measured || estimated);

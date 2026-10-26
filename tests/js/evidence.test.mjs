@@ -264,6 +264,20 @@ test('a viable mouse knockout of a gene whose human ortholog is essential in cel
     assert.equal((await level({ v: 'V', n: [0, 0, 2] })).safety_level, 'SAFE');
 });
 
+test('many annotated roles alone do not make a gene with a viable mouse ortholog HIGH_CONCERN in a distant organism', async () => {
+    const level = async (mouse, pleiotropy) => {
+        const files = {
+            'index.json': { format: 1, built: '2026-01-01', stages: {}, systems: [], organisms: { 7955: { name: 'Danio rerio', file: '7955.json', layers: [], distant: true } }, sources: [] },
+            '7955.json': { genes: { WNT8A: { o: ['wnt8a', '1:1'], m: mouse } }, aliases: {} },
+        };
+        const evidence = await assessGene(new EvidenceProvider(async (name) => files[name]), '7955', 'WNT8A', 'organism');
+        return getSafetyRecommendation({ symbol: 'WNT8A', pleiotropyScore: pleiotropy, knockoutEvidence: evidence }).safety_level;
+    };
+
+    assert.ok(['CAUTION', 'MODERATE_CONCERN'].includes(await level({ v: 'V', n: [0, 0, 1] }, 10.0)));
+    assert.ok(['MODERATE_CONCERN', 'HIGH_CONCERN', 'AVOID'].includes(await level({ v: 'L', n: [2, 0, 0], s: 'E' }, 2.0)));
+});
+
 test('conservation counts the model species that carry the gene; literature is the number of linked articles', async () => {
     const files = {
         'index.json': { format: 1, built: '2026-01-01', organisms: { 9606: { name: 'Homo sapiens', file: '9606.json', layers: [] } }, sources: [] },
