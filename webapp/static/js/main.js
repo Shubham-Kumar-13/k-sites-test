@@ -491,6 +491,13 @@ function initializeEventListeners() {
         const input = document.getElementById('max_genes');
         input.value = input.max || 500;
         input.dispatchEvent(new Event('change'));
+        const note = document.getElementById('showAllNote');
+        if (note) note.style.display = 'inline';
+    });
+    // typing a smaller number again ends "show all"
+    document.getElementById('max_genes')?.addEventListener('input', () => {
+        const note = document.getElementById('showAllNote');
+        if (note) note.style.display = 'none';
     });
 
     // Refresh gene count
