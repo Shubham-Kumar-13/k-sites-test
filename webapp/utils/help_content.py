@@ -194,7 +194,11 @@ ANALYTICAL_TERMS = {
             <ul>
                 <li><strong>Whole-organism knockout.</strong> Mouse: the literature curated by MGI (knockout alleles in
                     homozygous mice) and the systematic IMPC viability screen. Human and rat genes use the knockout of
-                    their one-to-one mouse ortholog (Alliance of Genome Resources). Yeast: SGD deletion phenotypes.
+                    their one-to-one mouse ortholog (Alliance of Genome Resources). Yeast: SGD deletion phenotypes. Zebrafish:
+                    ZFIN mutant phenotypes (clean homozygous mutants only). Fly: FlyBase allele lethality phenotypes.
+                    Worm: WormBase allele and RNAi lethal / sterile phenotypes. For the genes of zebrafish, fly and worm
+                    that these databases do not cover, and for Xenopus, the mouse ortholog's knockout is shown as a hint
+                    only. Plants and other organisms have no measured data.
                     The result is <em>lethal</em> (with the stage of death), <em>subviable</em> (fewer homozygotes than
                     expected) or <em>viable</em>, with the number of knockout lines behind it and links to the papers.</li>
                 <li><strong>Human cell lines.</strong> The percentage of 1,178 cancer cell lines in which a CRISPR knockout
@@ -225,7 +229,7 @@ ANALYTICAL_TERMS = {
                     version is part of every report.</li>
             </ul>
         """,
-        "reference": "MGI, IMPC, Alliance of Genome Resources, SGD, DepMap 24Q4, gnomAD v4.1, GTEx v8, Ensembl Compara; checks on the Validation page"
+        "reference": "MGI, IMPC, Alliance of Genome Resources, SGD, ZFIN, FlyBase, WormBase, DepMap 24Q4, gnomAD v4.1, GTEx v8, Ensembl Compara; checks on the Validation page"
     },
 
     "knockout_context": {
@@ -239,13 +243,13 @@ ANALYTICAL_TERMS = {
             <ul>
                 <li><strong>Cultured cells</strong> (the default for human): the verdict follows the DepMap CRISPR screens.
                     The mouse result is still shown, as a reminder that an animal model would need a conditional allele.</li>
-                <li><strong>Whole organism</strong> (the default for mouse, rat, yeast and everything else): the verdict
+                <li><strong>Whole organism</strong> (the default for mouse, rat, yeast, zebrafish, fly, worm and everything else): the verdict
                     follows the knockout organism (or the mouse ortholog).</li>
             </ul>
             <p>Both measurements are shown for every gene whichever you choose; the card marks the one that decides
             the verdict.</p>
         """,
-        "reference": "DepMap (cell lines); MGI / IMPC / SGD (organisms)"
+        "reference": "DepMap (cell lines); MGI / IMPC / SGD / ZFIN / FlyBase / WormBase (organisms)"
     },
 
     "phenotype_prediction": {
@@ -404,7 +408,7 @@ METHODOLOGY_SECTIONS = [
         "title": "Step 5: Measured Knockout Evidence",
         "icon": "fa-vial",
         "content": """
-            <p>Every gene is looked up in the published knockout data (mouse and yeast knockouts, human cell-line
+            <p>Every gene is looked up in the published knockout data (mouse, yeast, zebrafish, fly and worm knockouts, human cell-line
             screens, tolerance of loss-of-function variants, tissue expression and paralogs). See
             <a href="#knockout_evidence">Measured knockout evidence</a>. Genes above the pleiotropy cutoff are not
             dropped silently: they are listed as "not shown" together with their measured result.</p>
@@ -458,7 +462,7 @@ FAQ_ITEMS = [
     },
     {
         "question": "How do I know the lethal / viable calls are right?",
-        "answer": "They are the published measurements, not guesses: the MGI literature curation and the IMPC knockout screen for mouse, SGD for yeast, DepMap for human cell lines. We checked them against the original papers of 16 well-known knockouts (all 16 agree, see the Validation page), and the two mouse sources agree for 92% of the 7,500 genes that both cover. Each gene lists the papers (PubMed links) behind its result."
+        "answer": "They are the published measurements, not guesses: the MGI literature curation and the IMPC knockout screen for mouse, SGD for yeast, ZFIN for zebrafish, FlyBase for fly, WormBase for worm, DepMap for human cell lines. We checked them against the original papers of 24 well-known knockouts in mouse, zebrafish, fly and worm (all 24 agree, see the Validation page), and the two mouse sources agree for 92% of the 7,500 genes that both cover. Each gene lists the papers (PubMed links) behind its result."
     },
     {
         "question": "Why is a gene fine in human cells but marked AVOID in the mouse?",

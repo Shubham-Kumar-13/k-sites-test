@@ -3,7 +3,7 @@ name: Deploy the K-Sites website to GitHub Pages
 # The website runs the whole analysis in each visitor's browser, so Pages is all that is needed.
 # Besides the pages, the build publishes two sets of data files that the browser reads:
 #   kegg-data/       pathway counts per gene (KEGG)
-#   evidence-data/   measured knockout evidence (MGI, IMPC, DepMap, gnomAD, GTEx, SGD, Alliance, Ensembl)
+#   evidence-data/   measured knockout evidence (MGI, IMPC, DepMap, gnomAD, GTEx, SGD, ZFIN, FlyBase, WormBase, Alliance, Ensembl)
 on:
   push:
     branches: [master, main]
@@ -57,7 +57,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .cache/evidence-sources
-          key: evidence-sources-${{ steps.month.outputs.value }}
+          # v2: the ZFIN, FlyBase and WormBase files joined the cache (a cache saved earlier lacks them)
+          key: evidence-sources-v2-${{ steps.month.outputs.value }}
 
       - name: Build the measured knockout evidence
         run: python tools/build_evidence_data.py --out site/evidence-data

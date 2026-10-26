@@ -1,5 +1,5 @@
 {
-  "description": "Mouse knockout outcomes taken from the abstracts of the original papers (read through PubMed). 'lethal': homozygous knockouts do not survive; 'viable': they do. Used to check the measured-evidence data and the verdicts against published results.",
+  "description": "Knockout outcomes taken from the abstracts of the original papers (read through PubMed). 'lethal': homozygous knockouts do not survive; 'viable': they do. 'taxid' names the organism (default mouse, 10090). Used to check the measured-evidence data and the verdicts against published results.",
   "genes": [
     {"gene": "Polb", "expected": "lethal", "stage": "P", "pmids": [10716939], "doi": "10.1093/emboj/19.6.1397", "citation": "Sugo et al. 2000, EMBO J", "finding": "died of respiratory failure immediately after birth"},
     {"gene": "Tdg", "expected": "lethal", "stage": "E", "pmids": [21278727, 21722948], "doi": "10.1038/nature09672", "citation": "Cortazar et al. 2011, Nature; Cortellino et al. 2011, Cell", "finding": "essential for embryonic development; knockout is embryonic lethal"},
@@ -16,6 +16,14 @@
     {"gene": "Parp1", "expected": "viable", "pmids": [7698643], "doi": "10.1101/gad.9.5.509", "citation": "Wang et al. 1995, Genes Dev", "finding": "healthy and fertile; some skin disease in old mice"},
     {"gene": "Xpa", "expected": "viable", "pmids": [7675086], "doi": "10.1038/377169a0", "citation": "de Vries et al. 1995, Nature", "finding": "appear normal to 13 months; very susceptible to UV-induced tumours"},
     {"gene": "Smug1", "expected": "viable", "pmids": [22447450], "doi": "10.1093/nar/gks259", "citation": "Kemmerich et al. 2012, Nucleic Acids Res", "finding": "breed normally and remain apparently healthy beyond 1 year"},
-    {"gene": "Nthl1", "expected": "viable", "pmids": [12093749], "doi": "10.1093/emboj/cdf350", "citation": "Takao et al. 2002, EMBO J", "finding": "no detectable phenotypical abnormality"}
+    {"gene": "Nthl1", "expected": "viable", "pmids": [12093749], "doi": "10.1093/emboj/cdf350", "citation": "Takao et al. 2002, EMBO J", "finding": "no detectable phenotypical abnormality"},
+    {"taxid": "7955", "gene": "smn1", "expected": "lethal", "stage": "L", "pmids": [19592581], "doi": "10.1093/hmg/ddp310", "citation": "Boon et al. 2009, Hum Mol Genet", "finding": "homozygous mutants of three alleles died during the second week of larval development"},
+    {"taxid": "7955", "gene": "ar", "expected": "viable", "pmids": [29228103], "doi": "10.1093/biolre/iox165", "citation": "Tang et al. 2018, Biol Reprod", "finding": "homozygous ar mutant fish were studied as adults; males had smaller testes and were infertile"},
+    {"taxid": "7955", "gene": "lhb", "expected": "viable", "pmids": [25238195], "doi": "10.1210/me.2014-1061", "citation": "Chu et al. 2014, Mol Endocrinol", "finding": "homozygous lhb mutant males were fertile; females were infertile"},
+    {"taxid": "7227", "gene": "Egfr", "expected": "lethal", "stage": "E", "pmids": [2515109], "doi": "10.1093/genetics/123.4.771", "citation": "Clifford and Schupbach 1989, Genetics", "finding": "torpedo (Egfr) alleles are zygotic lethal; the gene is the embryonic lethal faint little ball"},
+    {"taxid": "7227", "gene": "Wnt2", "expected": "viable", "pmids": [9553045], "doi": "10.1101/gad.12.8.1155", "citation": "Kozopas et al. 1998, Genes Dev", "finding": "DWnt-2 null mutant flies were examined as adults; the testes lacked pigment cells of the sheath"},
+    {"taxid": "7227", "gene": "Nos", "expected": "viable", "pmids": [20178753], "doi": "10.1016/j.cub.2009.12.011", "citation": "Yakubovich et al. 2010, Curr Biol", "finding": "nitric oxide synthase is not essential for Drosophila development (title; abstract not available)"},
+    {"taxid": "6239", "gene": "skn-1", "expected": "lethal", "stage": "E", "pmids": [1547503], "doi": "10.1016/0092-8674(92)90078-q", "citation": "Bowerman et al. 1992, Cell", "finding": "recessive maternal-effect mutations; mutant embryos make no pharyngeal or intestinal cells"},
+    {"taxid": "6239", "gene": "fem-1", "expected": "viable", "pmids": [6541600], "doi": "10.1016/0012-1606(84)90077-0", "citation": "Doniach and Hodgkin 1984, Dev Biol", "finding": "null alleles are viable: XO and XX animals develop as females"}
   ]
 }

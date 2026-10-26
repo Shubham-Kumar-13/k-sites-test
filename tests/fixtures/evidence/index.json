@@ -34,41 +34,44 @@
   "6239": {
    "distant": true,
    "file": "6239.json",
-   "genes": 12,
+   "genes": 20,
    "layers": [
+    "knockout",
     "ortholog-knockout"
    ],
-   "measured": 12,
+   "measured": 14,
    "name": "Caenorhabditis elegans"
   },
   "7227": {
    "distant": true,
    "file": "7227.json",
-   "genes": 12,
+   "genes": 21,
    "layers": [
+    "knockout",
     "ortholog-knockout"
    ],
-   "measured": 12,
+   "measured": 15,
    "name": "Drosophila melanogaster"
   },
   "7955": {
    "distant": true,
    "file": "7955.json",
-   "genes": 12,
+   "genes": 19,
    "layers": [
+    "knockout",
     "ortholog-knockout"
    ],
-   "measured": 12,
+   "measured": 13,
    "name": "Danio rerio"
   },
   "8364": {
    "distant": true,
    "file": "8364.json",
-   "genes": 12,
+   "genes": 6,
    "layers": [
     "ortholog-knockout"
    ],
-   "measured": 12,
+   "measured": 6,
    "name": "Xenopus tropicalis"
   },
   "9606": {
@@ -148,11 +151,34 @@
    "name": "Saccharomyces Genome Database (SGD)",
    "url": "https://www.yeastgenome.org/",
    "what": "yeast deletion phenotypes (viable / inviable)"
+  },
+  {
+   "id": "zfin",
+   "license": "CC BY 4.0",
+   "name": "Zebrafish Information Network (ZFIN)",
+   "url": "https://zfin.org/downloads",
+   "what": "zebrafish mutant phenotypes"
+  },
+  {
+   "id": "flybase",
+   "license": "CC BY 4.0",
+   "name": "FlyBase",
+   "url": "https://s3ftp.flybase.org/releases/current/precomputed_files/",
+   "what": "Drosophila allele phenotypes (lethality, viability, sterility)"
+  },
+  {
+   "id": "wormbase",
+   "license": "CC0 (public domain)",
+   "name": "WormBase",
+   "url": "https://downloads.wormbase.org/releases/current-production-release/ONTOLOGY/",
+   "what": "C. elegans allele and RNAi phenotypes (lethal, sterile)"
   }
  ],
  "stages": {
+  "A": "adult",
   "E": "embryonic / prenatal",
   "J": "after birth, before adulthood",
+  "L": "larval, pupal or juvenile stage",
   "P": "perinatal / neonatal",
   "U": "age not stated",
   "W": "before weaning"

@@ -564,3 +564,248 @@ class TestOtherSpecies:
         assert list(files) == ["7227"] and list(index) == ["7227"]
         assert not (tmp_path / "8355.json").exists()
         assert "Xenopus laevis" in capsys.readouterr().out
+
+
+class TestZebrafish:
+    STAGES = ["ZDB-STAGE-1\tZFS:1\tZygote\t0.00\t0.75", "ZDB-STAGE-2\tZFS:2\tLarval\t96.00\t120.00",
+              "ZDB-STAGE-3\tZFS:3\tAdult\t2160.00\t17520.00", "ZDB-STAGE-050211-1\tZFS:0\tUnknown\t0.00\t17520.00"]
+    FEATURES = [
+        "ZDB-ALT-1\tSO:1\ta1\tgene1\tZDB-GENE-1\tSO:2\tis allele of\tPOINT_MUTATION\tSO:3\tC\t\t\t\t\t\t\t\t\t\t\t\tpremature stop\tSO:4",
+        "ZDB-ALT-2\tSO:1\ta2\tgene1\tZDB-GENE-1\tSO:2\tis allele of\tPOINT_MUTATION\tSO:3\tC\t\t\t\t\t\t\t\t\t\t\t\tmissense\tSO:4",
+        "ZDB-ALT-3\tSO:1\ta3\tgene2\tZDB-GENE-2\tSO:2\tis allele of\tDELETION",
+        "ZDB-ALT-4\tSO:1\ta4\tgene3\tZDB-GENE-3\tSO:2\tis allele of\tTRANSLOC",
+    ]
+
+    def fish_lines(self):
+        def line(fish, name, gene, allele, construct="", reagent=""):
+            return f"{fish}\t{name}\t{gene}\tsym\t{allele}\tal\t{construct}\t\t{reagent}\t\tZDB-GENO-{fish}\t{name}"
+        return [line("F1", "gene1<sup>a1/a1</sup>", "ZDB-GENE-1", "ZDB-ALT-1"),
+                line("F2", "gene1<sup>a2/a2</sup>", "ZDB-GENE-1", "ZDB-ALT-2"),
+                line("F3", "gene2<sup>a3/a3</sup>", "ZDB-GENE-2", "ZDB-ALT-3"),
+                line("F4", "gene1<sup>a1/+</sup>", "ZDB-GENE-1", "ZDB-ALT-1"),                       # heterozygous
+                line("F5", "gene1<sup>a1/a1</sup>", "ZDB-GENE-1", "ZDB-ALT-1", construct="ZDB-TG-1"),  # carries a transgene
+                line("F6", "gene1<sup>a1/a1</sup> + MO1-gene1", "ZDB-GENE-1", "ZDB-ALT-1", reagent="ZDB-MRPHLNO-1"),
+                line("F7", "gene3<sup>a4/a4</sup>", "ZDB-GENE-3", "ZDB-ALT-4")]                      # a translocation
+
+    def test_only_clean_homozygous_mutants_of_one_gene_are_kept(self):
+        features = bed.parse_zfin_features(self.FEATURES)
+
+        assert features == {"ZDB-ALT-1": "null", "ZDB-ALT-2": "other", "ZDB-ALT-3": "null", "ZDB-ALT-4": None}
+        assert bed.parse_zfin_fish(self.fish_lines(), features) == {
+            "F1": ("ZDB-GENE-1", "null"), "F2": ("ZDB-GENE-1", "other"), "F3": ("ZDB-GENE-2", "null")}
+
+    def phenotype(self, fish, gene, symbol, pato, name, tag="abnormal", structure="ZFA:0001094", stage="ZDB-STAGE-2", pub="ZDB-PUB-1"):
+        cols = [""] * 25
+        cols[0], cols[1], cols[2] = "1", symbol, gene
+        cols[7], cols[9], cols[10], cols[11] = structure, pato, name, tag
+        cols[18], cols[20], cols[21], cols[23] = fish, stage, stage, pub
+        return "\t".join(cols)
+
+    def test_death_viability_and_stage(self):
+        stages = bed.parse_zfin_stages(self.STAGES)
+        fish = {"F1": ("ZDB-GENE-1", "null"), "F2": ("ZDB-GENE-1", "other"), "F3": ("ZDB-GENE-2", "null")}
+        lines = [
+            self.phenotype("F1", "ZDB-GENE-1", "gene1", "PATO:0001422", "dead", stage="ZDB-STAGE-2"),
+            self.phenotype("F2", "ZDB-GENE-1", "gene1", "PATO:0000718", "lethal (sensu genetics)", stage="ZDB-STAGE-1"),
+            # a heart phenotype of a living adult: the null fish survived
+            self.phenotype("F3", "ZDB-GENE-2", "gene2", "PATO:0000001", "quality", structure="ZFA:0000114", stage="ZDB-STAGE-3"),
+        ]
+
+        records = bed.build_zebrafish(lines, fish, stages, {"ZDB-PUB-1": "123"})
+
+        assert records["GENE1"] == {"v": "L", "n": [2, 0, 0], "s": "E", "src": "Z", "pm": [123]}
+        assert records["GENE2"] == {"v": "V", "n": [0, 0, 1], "src": "Z", "pm": [123]}
+
+    def test_a_larval_phenotype_does_not_prove_viability_and_an_unclear_allele_cannot_prove_it(self):
+        stages = bed.parse_zfin_stages(self.STAGES)
+        fish = {"F1": ("ZDB-GENE-1", "null"), "F2": ("ZDB-GENE-2", "other")}
+        lines = [self.phenotype("F1", "ZDB-GENE-1", "gene1", "PATO:1", "q", structure="ZFA:5", stage="ZDB-STAGE-2"),
+                 self.phenotype("F2", "ZDB-GENE-2", "gene2", "PATO:1", "q", structure="ZFA:5", stage="ZDB-STAGE-3")]
+
+        assert bed.build_zebrafish(lines, fish, stages, {}) == {}
+
+    def test_the_stage_letters(self):
+        stages = bed.parse_zfin_stages(self.STAGES)
+
+        assert [bed.zfin_stage_letter(s, stages) for s in ("ZDB-STAGE-1", "ZDB-STAGE-2", "ZDB-STAGE-3", "ZDB-STAGE-050211-1", "x")] \
+            == ["E", "L", "A", "U", "U"]
+
+
+class TestFly:
+    ALLELES = [
+        "#Allele\tid\tgene\tgeneid\tclass\tclassid\tinsertion",
+        "g1[1]\tFBal1\tg1\tFBgn1\tamorphic allele - genetic evidence\tFBcv:1\t",
+        "g1[2]\tFBal2\tg1\tFBgn1\thypomorphic allele - genetic evidence\tFBcv:2\t",
+        "g2[1]\tFBal3\tg2\tFBgn2\tamorphic allele - molecular evidence\tFBcv:1\t",
+        "g3[D]\tFBal4\tg3\tFBgn3\tgain of function allele\tFBcv:3\t",
+        "g4[ts]\tFBal5\tg4\tFBgn4\theat sensitive loss of function allele\tFBcv:4\t",
+        "g5[P1]\tFBal6\tg5\tFBgn5\t\t\tFBti1",                      # a transposon insertion, class not stated
+        "g6[x]\tFBal7\tg6\tFBgn6\t\t\t",                             # nothing known about the effect
+        "Scer\\GAL4[x]\tFBal8\tScer\\GAL4\tnone\tamorphic allele\tFBcv:1\t",
+    ]
+
+    def row(self, allele, name, term, qualifiers="", ref="FBrf1"):
+        return f"sym\t{allele}\t{name}\t{term}\t{qualifiers}\t\t{ref}"
+
+    def test_which_alleles_describe_a_loss_of_the_gene(self):
+        alleles = bed.parse_fly_alleles(self.ALLELES)
+
+        assert alleles == {"FBal1": ("FBgn1", "g1", "null"), "FBal2": ("FBgn1", "g1", "hypo"), "FBal3": ("FBgn2", "g2", "null"),
+                           "FBal6": ("FBgn5", "g5", "insertion")}
+
+    def test_lethal_partial_and_viable_calls(self):
+        alleles = bed.parse_fly_alleles(self.ALLELES)
+        lines = [
+            self.row("FBal1", "lethal - all die during embryonic stage", "FBcv:0002033"),
+            self.row("FBal2", "lethal - all die before end of larval stage", "FBcv:0002002", ref="FBrf2"),
+            self.row("FBal3", "viable", "FBcv:0000349"),
+            self.row("FBal6", "partially lethal - majority die", "FBcv:0000352"),
+            self.row("FBal4", "lethal", "FBcv:0000351"),                      # not in the allele table
+        ]
+
+        records = bed.build_fly(lines, alleles, {"FBrf1": "11", "FBrf2": "12"})
+
+        assert records["G1"] == {"v": "L", "n": [2, 0, 0], "s": "E", "src": "F", "pm": [11, 12]}
+        assert records["G2"] == {"v": "V", "n": [0, 0, 1], "src": "F", "pm": [11]}
+        assert records["G5"] == {"v": "S", "n": [0, 1, 0], "s": "U", "src": "F", "pm": [11]}
+        assert "G3" not in records
+
+    def test_dominant_maternal_and_conditional_findings_are_not_a_knockout(self):
+        alleles = bed.parse_fly_alleles(self.ALLELES)
+        lines = [self.row("FBal1", "lethal", "FBcv:0000351", "dominant"),
+                 self.row("FBal1", "lethal", "FBcv:0000351", "maternal effect|recessive"),
+                 self.row("FBal3", "lethal", "FBcv:0000351", "heat sensitive")]
+
+        assert bed.build_fly(lines, alleles, {}) == {}
+
+    def test_viability_needs_a_null_allele_and_sterility_is_noted(self):
+        alleles = bed.parse_fly_alleles(self.ALLELES)
+        lines = [self.row("FBal2", "viable", "FBcv:0000349"),               # a hypomorph says nothing about the null
+                 self.row("FBal3", "viable", "FBcv:0000349"), self.row("FBal3", "female sterile", "FBcv:0000366")]
+
+        records = bed.build_fly(lines, alleles, {})
+
+        assert "G1" not in records
+        assert records["G2"]["v"] == "V" and records["G2"]["f"] == 1
+
+    def test_the_stage_of_death(self):
+        assert [bed.fly_stage_letter(n) for n in ("lethal - all die during embryonic stage", "lethal - all die before end of larval stage",
+                                                  "lethal - all die during pharate adult stage", "lethal - all die during adult stage",
+                                                  "lethal")] == ["E", "L", "L", "A", "U"]
+
+    def test_pubmed_ids_of_references(self):
+        lines = ["#header", "FBrf1\t123\tPMC1\t10.1/x", "FBrf2\t\t\t", "FBrf3\tnone\t"]
+
+        assert bed.parse_fly_references(lines) == {"FBrf1": "123"}
+
+
+class TestWorm:
+    OBO = ["[Term]", "id: WBPhenotype:0000062", "name: lethal", "", "[Term]", "id: WBPhenotype:0000050", "name: embryonic lethal",
+           "is_a: WBPhenotype:0000062 ! lethal", "", "[Term]", "id: WBPhenotype:0000054", "name: larval lethal",
+           "is_a: WBPhenotype:0000062 ! lethal", "", "[Term]", "id: WBPhenotype:0000060", "name: adult lethal",
+           "is_a: WBPhenotype:0000062 ! lethal", "", "[Term]", "id: WBPhenotype:0000688", "name: sterile", "",
+           "[Term]", "id: WBPhenotype:0000001", "name: unrelated"]
+
+    @staticmethod
+    def row(gene, symbol, term, experiment, negated="", ref="WBPaper1", sequence="Y1.1"):
+        return f"WB\t{gene}\t{symbol}\t{negated}\t{term}\tWB_REF:{ref}\tIMP\tWB:{experiment}\tP\t\t{sequence}\tgene\ttaxon:6239"
+
+    def ontology(self):
+        return bed.MPOntology(self.OBO)
+
+    def test_lethal_alleles_and_stage(self):
+        lines = ["!gaf-version: 2.0",
+                 self.row("WBGene1", "aaa-1", "WBPhenotype:0000050", "WBVar1"),
+                 self.row("WBGene1", "aaa-1", "WBPhenotype:0000054", "WBVar2", ref="WBPaper2"),
+                 self.row("WBGene1", "aaa-1", "WBPhenotype:0000001", "WBVar3")]            # unrelated phenotype
+
+        records, aliases = bed.build_worm(lines, self.ontology(), {"WBPaper1": "11", "WBPaper2": "12"})
+
+        assert records == {"AAA-1": {"v": "L", "n": [2, 0, 0], "s": "E", "src": "W", "pm": [11, 12]}}
+        assert aliases == {"Y1.1": "aaa-1"}
+
+    def test_rnai_only_lethality_is_marked_and_not_counted_as_a_mutant(self):
+        lines = [self.row("WBGene1", "aaa-1", "WBPhenotype:0000050", "WBRNAi1"),
+                 self.row("WBGene2", "bbb-1", "WBPhenotype:0000050", "WBRNAi2"),
+                 self.row("WBGene2", "bbb-1", "WBPhenotype:0000054", "WBVar9")]
+
+        records, _ = bed.build_worm(lines, self.ontology(), {})
+
+        assert records["AAA-1"]["k"] == 1
+        assert "k" not in records["BBB-1"]
+
+    def test_a_gene_is_viable_only_when_several_alleles_are_reported_not_lethal(self):
+        one = [self.row("WBGene1", "aaa-1", "WBPhenotype:0000062", "WBVar1", negated="NOT")]
+        two = one + [self.row("WBGene1", "aaa-1", "WBPhenotype:0000062", "WBVar2", negated="NOT")]
+        rnai = [self.row("WBGene1", "aaa-1", "WBPhenotype:0000062", f"WBRNAi{i}", negated="NOT") for i in range(3)]
+        mixed = two + [self.row("WBGene1", "aaa-1", "WBPhenotype:0000050", "WBVar3")]
+
+        assert bed.build_worm(one, self.ontology(), {})[0] == {}
+        assert bed.build_worm(rnai, self.ontology(), {})[0] == {}              # a knockdown that does not kill is weak evidence
+        assert bed.build_worm(two, self.ontology(), {})[0]["AAA-1"] == {"v": "V", "n": [0, 0, 2], "src": "W"}
+        record = bed.build_worm(mixed, self.ontology(), {})[0]["AAA-1"]
+        assert record["v"] == "V" and record["x"] == 1 and record["n"] == [1, 0, 2]
+
+    def test_sterility_of_an_allele_is_noted(self):
+        lines = [self.row("WBGene1", "aaa-1", "WBPhenotype:0000688", "WBVar1")] + \
+                [self.row("WBGene1", "aaa-1", "WBPhenotype:0000062", f"WBVar{i}", negated="NOT") for i in (2, 3)]
+
+        assert bed.build_worm(lines, self.ontology(), {})[0]["AAA-1"]["f"] == 1
+
+    def test_papers_with_a_pubmed_id(self):
+        data = {"data": [{"evidence": {"crossReference": {"id": "WB:WBPaper00001"}, "publicationId": "PMID:77"}},
+                         {"evidence": {"crossReference": {"id": "WB:WBPaper00002"}, "publicationId": "DOI:x"}}]}
+
+        assert bed.parse_worm_papers(data) == {"WBPaper00001": "77"}
+
+
+class TestOwnMeasurementsBesideTheMouseHint:
+    def test_a_directory_listing_gives_the_newest_release(self, monkeypatch):
+        class Page:
+            text = ('<a href="x_fb_2025_05.tsv.gz">a</a><a href="x_fb_2026_03.tsv.gz">b</a><a href="x_fb_2026_01.tsv.gz">c</a>'
+                    '<a href="y_fb_2027_01.tsv.gz">d</a>')
+
+            def raise_for_status(self):
+                pass
+        monkeypatch.setattr(bed.requests, "get", lambda *a, **k: Page())
+
+        assert bed.latest_in_listing("https://h/dir/", r"x_fb_(\d{4}_\d{2})\.tsv\.gz") == "https://h/dir/x_fb_2026_03.tsv.gz"
+        assert bed.latest_in_listing("https://h/dir/", r"y_fb_(\d{4}_\d{2})\.tsv\.gz") == "https://h/dir/y_fb_2027_01.tsv.gz"
+
+    def test_releases_are_compared_as_numbers(self, monkeypatch):
+        class Page:
+            text = '<a href="p.WS99.wb.gz">a</a><a href="p.WS100.wb.gz">b</a>'
+
+            def raise_for_status(self):
+                pass
+        monkeypatch.setattr(bed.requests, "get", lambda *a, **k: Page())
+
+        assert bed.latest_in_listing("https://h/", r"p\.(WS\d+)\.wb\.gz", key=lambda v: int(v[2:])) == "https://h/p.WS100.wb.gz"
+
+    def test_an_address_is_only_looked_up_when_the_file_is_missing(self, tmp_path):
+        calls = []
+        downloader = bed.Downloader(tmp_path)
+        (tmp_path / "have.txt").write_text("data")
+
+        path = downloader.fetch("have.txt", lambda: calls.append(1) or "https://h/never")
+
+        assert path.read_text() == "data" and calls == [] and downloader.log["have.txt"]["url"] == "cached"
+
+    def test_a_mouse_hint_and_a_measurement_of_its_own_share_one_record(self):
+        pairs = bed.parse_orthology(io.StringIO(TestOtherSpecies.FLY), wanted={frozenset(("7227", "10090"))})
+        mouse = {"TDG": {"v": "L", "n": [3, 0, 0], "s": "E"}}
+        records = bed.build_inferred(pairs, "7227", mouse, {})
+        records.setdefault("DTDG", {}).update({"v": "V", "n": [0, 0, 2], "src": "F"})
+
+        assert records["DTDG"]["m"]["v"] == "L" and records["DTDG"]["v"] == "V"
+        assert bed.count_measured({"A": {"o": ["x", "1:1"], "m": {"v": "L"}}, "B": {"v": "L"}}, own_only=True) == 1
+        assert bed.count_measured({"A": {"o": ["x", "1:1"], "m": {"v": "L"}}, "B": {"v": "L"}}) == 2
+
+    def test_an_organism_whose_files_are_missing_is_left_out_with_a_warning(self, capsys):
+        assert bed.build_model_organisms({}, bed.MODEL_ORGANISMS) == {}
+        assert capsys.readouterr().out.count("WARNING") == 3
+
+    def test_the_community_databases_are_optional_and_the_licences_are_recorded(self):
+        for key in ("zfin", "flybase", "wormbase"):
+            assert bed.SOURCES[key]["optional"] and bed.SOURCES[key]["license"]
+        assert not any(s.get("optional") for key, s in bed.SOURCES.items() if key not in ("zfin", "flybase", "wormbase"))

@@ -9,7 +9,7 @@ language model downloaded once (about 90 MB). There is no server to pay for, sig
 GitHub Pages (static files) ──► your browser ──► QuickGO · UniProt · NCBI · PubMed
         │                            ▲
         ├─ kegg-data/      pathway counts (KEGG)
-        └─ evidence-data/  measured knockout evidence (MGI, IMPC, DepMap, gnomAD, GTEx, SGD, Alliance, Ensembl)
+        └─ evidence-data/  measured knockout evidence (MGI, IMPC, DepMap, gnomAD, GTEx, SGD, ZFIN, FlyBase, WormBase, Alliance, Ensembl)
 ```
 
 What this means in practice:
@@ -45,11 +45,22 @@ KEGG and knockout data). The first build downloads about 280 MB of source data a
 the downloads are cached for the month.
 
 **Data licences.** Please keep the attribution that the site and every report show. Checked against the providers'
-own pages: MGI, IMPC, DepMap 24Q4 and SGD are CC BY 4.0; HGNC is CC0; the Alliance of Genome Resources is CC0 1.0 for
+own pages: MGI, IMPC, DepMap 24Q4 and SGD are CC BY 4.0; ZFIN states that its data and annotations are CC BY 4.0; FlyBase
+states that its annotations and data are CC BY 4.0; WormBase describes itself as open access under a Creative Commons public
+domain licence (its NAR 2020 and Genetics 2022 papers; its own policy page sits behind a bot check and could not be read by a
+script, so please read https://wormbase.org/about/policies before you redistribute the files); HGNC is CC0; the Alliance of Genome Resources is CC0 1.0 for
 most data and CC BY 4.0 for some (see its terms of use); Ensembl states that it puts no limits on the use of its data.
 Not yet confirmed, because the providers' licence pages could not be read automatically: gnomAD (a free public
 dataset; read the terms linked from https://gnomad.broadinstitute.org/downloads) and GTEx (read
 https://gtexportal.org/home/license). Please read both before you redistribute the files outside this site.
+
+**Sources that were looked at and not used.** Arabidopsis (and every other plant) still has no measured data. The embryo-defective
+(EMB) gene set of the Meinke laboratory is published in a review whose supplementary tables are not open access (it is not in
+PubMed Central), the SeedGenes web archive states no licence and its query functions have been switched off, and the bulk data of
+TAIR (Phoenix Bioinformatics) are subject to terms that restrict redistributing substantial subsets (only the files in its
+Public_Data_Releases folder are CC BY 4.0, and they hold no knockout phenotypes). Re-check them if one of them publishes an open
+table. The community databases are optional in the build: if ZFIN, FlyBase or WormBase cannot be downloaded (WormBase's download host
+sits behind a bot check that may block some servers), the build prints a warning and that organism keeps the mouse-ortholog hint.
 
 ## Building it yourself
 

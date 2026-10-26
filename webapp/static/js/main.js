@@ -195,7 +195,7 @@ async function showEvidenceCoverage(taxid) {
         } else if (!data.covered) {
             text = 'There are no measured knockout data for this organism. Verdicts will be marked "Not verified" and rated at most CAUTION; '
                 + 'check MGI, IMPC, FlyBase, WormBase or the literature yourself.';
-        } else if (data.distant) {
+        } else if (data.distant && !(data.layers || []).includes('knockout')) {
             text = `Only the knockout of the mouse ortholog is known for ${data.name}. It is shown as a hint (a lethal mouse ortholog raises the concern), but verdicts are never better than CAUTION.`;
         } else {
             const phrases = {
@@ -203,10 +203,15 @@ async function showEvidenceCoverage(taxid) {
                 constraint: 'tolerance of loss-of-function variants (gnomAD)', paralogs: 'close paralogs',
                 expression: String(taxid) === '9606' ? 'tissue expression (GTEx)' : 'tissue expression of the human ortholog (GTEx)',
             };
+            const community = { 7955: 'ZFIN', 7227: 'FlyBase', 6239: 'WormBase' }[String(taxid)];
+            if (community) phrases.knockout = `knockout viability (${community} mutants)`;
             const layers = (data.layers || []).map((l) => phrases[l]).filter(Boolean);
             // genes with a knockout result, not every gene that has a record (human records also hold expression-only genes)
             const measured = data.measured ?? data.genes;
             text = `Measured knockout data exist for ${data.name}: ${measured.toLocaleString()} genes` + (layers.length ? `, with ${layers.join(', ')}.` : '.');
+            if (data.distant) {
+                text += " Genes without a measurement of their own only have the mouse ortholog's knockout as a hint; verdicts for them are never better than CAUTION.";
+            }
         }
         note.textContent = text;
         note.style.display = 'block';

@@ -25,6 +25,8 @@ GENES = ["TDG", "POLB", "OGG1", "UNG", "NEIL1", "XPA", "PARP1", "PARP2", "POLQ",
          "POLE", "XRCC1", "LIG4", "FEN1", "LIG3", "SMUG1", "NEIL2", "FAM168A", "APEX2", "MPG", "NTHL1", "MUTYH",
          "RPA1", "DDB1", "HMGA1", "HMGA2", "AARS1"]
 YEAST = ["ACT1", "RAD52", "POL2", "YML032C", "NTG1"]
+# genes of the published knockouts used to validate zebrafish, fly and worm (tests/fixtures/benchmark/paper_truth.json)
+PAPER_GENES = {"7955": ["SMN1", "AR", "LHB"], "7227": ["EGFR", "WNT2", "NOS"], "6239": ["SKN-1", "FEM-1"]}
 ALIASES = ["AARS"]
 
 # (taxid, symbol, pleiotropy score, context)
@@ -118,16 +120,29 @@ def main():
     index = json.loads((source / "index.json").read_text(encoding="utf-8"))
     for taxid, info in index["organisms"].items():
         data = json.loads((source / info["file"]).read_text(encoding="utf-8"))
+        own = "knockout" in info["layers"] and info.get("distant")      # zebrafish, fly, worm: measurements of their own
         if info.get("distant"):
-            # a distant relative: the genes whose mouse ortholog is one of the genes used here
+            # a distant relative: the genes whose mouse ortholog is one of the genes used here (hints) ...
             wanted = {g.upper() for g in GENES} | {"POLB", "TDG"}
-            keys = sorted(k for k, v in data["genes"].items() if v["o"][0].upper() in wanted)[:12]
+            records = data["genes"]
+            keys = sorted(k for k, v in records.items() if "v" not in v and v["o"][0].upper() in wanted)[:6]
+            # ... and, where there are measurements, two genes of each kind: lethal with a stage, subviable, viable,
+            # reports that disagree, RNAi-only lethality, infertility, and one that has both a measurement and a mouse ortholog
+            kinds = [lambda r: r.get("v") == "L" and not r.get("x") and r.get("s") not in (None, "U"),
+                     lambda r: r.get("v") == "S", lambda r: r.get("v") == "V" and not r.get("x"), lambda r: r.get("x"),
+                     lambda r: r.get("k"), lambda r: r.get("f"), lambda r: "v" in r and "o" in r]
+            for kind in kinds:
+                keys += [k for k in sorted(records) if "v" in records[k] and kind(records[k]) and k not in keys][:2]
+            keys = sorted(set(keys) | {g for g in PAPER_GENES.get(taxid, []) if g in records})
         else:
             keys = YEAST if taxid == "559292" else GENES + ["Polb".upper(), "Tdg".upper()]
         genes = pick(data["genes"], keys)
-        aliases = {a: data["aliases"][a] for a in ALIASES if a in data["aliases"]}
+        if info.get("distant"):
+            aliases = dict(sorted((a, t) for a, t in data["aliases"].items() if t.upper() in genes)[:3])
+        else:
+            aliases = {a: data["aliases"][a] for a in ALIASES if a in data["aliases"]}
         info["genes"] = len(genes)
-        info["measured"] = sum(1 for record in genes.values() if any(key in record for key in ("v", "m", "c")))
+        info["measured"] = sum(1 for record in genes.values() if any(key in record for key in (("v", "c") if own else ("v", "m", "c"))))
         (FIXTURES / info["file"]).write_text(json.dumps({"genes": genes, "aliases": aliases}, indent=1, sort_keys=True),
                                              encoding="utf-8")
     (FIXTURES / "index.json").write_text(json.dumps(index, indent=1, sort_keys=True), encoding="utf-8")
@@ -140,7 +155,8 @@ def main():
     for taxid, info in index["organisms"].items():
         if info.get("distant"):
             fixture_genes = json.loads((FIXTURES / info["file"]).read_text(encoding="utf-8"))["genes"]
-            cases += [(taxid, symbol, 5.0, "auto") for symbol in sorted(fixture_genes)[:4]]
+            fixture_aliases = json.loads((FIXTURES / info["file"]).read_text(encoding="utf-8"))["aliases"]
+            cases += [(taxid, symbol, 5.0, "auto") for symbol in sorted(fixture_genes) + sorted(fixture_aliases)]
     for taxid, symbol, pleiotropy, context in cases:
         evidence = assess_gene(provider, taxid, symbol, context)
         recommendation = get_safety_recommendation(symbol, pleiotropy, knockout_evidence=evidence,

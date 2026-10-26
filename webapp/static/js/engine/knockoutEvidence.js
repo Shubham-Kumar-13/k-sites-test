@@ -4,7 +4,8 @@
  *
  * `assessGene` returns a plain object with up to four parts:
  *   organism    knockout of the whole organism: lethal / subviable / viable, stage, number of knockout lines
- *               (direct for mouse and yeast; read from the mouse ortholog for human and rat)
+ *               (direct for mouse, yeast, zebrafish, fly and worm; read from the mouse ortholog for human and rat, and
+ *               for the genes of zebrafish, fly and worm that have no measurement of their own)
  *   cells       how often losing the gene kills a human cancer cell line (DepMap CRISPR screens)
  *   constraint  how rarely loss-of-function variants are seen in people (gnomAD)
  *   expression  how many human tissues express the gene, and which most (GTEx)
@@ -22,8 +23,10 @@ export const TAU_ENRICHED = 0.5;
 export const CLOSE_PARALOG_IDENTITY = 40;
 export const FORMAT_VERSION = 1;
 
-const SPECIES_NOUN = { 10090: 'mice', 10116: 'rats', 9606: 'humans', 559292: 'yeast' };
-const SOURCE_OF_LETTER = { M: 'mgi', I: 'impc', S: 'sgd' };
+const SPECIES_NOUN = { 10090: 'mice', 10116: 'rats', 9606: 'humans', 559292: 'yeast', 7955: 'zebrafish', 7227: 'flies', 6239: 'worms' };
+const SOURCE_OF_LETTER = { M: 'mgi', I: 'impc', S: 'sgd', Z: 'zfin', F: 'flybase', W: 'wormbase' };
+/** What the counts of knockout lines are counts of: [one, many]. */
+const LINE_NOUN = { 7955: ['mutant line', 'mutant lines'], 7227: ['allele', 'alleles'], 6239: ['allele or RNAi test', 'alleles or RNAi tests'] };
 const CALL_OF_LETTER = { L: 'LETHAL', S: 'SUBVIABLE', V: 'VIABLE' };
 const TAXID_ALIASES = { 4932: '559292' };
 
@@ -107,7 +110,10 @@ export function createEvidenceProvider(baseUrl, fetchImpl = (...a) => globalThis
     });
 }
 
-const linesText = (count, total) => `${count} of ${total} knockout ${total === 1 ? 'line' : 'lines'}`;
+const linesText = (count, total, taxid = '') => {
+    const [one, many] = LINE_NOUN[taxid] || ['knockout line', 'knockout lines'];
+    return `${count} of ${total} ${total === 1 ? one : many}`;
+};
 const numberText = (value) => String(Number(value));
 
 function organismPart(index, taxid, record) {
@@ -115,24 +121,24 @@ function organismPart(index, taxid, record) {
         call: 'UNKNOWN', basis: 'none', distant: false, stage: null, stage_text: null,
         counts: { lethal: 0, subviable: 0, viable: 0 }, mixed: false, sources: [], species: null,
         ortholog: null, mgi_id: null, references: [], systems: [], reduced_lifespan: false,
-        infertile: false, text: 'No measured knockout data for this gene',
+        infertile: false, rnai_only: false, text: 'No measured knockout data for this gene',
     };
     if (!record) return part;
     let base;
     let basis;
     let speciesKey;
-    if (record.m) {
+    if (record.v) {
+        base = record;
+        basis = 'direct';
+        part.species = ((index.organisms || {})[taxid] || {}).name ?? null;
+        speciesKey = taxid;
+    } else if (record.m) {
         base = record.m;
         basis = 'ortholog';
         part.ortholog = { symbol: record.o[0], relation: record.o[1] };
         part.distant = !!((index.organisms || {})[taxid] || {}).distant;
         part.species = 'Mus musculus';
         speciesKey = '10090';
-    } else if (record.v) {
-        base = record;
-        basis = 'direct';
-        part.species = ((index.organisms || {})[taxid] || {}).name ?? null;
-        speciesKey = taxid;
     } else {
         return part;
     }
@@ -152,6 +158,7 @@ function organismPart(index, taxid, record) {
     part.systems = (base.sys || []).filter((i) => i < names.length).map((i) => names[i]);
     part.reduced_lifespan = !!base.r;
     part.infertile = !!base.f;
+    part.rnai_only = !!base.k;
 
     const noun = SPECIES_NOUN[speciesKey] || 'the model organism';
     let where;
@@ -163,15 +170,17 @@ function organismPart(index, taxid, record) {
     const yeast = speciesKey === '559292';
     const subject = yeast ? 'Deletion' : 'Knockout';
     const lethalWord = yeast ? 'inviable' : 'lethal';
+    const linesTaxid = basis === 'direct' ? taxid : '';
     let text;
     if (part.call === 'LETHAL') {
-        text = `${subject} is ${lethalWord}${stage} in ${where}: ${linesText(lethal, total)}`;
+        text = `${subject} is ${lethalWord}${stage} in ${where}: ${linesText(lethal, total, linesTaxid)}`;
     } else if (part.call === 'SUBVIABLE') {
         const detail = [part.stage !== 'U' ? part.stage_text : null, 'fewer homozygotes than expected'].filter(Boolean).join('; ');
-        text = `${subject} is subviable (${detail}) in ${where}: ${linesText(subviable, total)}`;
+        text = `${subject} is subviable (${detail}) in ${where}: ${linesText(subviable, total, linesTaxid)}`;
     } else {
-        text = `${subject} is viable in ${where}: ${linesText(viable, total)}`;
+        text = `${subject} is viable in ${where}: ${linesText(viable, total, linesTaxid)}`;
     }
+    if (part.rnai_only && part.call === 'LETHAL') text += '; every lethal result comes from RNAi knockdown, none from a mutant';
     if (part.mixed) {
         const others = [[lethal, 'lethal', 'LETHAL'], [subviable, 'subviable', 'SUBVIABLE'], [viable, 'viable', 'VIABLE']]
             .filter(([n, , call]) => n && call !== part.call).map(([n, word]) => `${n} ${word}`);

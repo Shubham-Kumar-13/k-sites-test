@@ -360,6 +360,9 @@ class SafetyRecommender:
             if ortholog_note:
                 level = SafetyLevel.HIGH_CONCERN
                 concerns.append("The mouse ortholog is not a one-to-one match, so confirm the lethality in your organism")
+            if organism.get("rnai_only"):
+                level = SafetyLevel.HIGH_CONCERN
+                concerns.append("Only RNAi knockdown was lethal; no mutant allele has been reported lethal, so confirm with a mutant")
             primary = RecommendationType.CONDITIONAL_KO
             alternatives = [RecommendationType.CRISPRI, RecommendationType.TEMPORAL_CONTROL, RecommendationType.ALTERNATIVE_MODEL]
             if yeast:

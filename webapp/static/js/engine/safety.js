@@ -227,6 +227,10 @@ function organismVerdict(evidence, pleiotropy) {
             level = SafetyLevel.HIGH_CONCERN;
             concerns.push('The mouse ortholog is not a one-to-one match, so confirm the lethality in your organism');
         }
+        if (organism.rnai_only) {
+            level = SafetyLevel.HIGH_CONCERN;
+            concerns.push('Only RNAi knockdown was lethal; no mutant allele has been reported lethal, so confirm with a mutant');
+        }
         primary = R.CONDITIONAL_KO;
         alternatives = [R.CRISPRI, R.TEMPORAL_CONTROL, R.ALTERNATIVE_MODEL];
         if (yeast) {

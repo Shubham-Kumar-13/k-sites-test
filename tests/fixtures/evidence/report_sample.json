@@ -54,6 +54,7 @@
       9207086,
       9922314
      ],
+     "rnai_only": false,
      "sources": [
       "mgi",
       "impc",
@@ -173,6 +174,7 @@
       12861020,
       16978612
      ],
+     "rnai_only": false,
      "sources": [
       "mgi",
       "alliance"
@@ -287,6 +289,7 @@
      "references": [
       22447450
      ],
+     "rnai_only": false,
      "sources": [
       "mgi",
       "alliance"
@@ -419,6 +422,7 @@
      "references": [
       26245904
      ],
+     "rnai_only": false,
      "sources": [
       "mgi",
       "impc",
@@ -562,6 +566,7 @@
       21278727,
       21722948
      ],
+     "rnai_only": false,
      "sources": [
       "mgi",
       "alliance"
@@ -707,6 +712,7 @@
      "references": [
       10191063
      ],
+     "rnai_only": false,
      "sources": [
       "mgi",
       "alliance"
@@ -829,6 +835,7 @@
      "ortholog": null,
      "reduced_lifespan": false,
      "references": [],
+     "rnai_only": false,
      "sources": [],
      "species": null,
      "stage": null,
@@ -933,6 +940,7 @@
      "references": [
       18854411
      ],
+     "rnai_only": false,
      "sources": [
       "mgi",
       "alliance"
@@ -1091,6 +1099,27 @@
      "name": "Saccharomyces Genome Database (SGD)",
      "url": "https://www.yeastgenome.org/",
      "what": "yeast deletion phenotypes (viable / inviable)"
+    },
+    {
+     "id": "zfin",
+     "license": "CC BY 4.0",
+     "name": "Zebrafish Information Network (ZFIN)",
+     "url": "https://zfin.org/downloads",
+     "what": "zebrafish mutant phenotypes"
+    },
+    {
+     "id": "flybase",
+     "license": "CC BY 4.0",
+     "name": "FlyBase",
+     "url": "https://s3ftp.flybase.org/releases/current/precomputed_files/",
+     "what": "Drosophila allele phenotypes (lethality, viability, sterility)"
+    },
+    {
+     "id": "wormbase",
+     "license": "CC0 (public domain)",
+     "name": "WormBase",
+     "url": "https://downloads.wormbase.org/releases/current-production-release/ONTOLOGY/",
+     "what": "C. elegans allele and RNAi phenotypes (lethal, sterile)"
     }
    ],
    "version": "2026-10-26"

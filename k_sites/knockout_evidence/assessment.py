@@ -5,7 +5,8 @@ What is known, from measurements, about losing one gene.
 four parts:
 
     organism    the knockout of the whole organism: lethal / subviable / viable, at which stage, in how many lines
-                (direct for mouse and yeast; read from the mouse ortholog for human and rat)
+                (direct for mouse, yeast, zebrafish, fly and worm; read from the mouse ortholog for human and rat, and
+                for the genes of zebrafish, fly and worm that have no measurement of their own)
     cells       how often losing the gene kills a human cancer cell line (DepMap CRISPR screens)
     constraint  how rarely loss-of-function variants are seen in people (gnomAD)
     expression  how many human tissues express the gene, and which most (GTEx)
@@ -32,8 +33,11 @@ TAU_ENRICHED = 0.5
 # A paralog this similar (percent identity) is close enough to take over the gene's work
 CLOSE_PARALOG_IDENTITY = 40
 
-SPECIES_NOUN = {"10090": "mice", "10116": "rats", "9606": "humans", "559292": "yeast"}
-SOURCE_OF_LETTER = {"M": "mgi", "I": "impc", "S": "sgd"}
+SPECIES_NOUN = {"10090": "mice", "10116": "rats", "9606": "humans", "559292": "yeast", "7955": "zebrafish", "7227": "flies",
+                "6239": "worms"}
+SOURCE_OF_LETTER = {"M": "mgi", "I": "impc", "S": "sgd", "Z": "zfin", "F": "flybase", "W": "wormbase"}
+# what the counts of knockout lines are counts of, (one, many)
+LINE_NOUN = {"7955": ("mutant line", "mutant lines"), "7227": ("allele", "alleles"), "6239": ("allele or RNAi test", "alleles or RNAi tests")}
 CALL_OF_LETTER = {"L": "LETHAL", "S": "SUBVIABLE", "V": "VIABLE"}
 
 
@@ -44,8 +48,9 @@ def resolve_context(taxid, context: str = "auto") -> str:
     return "cells" if str(taxid) == "9606" else "organism"
 
 
-def _lines(count: int, total: int) -> str:
-    return f"{count} of {total} knockout {'line' if total == 1 else 'lines'}"
+def _lines(count: int, total: int, taxid: str = "") -> str:
+    one, many = LINE_NOUN.get(taxid, ("knockout line", "knockout lines"))
+    return f"{count} of {total} {one if total == 1 else many}"
 
 
 def _organism_part(index: dict, taxid: str, record: Optional[dict]) -> Dict[str, Any]:
@@ -53,19 +58,19 @@ def _organism_part(index: dict, taxid: str, record: Optional[dict]) -> Dict[str,
         "call": "UNKNOWN", "basis": "none", "distant": False, "stage": None, "stage_text": None,
         "counts": {"lethal": 0, "subviable": 0, "viable": 0}, "mixed": False, "sources": [], "species": None,
         "ortholog": None, "mgi_id": None, "references": [], "systems": [], "reduced_lifespan": False,
-        "infertile": False, "text": "No measured knockout data for this gene",
+        "infertile": False, "rnai_only": False, "text": "No measured knockout data for this gene",
     }
     if not record:
         return part
-    if "m" in record:
+    if "v" in record:
+        base, basis = record, "direct"
+        part["species"] = index.get("organisms", {}).get(taxid, {}).get("name")
+        species_key = taxid
+    elif "m" in record:
         base, basis = record["m"], "ortholog"
         part["ortholog"] = {"symbol": record["o"][0], "relation": record["o"][1]}
         part["distant"] = bool(index.get("organisms", {}).get(taxid, {}).get("distant"))
         part["species"], species_key = "Mus musculus", "10090"
-    elif "v" in record:
-        base, basis = record, "direct"
-        part["species"] = index.get("organisms", {}).get(taxid, {}).get("name")
-        species_key = taxid
     else:
         return part
 
@@ -86,6 +91,7 @@ def _organism_part(index: dict, taxid: str, record: Optional[dict]) -> Dict[str,
     part["systems"] = [names[i] for i in base.get("sys", []) if i < len(names)]
     part["reduced_lifespan"] = bool(base.get("r"))
     part["infertile"] = bool(base.get("f"))
+    part["rnai_only"] = bool(base.get("k"))
 
     noun = SPECIES_NOUN.get(species_key, "the model organism")
     if basis == "direct":
@@ -101,14 +107,17 @@ def _organism_part(index: dict, taxid: str, record: Optional[dict]) -> Dict[str,
         subject, lethal_word, viable_word = "Deletion", "inviable", "viable"
     else:
         subject, lethal_word, viable_word = "Knockout", "lethal", "viable"
+    lines_taxid = taxid if basis == "direct" else ""
     if part["call"] == "LETHAL":
-        text = f"{subject} is {lethal_word}{stage} in {where}: {_lines(lethal, total)}"
+        text = f"{subject} is {lethal_word}{stage} in {where}: {_lines(lethal, total, lines_taxid)}"
     elif part["call"] == "SUBVIABLE":
         detail = "; ".join(x for x in (part["stage_text"] if part["stage"] != "U" else None,
                                        "fewer homozygotes than expected") if x)
-        text = f"{subject} is subviable ({detail}) in {where}: {_lines(subviable, total)}"
+        text = f"{subject} is subviable ({detail}) in {where}: {_lines(subviable, total, lines_taxid)}"
     else:
-        text = f"{subject} is {viable_word} in {where}: {_lines(viable, total)}"
+        text = f"{subject} is {viable_word} in {where}: {_lines(viable, total, lines_taxid)}"
+    if part["rnai_only"] and part["call"] == "LETHAL":
+        text += "; every lethal result comes from RNAi knockdown, none from a mutant"
     if part["mixed"]:
         others = [f"{n} {word}" for n, word, call in ((lethal, "lethal", "LETHAL"), (subviable, "subviable", "SUBVIABLE"),
                                                        (viable, "viable", "VIABLE")) if n and call != part["call"]]

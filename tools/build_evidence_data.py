@@ -12,6 +12,9 @@ gene by gene:
                                           GTEx expression specificity
     evidence-data/10116.json    rat     - mouse-ortholog knockout
     evidence-data/559292.json   yeast   - SGD deletion phenotypes (viable / inviable)
+    evidence-data/7955.json     zebrafish - ZFIN mutant phenotypes; genes without one fall back to the mouse ortholog (hint)
+    evidence-data/7227.json     fly     - FlyBase allele lethality phenotypes; same fallback
+    evidence-data/6239.json     worm    - WormBase allele and RNAi lethal / sterile phenotypes; same fallback
 
 Each file maps an upper-case gene symbol to a short record (see EVIDENCE_FORMAT below).
 
@@ -61,10 +64,30 @@ FORMAT_VERSION = 1
 #            "l": LOEUF,        gnomAD loss-of-function observed/expected upper bound (low = intolerant)
 #            "t": [tau, tissues expressed, [top tissue indexes]]}
 #   rat     {"o": [mouse symbol, relation], "m": <mouse record>}
-#   zebrafish, fly, worm, xenopus   the same as rat, but the organism is marked "distant" in index.json: the mouse
-#           ortholog is only an indication there, never a measurement, and the verdict says so
+#   xenopus  the same as rat, but the organism is marked "distant" in index.json: the mouse ortholog is only an
+#           indication there, never a measurement, and the verdict says so
 #   yeast   {"v": "L"|"S"|"V", "n": [..], "x": 1, "src": "S", "pm": [..]}
+#   zebrafish, fly, worm   a mouse-style direct record {"v", "n", "s", "x", "src": "Z"|"F"|"W", "pm"} (n counts mutant
+#           lines: fish lines, alleles, alleles + RNAi tests), plus "f": 1 infertility seen, and for worms "k": 1 when
+#           the lethal calls all come from RNAi knockdown. A gene without a measurement of its own keeps the
+#           {"o", "m"} mouse-ortholog hint, and the organism stays marked "distant" for those genes.
 # --------------------------------------------------------------------------------------------------
+
+ZFIN_DOWNLOADS = "https://zfin.org/downloads/"
+FLYBASE_FILES = "https://s3ftp.flybase.org/releases/current/precomputed_files/"
+WORMBASE_ONTOLOGY = "https://downloads.wormbase.org/releases/current-production-release/ONTOLOGY/"
+
+
+def latest_in_listing(index_url, pattern, key=None):
+    """The newest file in a directory listing whose name matches `pattern` (one group: the release); FlyBase and WormBase
+    put the release into the file names, so the address changes with every release."""
+    response = requests.get(index_url, timeout=60)
+    response.raise_for_status()
+    names = {m.group(0): m.group(1) for m in re.finditer(pattern, response.text)}
+    if not names:
+        raise requests.RequestException(f"No file like {pattern} in {index_url}")
+    return index_url + max(names, key=lambda n: (key or str)(names[n]))
+
 
 SOURCES = {
     "mgi": {
@@ -121,12 +144,46 @@ SOURCES = {
         "what": "yeast deletion phenotypes (viable / inviable)", "license": "CC BY 4.0",
         "files": {"sgd_phenotype.tab": "https://downloads.yeastgenome.org/curation/literature/phenotype_data.tab"},
     },
+    "zfin": {
+        "name": "Zebrafish Information Network (ZFIN)", "url": "https://zfin.org/downloads",
+        "what": "zebrafish mutant phenotypes", "license": "CC BY 4.0", "optional": True,
+        "files": {
+            "zfin_phenotype.txt": ZFIN_DOWNLOADS + "phenoGeneCleanData_fish.txt",
+            "zfin_fish_components.txt": ZFIN_DOWNLOADS + "fish_components_fish.txt",
+            "zfin_features.txt": ZFIN_DOWNLOADS + "features-affected-genes.txt",
+            "zfin_stages.txt": ZFIN_DOWNLOADS + "stage_ontology.txt",
+            "zfin_pubmed.txt": ZFIN_DOWNLOADS + "pub_to_pubmed_id_translation.txt",
+        },
+    },
+    "flybase": {
+        "name": "FlyBase", "url": "https://s3ftp.flybase.org/releases/current/precomputed_files/",
+        "what": "Drosophila allele phenotypes (lethality, viability, sterility)", "license": "CC BY 4.0", "optional": True,
+        "files": {
+            "flybase_genotype_phenotype.tsv.gz": lambda: latest_in_listing(
+                FLYBASE_FILES + "alleles/", r"genotype_phenotype_data_fb_(\d{4}_\d{2})\.tsv\.gz"),
+            "flybase_alleles.tsv.gz": lambda: latest_in_listing(
+                FLYBASE_FILES + "alleles/", r"dmel_classical_and_insertion_allele_descriptions_fb_(\d{4}_\d{2})\.tsv\.gz"),
+            "flybase_references.tsv.gz": lambda: latest_in_listing(
+                FLYBASE_FILES + "references/", r"fbrf_pmid_pmcid_doi_fb_(\d{4}_\d{2})\.tsv\.gz"),
+        },
+    },
+    "wormbase": {
+        "name": "WormBase", "url": "https://downloads.wormbase.org/releases/current-production-release/ONTOLOGY/",
+        "what": "C. elegans allele and RNAi phenotypes (lethal, sterile)", "license": "CC0 (public domain)", "optional": True,
+        "files": {
+            "wormbase_phenotype_association.wb.gz": lambda: latest_in_listing(
+                WORMBASE_ONTOLOGY, r"phenotype_association\.(WS\d+)\.wb\.gz", key=lambda v: int(v[2:])),
+            "wormbase_phenotype_ontology.obo.gz": lambda: latest_in_listing(
+                WORMBASE_ONTOLOGY, r"phenotype_ontology\.(WS\d+)\.obo\.gz", key=lambda v: int(v[2:])),
+            "alliance_phenotype_wb.json.gz": "https://fms.alliancegenome.org/download/PHENOTYPE_WB.json.gz",
+        },
+    },
 }
 
 # Stages of death, earliest first. W (before weaning) and U (age not stated) say the least.
 STAGES = {"E": "embryonic / prenatal", "P": "perinatal / neonatal", "J": "after birth, before adulthood",
-          "W": "before weaning", "U": "age not stated"}
-STAGE_ORDER = "EPJWU"
+          "L": "larval, pupal or juvenile stage", "A": "adult", "W": "before weaning", "U": "age not stated"}
+STAGE_ORDER = "EPJLAWU"
 
 # MP (Mammalian Phenotype Ontology) terms the lethality logic hangs on
 MP_PRENATAL, MP_EMBRYONIC, MP_PERINATAL, MP_POSTNATAL, MP_WEANING = "MP:0002080", "MP:0008762", "MP:0002081", "MP:0002082", "MP:0008569"
@@ -146,9 +203,11 @@ ADULT_EVIDENCE_SYSTEMS = {
 }
 
 TARGETS = {"9606": "Homo sapiens", "10090": "Mus musculus", "10116": "Rattus norvegicus"}
-# Species without their own knockout data here: the mouse ortholog is the only (indirect) hint
+# Species whose own knockouts are measured here only for some genes (MODEL_ORGANISMS), or not at all: for the genes
+# without a measurement the mouse ortholog is the only (indirect) hint
 DISTANT = {"7955": "Danio rerio", "7227": "Drosophila melanogaster", "6239": "Caenorhabditis elegans",
            "8364": "Xenopus tropicalis", "8355": "Xenopus laevis"}
+MODEL_ORGANISMS = ("7955", "7227", "6239")
 NCBI_TAXON = {"9606": "human", "10090": "mouse", "10116": "rat", "7955": "zebrafish", "7227": "fly",
               "6239": "worm", "559292": "yeast", "8364": "xenopus tropicalis", "8355": "xenopus laevis"}
 
@@ -165,8 +224,12 @@ class Downloader:
         self.log = {}
 
     def fetch(self, name, url):
+        """`url` may be a function that finds the address (FlyBase and WormBase change it with every release); it is only
+        called when the file has to be downloaded."""
         path = self.cache / name
         if self.refresh or not path.exists() or path.stat().st_size == 0:
+            if callable(url):
+                url = self.resolve(url)
             print(f"  downloading {name}", flush=True)
             part = path.with_name(path.name + ".part")           # a cut-off download is never taken for a finished one
             for attempt in range(4):
@@ -182,8 +245,18 @@ class Downloader:
                     if attempt == 3:
                         raise
                     time.sleep(3 * (attempt + 1))
-        self.log[name] = {"url": url, "bytes": path.stat().st_size}
+        self.log[name] = {"url": url if isinstance(url, str) else "cached", "bytes": path.stat().st_size}
         return path
+
+    @staticmethod
+    def resolve(finder):
+        for attempt in range(4):
+            try:
+                return finder()
+            except requests.RequestException:
+                if attempt == 3:
+                    raise
+                time.sleep(3 * (attempt + 1))
 
 
 def open_text(path):
@@ -857,6 +930,378 @@ def build_yeast(lines):
 
 
 # --------------------------------------------------------------------------------------------------
+# zebrafish, fly and worm: knockouts measured by their own community databases
+#
+# All three work like mouse: every mutant (or RNAi test) that loses one gene is called LETHAL, SUBVIABLE or VIABLE, the
+# calls are counted per gene, and the earliest stage of death and the PubMed ids behind the call are kept.
+# --------------------------------------------------------------------------------------------------
+
+def tally_calls(calls, stages, pmids, source, extra=None):
+    """
+    calls: list of 'L' / 'S' / 'V', one per mutant line; stages: {'L': set, 'S': set}; pmids: Counter. -> compact record or None.
+    The call is the most frequent one; among equals the more severe. Same rule as the mouse records.
+    """
+    counts = {"L": 0, "S": 0, "V": 0}
+    for call in calls:
+        counts[call] += 1
+    if not any(counts.values()):
+        return None
+    severity = {"L": 2, "S": 1, "V": 0}
+    call = max(counts, key=lambda c: (counts[c], severity[c]))
+    record = {"v": call, "n": [counts["L"], counts["S"], counts["V"]]}
+    if call in ("L", "S"):
+        stage = earliest_stage(stages[call] or stages["L"] or stages["S"])
+        if stage:
+            record["s"] = stage
+    if sum(1 for c in counts.values() if c) > 1:
+        record["x"] = 1
+    record["src"] = source
+    if pmids:
+        record["pm"] = [int(p) for p, _ in sorted(pmids.items(), key=lambda item: (-item[1], int(item[0])))[:3]]
+    record.update(extra or {})
+    return record
+
+
+# ---- zebrafish (ZFIN) ----------------------------------------------------------------------------
+
+ZFIN_WHOLE_ORGANISM = "ZFA:0001094"
+ZFIN_DEAD = {"PATO:0001422", "PATO:0000718"}              # dead, lethal (sensu genetics)
+ZFIN_REDUCED = {"PATO:0001770", "PATO:0000169"}           # semi-viable, viability (recorded as abnormal)
+ZFIN_UNKNOWN_STAGE = "ZDB-STAGE-050211-1"
+ZFIN_NULL_EFFECTS = {"premature stop", "frameshift", "splice site"}
+ZFIN_NOT_LOSS = {"TRANSLOC", "UNSPECIFIED"}
+ZFIN_HATCHED_HOURS = 72               # hatching ends at 72 hours
+ZFIN_JUVENILE_HOURS = 30 * 24         # larval stages end at 30 days
+ZFIN_ADULT_HOURS = 90 * 24
+
+
+def zfin_stage_letter(stage_id, stages):
+    """The stage a ZFIN stage id belongs to: E embryo (up to hatching), L larva / juvenile, A adult, U not stated."""
+    if stage_id == ZFIN_UNKNOWN_STAGE or stage_id not in stages:
+        return "U"
+    begin = stages[stage_id][0]
+    return "E" if begin < ZFIN_HATCHED_HOURS else "L" if begin < ZFIN_ADULT_HOURS else "A"
+
+
+def parse_zfin_stages(lines):
+    """{stage id: (begin hour, end hour)} from stage_ontology.txt."""
+    stages = {}
+    for line in lines:
+        f = line.rstrip("\r\n").split("\t")
+        if len(f) >= 5:
+            try:
+                stages[f[0]] = (float(f[3]), float(f[4]))
+            except ValueError:
+                continue
+    return stages
+
+
+def parse_zfin_features(lines):
+    """{allele id: 'null' | 'other' | None}: 'null' = deletion or an allele with a stop, frameshift or splice-site effect;
+    None = not a loss of the gene (translocation, unspecified)."""
+    result = {}
+    for line in lines:
+        f = line.rstrip("\r\n").split("\t")
+        if len(f) < 8:
+            continue
+        effects = {part.strip() for field in f[8:] for part in field.split(",")}
+        if f[7] in ZFIN_NOT_LOSS:
+            result[f[0]] = None
+        elif f[7] in ("DELETION", "DEFICIENCY") or effects & ZFIN_NULL_EFFECTS:
+            result[f[0]] = "null"
+        else:
+            result[f[0]] = "other"
+    return result
+
+
+ZFIN_HOMOZYGOUS = re.compile(r"<sup>([^<>/]+)/([^<>/]+)</sup>")
+
+
+def parse_zfin_fish(lines, features):
+    """
+    {fish id: (gene id, 'null' | 'other')} for fish that are a clean homozygous mutant of exactly one gene: no knockdown
+    reagent (morpholino, CRISPR injection), no transgene, one gene, the same allele on both chromosomes.
+    """
+    parts = collections.defaultdict(lambda: {"name": "", "genes": set(), "alleles": set(), "other": False})
+    for line in lines:
+        f = line.rstrip("\r\n").split("\t")
+        if len(f) < 6:
+            continue
+        fish = parts[f[0]]
+        fish["name"] = f[1]
+        if f[2]:
+            fish["genes"].add(f[2])
+        if f[4]:
+            fish["alleles"].add(f[4])
+        if (len(f) > 6 and f[6]) or (len(f) > 8 and f[8]):          # a transgene or a knockdown reagent
+            fish["other"] = True
+    result = {}
+    for fish_id, fish in parts.items():
+        match = ZFIN_HOMOZYGOUS.search(fish["name"])
+        if fish["other"] or len(fish["genes"]) != 1 or not fish["alleles"] or not match or match.group(1) != match.group(2):
+            continue
+        kinds = [features.get(a, "other") for a in fish["alleles"]]
+        if None in kinds:
+            continue
+        result[fish_id] = (next(iter(fish["genes"])), "null" if all(k == "null" for k in kinds) else "other")
+    return result
+
+
+def build_zebrafish(phenotype_lines, fish, stages, pubmed):
+    """{SYMBOL: record} from ZFIN phenotypes of clean homozygous mutants (see parse_zfin_fish)."""
+    state = {}
+    symbols = {}
+    for line in phenotype_lines:
+        f = line.rstrip("\r\n").split("\t")
+        if len(f) < 24 or f[18] not in fish or fish[f[18]][0] != f[2]:
+            continue
+        item = state.setdefault(f[18], {"L": [], "S": [], "late": False, "pubs": {"L": [], "S": [], "V": []}})
+        symbols[f[2]] = f[1]
+        stage = zfin_stage_letter(f[20], stages)
+        if f[7] == ZFIN_WHOLE_ORGANISM and f[11] == "abnormal" and f[9] in ZFIN_DEAD:
+            item["L"].append(stage)
+            item["pubs"]["L"].append(f[23])
+        elif f[7] == ZFIN_WHOLE_ORGANISM and f[11] == "abnormal" and f[9] in ZFIN_REDUCED:
+            item["S"].append(stage)
+            item["pubs"]["S"].append(f[23])
+        elif f[20] in stages and stages[f[20]][0] >= ZFIN_JUVENILE_HOURS:
+            item["late"] = True                      # a phenotype was scored in a living juvenile or adult
+            item["pubs"]["V"].append(f[23])
+    per_gene = collections.defaultdict(lambda: {"calls": [], "stages": {"L": set(), "S": set()}, "pubs": collections.Counter()})
+    for fish_id, item in state.items():
+        gene, kind = fish[fish_id]
+        if item["L"]:
+            call = "L"
+        elif item["S"]:
+            call = "S"
+        elif item["late"] and kind == "null":
+            call = "V"
+        else:
+            continue
+        entry = per_gene[gene]
+        entry["calls"].append(call)
+        if call in entry["stages"]:
+            entry["stages"][call].update(item[call])
+        for pub in item["pubs"][call]:
+            if pub in pubmed:
+                entry["pubs"][pubmed[pub]] += 1
+    records = {}
+    for gene, entry in per_gene.items():
+        record = tally_calls(entry["calls"], entry["stages"], entry["pubs"], "Z")
+        if record:
+            records[symbols[gene].upper()] = record
+    return records
+
+
+# ---- fly (FlyBase) ---------------------------------------------------------------------------------
+
+FLY_COMPLETE_LETHAL_PREFIX = "lethal"
+FLY_PARTIAL_LETHAL_PREFIX = "partially lethal"
+FLY_VIABLE, FLY_STERILE = "FBcv:0000349", {"FBcv:0000364", "FBcv:0000366", "FBcv:0000370"}
+FLY_EXCLUDED_QUALIFIERS = ("dominant", "maternal effect", "paternal effect", "clone", "sensitive", "temperature", "conditional")
+FLY_NOT_LOSS_CLASSES = ("gain of function", "neomorphic", "antimorphic", "hypermorphic", "wild-type")
+FLY_CONDITIONAL_CLASSES = ("heat sensitive", "cold sensitive", "temperature conditional")
+
+
+def fly_allele_kind(classes, has_insertion):
+    """'null' (amorphic / loss of function), 'hypo' (hypomorphic), 'insertion' (a transposon insertion in the gene, class
+    not stated) or None (gain of function, conditional or otherwise not a plain loss of the gene)."""
+    text = classes.lower()
+    if any(word in text for word in FLY_NOT_LOSS_CLASSES + FLY_CONDITIONAL_CLASSES):
+        return None
+    if "amorphic" in text or "loss of function" in text:
+        return "null"
+    if "hypomorphic" in text:
+        return "hypo"
+    return "insertion" if has_insertion else None
+
+
+def parse_fly_alleles(lines):
+    """{allele id: (gene id, gene symbol, kind)} from the FlyBase classical and insertion allele descriptions."""
+    alleles = {}
+    for line in lines:
+        if line.startswith("#") or not line.strip():
+            continue
+        f = line.rstrip("\r\n").split("\t")
+        if len(f) < 7 or not f[3].startswith("FBgn"):
+            continue
+        kind = fly_allele_kind(f[4], bool(f[6]))
+        if kind:
+            alleles[f[1]] = (f[3], f[2], kind)
+    return alleles
+
+
+def fly_stage_letter(name):
+    text = name.lower()
+    if "embryonic" in text:
+        return "E"
+    if "adult" in text and "pharate" not in text:
+        return "A"
+    if any(word in text for word in ("larva", "instar", "pupa", "p-stage", "pharate")):
+        return "L"
+    return "U"
+
+
+def parse_fly_references(lines):
+    """{FBrf id: pubmed id} from fbrf_pmid_pmcid_doi."""
+    result = {}
+    for line in lines:
+        f = line.rstrip("\r\n").split("\t")
+        if len(f) >= 2 and f[0].startswith("FBrf") and f[1].isdigit():
+            result[f[0]] = f[1]
+    return result
+
+
+def build_fly(phenotype_lines, alleles, pubmed):
+    """{SYMBOL: record} from FlyBase phenotypes of single-allele genotypes (null, hypomorphic or insertion alleles)."""
+    state = {}
+    for line in phenotype_lines:
+        if line.startswith("#") or not line.strip():
+            continue
+        f = line.rstrip("\r\n").split("\t")
+        if len(f) < 7 or f[1] not in alleles:
+            continue
+        if any(word in f[4].lower() for word in FLY_EXCLUDED_QUALIFIERS):
+            continue
+        name, term = f[2], f[3]
+        item = state.setdefault(f[1], {"L": [], "S": [], "V": [], "sterile": False})
+        refs = item.setdefault("refs", {"L": [], "S": [], "V": []})
+        if name.startswith(FLY_PARTIAL_LETHAL_PREFIX) or name == "semi-lethal":
+            item["S"].append(fly_stage_letter(name))
+            refs["S"].append(f[6])
+        elif name.startswith(FLY_COMPLETE_LETHAL_PREFIX) and term.startswith("FBcv:"):
+            item["L"].append(fly_stage_letter(name))
+            refs["L"].append(f[6])
+        elif term == FLY_VIABLE:
+            item["V"].append("V")
+            refs["V"].append(f[6])
+        elif term in FLY_STERILE:
+            item["sterile"] = True
+    per_gene = collections.defaultdict(lambda: {"calls": [], "stages": {"L": set(), "S": set()}, "pubs": collections.Counter(),
+                                                "sterile": False, "symbol": ""})
+    for allele_id, item in state.items():
+        gene, symbol, kind = alleles[allele_id]
+        # lethality of any loss-of-function allele counts (a partial loss that kills, the full loss kills too);
+        # viability only counts for a null allele
+        if item["L"]:
+            call = "L"
+        elif item["S"]:
+            call = "S"
+        elif item["V"] and kind == "null":
+            call = "V"
+        else:
+            continue
+        entry = per_gene[gene]
+        entry["symbol"] = symbol
+        entry["calls"].append(call)
+        if call in entry["stages"]:
+            entry["stages"][call].update(item[call])
+        for ref in item["refs"][call]:
+            if ref in pubmed:
+                entry["pubs"][pubmed[ref]] += 1
+        entry["sterile"] = entry["sterile"] or item["sterile"]
+    records = {}
+    for gene, entry in per_gene.items():
+        record = tally_calls(entry["calls"], entry["stages"], entry["pubs"], "F", {"f": 1} if entry["sterile"] else None)
+        if record:
+            records[entry["symbol"].upper()] = record
+    return records
+
+
+# ---- worm (WormBase) -------------------------------------------------------------------------------
+
+WORM_LETHAL, WORM_EMBRYONIC, WORM_LARVAL, WORM_ADULT, WORM_STERILE = (
+    "WBPhenotype:0000062", "WBPhenotype:0000050", "WBPhenotype:0000054", "WBPhenotype:0000060", "WBPhenotype:0000688")
+WORM_MIN_VIABLE_ALLELES = 2
+
+
+def parse_worm_papers(data):
+    """{WBPaper id: pubmed id} from the Alliance WormBase phenotype file (parsed JSON)."""
+    papers = {}
+    for record in data.get("data", []):
+        evidence = record.get("evidence", {})
+        paper = evidence.get("crossReference", {}).get("id", "")
+        pmid = evidence.get("publicationId", "")
+        if paper.startswith("WB:WBPaper") and pmid.startswith("PMID:"):
+            papers[paper[3:]] = pmid[5:]
+    return papers
+
+
+def build_worm(lines, ontology, papers):
+    """
+    ({SYMBOL: record}, {sequence name: SYMBOL}) from the WormBase phenotype associations of alleles and RNAi experiments.
+
+    LETHAL: some allele or RNAi experiment gave a lethal phenotype (WBPhenotype 'lethal' or anything below it).
+    VIABLE: at least WORM_MIN_VIABLE_ALLELES alleles were tested and reported 'not lethal' with no lethal result at all.
+    The file does not say which alleles are null, so a few weak alleles cannot make a gene viable.
+    An all-RNAi lethal call is marked "k": it is a knockdown, not a mutant.
+    """
+    lethal = ontology.descendants(WORM_LETHAL)
+    stage_of = {}
+    for term in lethal:
+        stage_of[term] = ("E" if term in ontology.descendants(WORM_EMBRYONIC) else
+                          "L" if term in ontology.descendants(WORM_LARVAL) else
+                          "A" if term in ontology.descendants(WORM_ADULT) else "U")
+    sterile = ontology.descendants(WORM_STERILE)
+    genes = {}
+    sequence_names = {}
+    for line in lines:
+        if line.startswith("!") or not line.strip():
+            continue
+        f = line.rstrip("\r\n").split("\t")
+        if len(f) < 11 or f[0] != "WB":
+            continue
+        term, negated = f[4], f[3].strip().upper() == "NOT"
+        if term not in lethal and term not in sterile:
+            continue
+        gene = genes.setdefault(f[1], {"symbol": f[2], "experiments": {}})
+        if f[10]:
+            sequence_names[f[10].upper()] = f[2]
+        for experiment in (x for x in f[7].split("|") if x.startswith(("WB:WBVar", "WB:WBRNAi"))):
+            item = gene["experiments"].setdefault(experiment, {"lethal": set(), "notlethal": False, "sterile": False, "refs": []})
+            if term in lethal and not negated:
+                item["lethal"].add(stage_of[term])
+                item["refs"].append(f[5].replace("WB_REF:", ""))
+            elif term == WORM_LETHAL and negated:
+                item["notlethal"] = True
+                item["refs"].append(f[5].replace("WB_REF:", ""))
+            elif term in sterile and not negated:
+                item["sterile"] = True
+    records = {}
+    aliases = {}
+    for gene in genes.values():
+        calls, stages, pubs, infertile, rnai_only = [], {"L": set(), "S": set()}, collections.Counter(), False, True
+        viable_alleles = []
+        for experiment, item in gene["experiments"].items():
+            if item["lethal"]:
+                calls.append("L")
+                stages["L"] |= item["lethal"]
+                rnai_only = rnai_only and experiment.startswith("WB:WBRNAi")
+                refs = item["refs"]
+            elif item["notlethal"] and experiment.startswith("WB:WBVar"):
+                viable_alleles.append(experiment)
+                refs = item["refs"]
+            else:
+                refs = []
+            for ref in refs:
+                if ref in papers:
+                    pubs[papers[ref]] += 1
+            infertile = infertile or (item["sterile"] and experiment.startswith("WB:WBVar"))
+        if len(viable_alleles) >= WORM_MIN_VIABLE_ALLELES:
+            calls += ["V"] * len(viable_alleles)
+        extra = {"f": 1} if infertile else {}
+        if calls and "L" in calls and rnai_only:
+            extra["k"] = 1
+        record = tally_calls(calls, stages, pubs, "W", extra)
+        if record:
+            records[gene["symbol"].upper()] = record
+    for name, symbol in sequence_names.items():
+        if symbol.upper() in records and name != symbol.upper():
+            aliases[name] = symbol
+    return records, aliases
+
+
+# --------------------------------------------------------------------------------------------------
 # paralogs (Ensembl BioMart)
 # --------------------------------------------------------------------------------------------------
 
@@ -966,10 +1411,12 @@ def write_json(path, data):
     path.write_text(json.dumps(data, separators=(",", ":"), sort_keys=True), encoding="utf-8")
 
 
-def count_measured(genes):
+def count_measured(genes, own_only=False):
     """Genes with a measured knockout result of their own or of their mouse ortholog (v, m), or a cell-line screen (c),
-    as opposed to genes that only have constraint or expression data."""
-    return sum(1 for record in genes.values() if any(key in record for key in ("v", "m", "c")))
+    as opposed to genes that only have constraint or expression data. `own_only`: not counting the mouse-ortholog hints
+    (for the organisms that have measurements of their own)."""
+    keys = ("v", "c") if own_only else ("v", "m", "c")
+    return sum(1 for record in genes.values() if any(key in record for key in keys))
 
 
 def drop_empty_organisms(organism_files, index_organisms, out=None):
@@ -983,6 +1430,55 @@ def drop_empty_organisms(organism_files, index_organisms, out=None):
             (Path(out) / f"{taxid}.json").unlink(missing_ok=True)
 
 
+MODEL_ORGANISM_FILES = {
+    "7955": ["zfin_stages.txt", "zfin_features.txt", "zfin_fish_components.txt", "zfin_pubmed.txt", "zfin_phenotype.txt"],
+    "7227": ["flybase_alleles.tsv.gz", "flybase_references.tsv.gz", "flybase_genotype_phenotype.tsv.gz"],
+    "6239": ["wormbase_phenotype_ontology.obo.gz", "alliance_phenotype_wb.json.gz", "wormbase_phenotype_association.wb.gz"],
+}
+
+
+def build_model_organisms(files, taxids):
+    """{taxid: (direct records {SYMBOL: record}, aliases)} for zebrafish, fly and worm from their own databases.
+    An organism whose source files could not be downloaded is left out (it keeps the mouse-ortholog hint)."""
+    result = {}
+    for taxid in list(taxids):
+        if any(name not in files for name in MODEL_ORGANISM_FILES[taxid]):
+            print(f"  WARNING: the files for {DISTANT[taxid]} are missing; no measurements of its own in this build", flush=True)
+            taxids = [t for t in taxids if t != taxid]
+    if "7955" in taxids:
+        print("Zebrafish: reading ZFIN", flush=True)
+        with open_text(files["zfin_stages.txt"]) as handle:
+            stages = parse_zfin_stages(handle)
+        with open_text(files["zfin_features.txt"]) as handle:
+            features = parse_zfin_features(handle)
+        with open_text(files["zfin_fish_components.txt"]) as handle:
+            fish = parse_zfin_fish(handle, features)
+        with open_text(files["zfin_pubmed.txt"]) as handle:
+            pubmed = {f[0]: f[1] for f in (line.rstrip("\r\n").split("\t") for line in handle) if len(f) >= 2 and f[1].isdigit()}
+        with open_text(files["zfin_phenotype.txt"]) as handle:
+            result["7955"] = (build_zebrafish(handle, fish, stages, pubmed), {})
+        print(f"  {len(fish)} clean homozygous fish lines -> {len(result['7955'][0])} genes with a call")
+    if "7227" in taxids:
+        print("Fly: reading FlyBase", flush=True)
+        with open_text(files["flybase_alleles.tsv.gz"]) as handle:
+            alleles = parse_fly_alleles(handle)
+        with open_text(files["flybase_references.tsv.gz"]) as handle:
+            pubmed = parse_fly_references(handle)
+        with open_text(files["flybase_genotype_phenotype.tsv.gz"]) as handle:
+            result["7227"] = (build_fly(handle, alleles, pubmed), {})
+        print(f"  {len(alleles)} usable alleles -> {len(result['7227'][0])} genes with a call")
+    if "6239" in taxids:
+        print("Worm: reading WormBase", flush=True)
+        with open_text(files["wormbase_phenotype_ontology.obo.gz"]) as handle:
+            ontology = MPOntology(handle)
+        with gzip.open(files["alliance_phenotype_wb.json.gz"], "rt", encoding="utf-8") as handle:
+            papers = parse_worm_papers(json.load(handle))
+        with open_text(files["wormbase_phenotype_association.wb.gz"]) as handle:
+            result["6239"] = build_worm(handle, ontology, papers)
+        print(f"  {len(result['6239'][0])} genes with a call")
+    return result
+
+
 def build_all(out, cache, refresh=False, depmap_path=DEPMAP_SUMMARY, organisms=("mouse", "human", "rat", "yeast", "distant"),
               paralogs=True):
     out, downloader = Path(out), Downloader(cache, refresh)
@@ -991,7 +1487,14 @@ def build_all(out, cache, refresh=False, depmap_path=DEPMAP_SUMMARY, organisms=(
     files = {}
     for source in SOURCES.values():
         for name, url in source["files"].items():
-            files[name] = downloader.fetch(name, url)
+            try:
+                files[name] = downloader.fetch(name, url)
+            except requests.RequestException as error:
+                if not source.get("optional"):
+                    raise
+                # a community database that cannot be reached (or answers a script with a bot check) must not stop the
+                # whole build: its organism then keeps the mouse-ortholog hint
+                print(f"  WARNING: {name} could not be downloaded ({error}); {source['name']} is left out of this build", flush=True)
     wanted = {frozenset(("9606", "10090")), frozenset(("10116", "10090"))}
     wanted |= {frozenset((taxid, "10090")) for taxid in DISTANT}
     pairs = parse_orthology(open_text(files["alliance_orthology.tsv.gz"]), wanted=wanted)
@@ -1036,9 +1539,17 @@ def build_all(out, cache, refresh=False, depmap_path=DEPMAP_SUMMARY, organisms=(
         organism_files["10116"] = {"genes": build_inferred(pairs, "10116", mouse_records, by_id), "aliases": {}}
         index_organisms["10116"] = {"name": "Rattus norvegicus", "layers": ["ortholog-knockout"]}
     if "distant" in organisms:
+        own = build_model_organisms(files, MODEL_ORGANISMS) if "distant" in organisms else {}
         for taxid, name in DISTANT.items():
-            organism_files[taxid] = {"genes": build_inferred(pairs, taxid, mouse_records, by_id), "aliases": {}}
-            index_organisms[taxid] = {"name": name, "layers": ["ortholog-knockout"], "distant": True}
+            genes, aliases = build_inferred(pairs, taxid, mouse_records, by_id), {}
+            layers = ["ortholog-knockout"]
+            if taxid in own:
+                for symbol, record in own[taxid][0].items():
+                    genes.setdefault(symbol, {}).update(record)       # a measurement of its own beside the mouse hint
+                aliases = own[taxid][1]
+                layers = ["knockout", "ortholog-knockout"]
+            organism_files[taxid] = {"genes": genes, "aliases": aliases}
+            index_organisms[taxid] = {"name": name, "layers": layers, "distant": True}
     if "yeast" in organisms:
         with open_text(files["sgd_phenotype.tab"]) as handle:
             organism_files["559292"] = {"genes": build_yeast(handle), "aliases": {}}
@@ -1047,7 +1558,8 @@ def build_all(out, cache, refresh=False, depmap_path=DEPMAP_SUMMARY, organisms=(
     drop_empty_organisms(organism_files, index_organisms, out)
     for taxid, data in organism_files.items():
         index_organisms[taxid]["genes"] = len(data["genes"])
-        index_organisms[taxid]["measured"] = count_measured(data["genes"])
+        index_organisms[taxid]["measured"] = count_measured(data["genes"], own_only="knockout" in index_organisms[taxid]["layers"]
+                                                            and taxid in MODEL_ORGANISMS)
         index_organisms[taxid]["file"] = f"{taxid}.json"
         write_json(out / f"{taxid}.json", data)
     index["sources"] = [

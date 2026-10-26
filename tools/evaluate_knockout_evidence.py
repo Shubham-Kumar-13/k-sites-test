@@ -55,8 +55,13 @@ OUTRO = """## What these checks do not show
   the null animals were examined as young or adult animals (or declared normal); genes with only embryonic findings stay
   "not verified".
 - **Cell-line essentiality comes from cancer cell lines** (DepMap 24Q4). Primary cells, stem cells and other cell types can differ.
-- **Species other than human, mouse, rat and yeast have no measured data here.** Zebrafish, fly, worm and Xenopus only get the
-  knockout of their mouse ortholog as a hint, never a measurement.
+- **Zebrafish, fly and worm are measured only for the genes their community databases cover.** ZFIN, FlyBase and WormBase
+  curate mutants that were studied for a reason, so the covered genes are biased towards interesting phenotypes (and, for
+  zebrafish, towards recent CRISPR mutants); fish with morpholinos, transgenes or heterozygous genotypes are left out. WormBase
+  does not say which alleles are null, so a gene is called viable only when two or more alleles are reported not lethal, and a
+  lethal call that rests on RNAi alone is marked as such. Genes without a measurement of their own, Xenopus, and every plant
+  or other organism have no measured data; for zebrafish, fly, worm and Xenopus the knockout of the mouse ortholog is shown as
+  a hint, never as a measurement. Arabidopsis has no openly licensed machine-readable knockout resource that could be used.
 
 ## How to reproduce
 
@@ -93,8 +98,10 @@ def pct(part, whole):
 def paper_check(provider):
     truth = json.loads(TRUTH.read_text(encoding="utf-8"))["genes"]
     rows, lethal_ok, viable_ok = [], 0, 0
+    species = {"10090": "mouse", "7955": "zebrafish", "7227": "fly", "6239": "worm"}
     for entry in truth:
-        evidence = assess_gene(provider, "10090", entry["gene"])
+        taxid = entry.get("taxid", "10090")
+        evidence = assess_gene(provider, taxid, entry["gene"])
         verdict = get_safety_recommendation(entry["gene"], 3.0, knockout_evidence=evidence)
         flagged = verdict.safety_level.value in FLAGGED
         organism = evidence["organism"]
@@ -105,13 +112,14 @@ def paper_check(provider):
         counts = organism["counts"]
         other_lines = [f"{counts[key]} {key}" for key in ("lethal", "subviable") if counts[key]]
         mixed = f"; {', '.join(other_lines)} of {sum(counts.values())} lines" if organism["call"] == "VIABLE" and other_lines else ""
-        rows.append([entry["gene"], entry["expected"], f"{organism['call'].lower()}" + (f" ({stage})" if stage else "") + mixed,
+        rows.append([species[taxid], entry["gene"], entry["expected"], f"{organism['call'].lower()}" + (f" ({stage})" if stage else "") + mixed,
                      verdict.safety_level.value, "yes" if ok else "**NO**",
                      f"[{entry['citation']}](https://doi.org/{entry['doi']})"])
     n_lethal = sum(1 for e in truth if e["expected"] == "lethal")
     n_viable = len(truth) - n_lethal
-    text = [f"Genes whose knockout outcome was read from the original paper: {n_lethal} lethal, {n_viable} viable.", "",
-            table(["Gene", "Paper says", "Data says", "Verdict", "Agrees", "Paper"], rows), "",
+    by_species = ", ".join(f"{sum(1 for e in truth if e.get('taxid', '10090') == t)} {name}" for t, name in species.items())
+    text = [f"Genes whose knockout outcome was read from the original paper: {n_lethal} lethal, {n_viable} viable ({by_species}).", "",
+            table(["Organism", "Gene", "Paper says", "Data says", "Verdict", "Agrees", "Paper"], rows), "",
             f"- Lethal knockouts flagged (AVOID or HIGH_CONCERN): **{lethal_ok} of {n_lethal}**",
             f"- Viable knockouts not rated AVOID: **{viable_ok} of {n_viable}**"]
     return "\n".join(text)
@@ -214,7 +222,12 @@ def coverage(data, hgnc):
     for taxid, info in index["organisms"].items():
         if taxid in ("10090", "9606"):
             continue
-        rows.append([f"{info['name']} ({', '.join(info['layers'])})", f"{info['genes']:,}", ""])
+        detail = ""
+        if info.get("distant") and "knockout" in info["layers"]:
+            genes = json.loads((data / info["file"]).read_text(encoding="utf-8"))["genes"]
+            own = collections.Counter(r["v"] for r in genes.values() if "v" in r)
+            detail = f"measured: {own['L']:,} lethal, {own['S']:,} subviable, {own['V']:,} viable; the other genes carry the mouse-ortholog hint"
+        rows.append([f"{info['name']} ({', '.join(info['layers'])})", f"{info['genes']:,}", detail])
     return table(["Data", "Genes", "Detail"], rows) + f"\n\nData version {index['built']}."
 
 
