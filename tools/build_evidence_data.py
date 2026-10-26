@@ -166,13 +166,15 @@ class Downloader:
         path = self.cache / name
         if self.refresh or not path.exists() or path.stat().st_size == 0:
             print(f"  downloading {name}", flush=True)
+            part = path.with_name(path.name + ".part")           # a cut-off download is never taken for a finished one
             for attempt in range(4):
                 try:
                     with requests.get(url, stream=True, timeout=180) as response:
                         response.raise_for_status()
-                        with open(path, "wb") as handle:
+                        with open(part, "wb") as handle:
                             for chunk in response.iter_content(1 << 20):
                                 handle.write(chunk)
+                    part.replace(path)
                     break
                 except requests.RequestException:
                     if attempt == 3:
@@ -555,7 +557,8 @@ def mouse_record(gene, systems_index):
     if gene.marker:
         record["id"] = gene.marker
     if gene.pmids:
-        record["pm"] = [int(p) for p, _ in gene.pmids.most_common(3)]
+        # the most cited first; among equals the oldest paper, so that the same sources always give the same file
+        record["pm"] = [int(p) for p, _ in sorted(gene.pmids.items(), key=lambda item: (-item[1], int(item[0])))[:3]]
     return record
 
 

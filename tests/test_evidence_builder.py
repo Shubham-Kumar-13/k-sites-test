@@ -303,6 +303,17 @@ class TestGeneCalls:
         assert record["v"] == "L" and record["s"] == "E" and record["n"] == [2, 0, 1] and record["x"] == 1
         assert record["pm"][0] == 10 and record["id"] == "MGI:1" and record["src"] == "M"
 
+    def test_references_do_not_depend_on_the_order_they_were_seen_in(self):
+        records = []
+        for order in (["30", "10", "20", "40"], ["40", "20", "10", "30"]):
+            gene = bed.GeneCalls(marker="MGI:1")
+            gene.counts.update({"V": 1})
+            gene.pmids.update(order)
+            gene.pmids["20"] += 1                                   # cited twice, so it comes first
+            records.append(bed.mouse_record(gene, {}))
+
+        assert records[0]["pm"] == records[1]["pm"] == [20, 10, 30]
+
     def test_majority_decides_and_a_tie_goes_to_the_more_severe_call(self, survival):
         viable = [genotype("Gene<tm1>/Gene<tm1>", ["A:ko"], ["MP:0001262"], gid=f"V{i}") for i in range(3)]
         lethal = genotype("Gene<tm1>/Gene<tm1>", ["A:ko"], ["MP:0008762"], gid="L1")
@@ -405,6 +416,45 @@ class TestYeast:
         assert records["YFL039C"] is records["ACT1"]                              # reachable by either name
         assert records["RAD52"] == {"v": "V", "n": [0, 0, 1], "src": "S"}         # lethal only under special conditions
         assert "YAL001C" in records and records["YAL001C"]["v"] == "V"
+
+
+class TestDownloader:
+    class Response:
+        def __init__(self, chunks, fail_after=None):
+            self.chunks, self.fail_after = chunks, fail_after
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def raise_for_status(self):
+            pass
+
+        def iter_content(self, size):
+            for number, chunk in enumerate(self.chunks):
+                if self.fail_after is not None and number >= self.fail_after:
+                    raise bed.requests.ConnectionError("connection lost")
+                yield chunk
+
+    def test_a_download_that_breaks_off_leaves_no_file_behind(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(bed.time, "sleep", lambda seconds: None)
+        monkeypatch.setattr(bed.requests, "get", lambda *a, **k: self.Response([b"abc", b"def"], fail_after=1))
+
+        with pytest.raises(bed.requests.ConnectionError):
+            bed.Downloader(tmp_path).fetch("source.tsv", "https://example.org/source.tsv")
+
+        assert not (tmp_path / "source.tsv").exists()
+
+    def test_a_retry_after_a_broken_download_gives_the_whole_file(self, tmp_path, monkeypatch):
+        answers = iter([self.Response([b"abc", b"def"], fail_after=1), self.Response([b"abc", b"def"])])
+        monkeypatch.setattr(bed.time, "sleep", lambda seconds: None)
+        monkeypatch.setattr(bed.requests, "get", lambda *a, **k: next(answers))
+
+        path = bed.Downloader(tmp_path).fetch("source.tsv", "https://example.org/source.tsv")
+
+        assert path.read_bytes() == b"abcdef" and not list(tmp_path.glob("*.part"))
 
 
 class TestHumanLayers:
