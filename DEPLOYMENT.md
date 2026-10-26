@@ -48,6 +48,12 @@ The workflow rebuilds the site whenever the pages change and on the 1st of each 
 KEGG and knockout data). The first build downloads about 280 MB of source data and takes about 10 minutes (the paralog query alone about 5);
 the downloads are cached for the month.
 
+**What a build could not read.** Every build writes the sources it could not download into `build_warnings` in
+`evidence-data/index.json` and leaves them out of the "Data sources" list. At the time of writing WormBase's download server
+(`downloads.wormbase.org`) answers GitHub's build servers with HTTP 403 although it answers other networks, so the monthly
+build has no measured worm data and worm genes carry only the mouse-ortholog hint; a build on another machine
+(`python tools/build_evidence_data.py`) includes them. Zebrafish, fly and every other source were read.
+
 **Data licences.** Please keep the attribution that the site and every report show. Checked against the providers'
 own pages: MGI, IMPC, DepMap 24Q4 and SGD are CC BY 4.0; ZFIN states that its data and annotations are CC BY 4.0; FlyBase
 states that its annotations and data are CC BY 4.0; WormBase describes itself as open access under a Creative Commons public

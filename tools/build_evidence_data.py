@@ -1912,7 +1912,7 @@ def build_all(out, cache, refresh=False, depmap_path=DEPMAP_SUMMARY, organisms=(
         write_json(out / f"{taxid}.json", data)
     index["sources"] = [
         {"id": key, "name": s["name"], "url": s["url"], "what": s["what"], "license": s.get("license", "")}
-        for key, s in SOURCES.items() if not s["files"] or any(name in files for name in s["files"])]
+        for key, s in SOURCES.items() if not s["files"] or all(name in files for name in s["files"])]
     if build_warnings:
         index["build_warnings"] = build_warnings
     write_json(out / "index.json", index)
