@@ -192,7 +192,7 @@ export class LocalBackend {
             const seconds = estimateSeconds(total, !!data.predict_phenotypes);
             return {
                 valid: errors.length === 0, errors, warnings, gene_count: total, organism_resolved: organism, taxid,
-                estimated_time_seconds: seconds, estimated_time_formatted: formatDuration(seconds),
+                estimated_time_seconds: seconds, estimated_time_formatted: (data.predict_phenotypes ? 'up to ' : '') + formatDuration(seconds),
             };
         } catch (error) {
             warnings.push(`Could not validate gene count: ${error.message}`);
