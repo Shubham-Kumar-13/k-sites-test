@@ -14,6 +14,7 @@ on:
       - "tools/build_static_site.py"
       - "tools/build_kegg_data.py"
       - "tools/build_evidence_data.py"
+      - "tools/check_evidence_data.py"
       - "tools/data/**"
       - ".github/workflows/pages.yml"
   schedule:
@@ -62,6 +63,9 @@ jobs:
 
       - name: Build the measured knockout evidence
         run: python tools/build_evidence_data.py --out site/evidence-data
+
+      - name: Check the evidence against the gold standards (the deploy stops when it fails)
+        run: python tools/check_evidence_data.py --data site/evidence-data --report check-report.md
 
       - uses: actions/configure-pages@v5
 

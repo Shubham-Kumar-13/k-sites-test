@@ -89,6 +89,11 @@ python -m pytest tests                      # Python tests
 cd tests/js && npm install && node --test *.test.mjs   # browser engine, compared with Python on recorded live data
 ```
 
+Every deploy also runs `tools/check_evidence_data.py` on the freshly built evidence: no verdict may break the rules in any organism
+(for example a lethal gene rated Safe), at least 90% of the human core-essential genes must be rated Avoid in cultured cells, at least
+95% of the non-essential genes must not be, and at least 85% of the mouse core-essential genes must be Avoid or High concern. The gold
+lists are in `tools/data/gold/`. When the check fails, nothing is deployed and the site stays as it was; the build log shows why.
+
 ## Troubleshooting
 
 | Problem | Cause |

@@ -282,6 +282,14 @@ function organismVerdict(evidence, pleiotropy) {
             if (primary === R.STANDARD_KO) { primary = R.VALIDATED_KO; alternatives = [R.CONDITIONAL_KO]; }
             concerns.push('Infertility was reported, so the knockout line must be kept from heterozygotes');
         }
+        if (organism.human_essential_percent && level === SafetyLevel.SAFE) {
+            // the two measurements disagree: a mouse line may carry a hypomorph, or a copy may cover for the gene in the mouse
+            level = SafetyLevel.CAUTION;
+            primary = R.VALIDATED_KO;
+            alternatives = [R.CONDITIONAL_KO];
+            concerns.push(`The knockout is viable in mice, but the human ortholog is essential in ${Number(organism.human_essential_percent)}% `
+                + 'of cancer cell lines: confirm that the mouse line is a complete knockout');
+        }
         if (level === SafetyLevel.SAFE && pleiotropy > 5) {
             level = SafetyLevel.CAUTION;
             primary = R.VALIDATED_KO;

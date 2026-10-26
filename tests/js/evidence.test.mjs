@@ -248,6 +248,22 @@ test('an essential call for a gene no tissue expresses and people lose without h
     assert.equal((await level({ c: ['C', 99.0, 1059], l: 0.1, t: [null, 0, []] })).safety_level, 'AVOID');
 });
 
+test('a viable mouse knockout of a gene whose human ortholog is essential in cell lines is CAUTION, not SAFE', async () => {
+    const level = async (record) => {
+        const files = {
+            'index.json': { format: 1, built: '2026-01-01', stages: {}, systems: [], organisms: { 10090: { name: 'Mus musculus', file: '10090.json', layers: [] } }, sources: [] },
+            '10090.json': { genes: { RPL32: record }, aliases: {} },
+        };
+        const evidence = await assessGene(new EvidenceProvider(async (name) => files[name]), '10090', 'RPL32', 'organism');
+        return getSafetyRecommendation({ symbol: 'RPL32', pleiotropyScore: 2.0, knockoutEvidence: evidence });
+    };
+
+    const conflict = await level({ v: 'V', n: [0, 0, 2], hc: 100.0 });
+    assert.equal(conflict.safety_level, 'CAUTION');
+    assert.ok(conflict.concerns.some((c) => c.includes('human ortholog is essential in 100% of cancer cell lines')));
+    assert.equal((await level({ v: 'V', n: [0, 0, 2] })).safety_level, 'SAFE');
+});
+
 test('conservation counts the model species that carry the gene; literature is the number of linked articles', async () => {
     const files = {
         'index.json': { format: 1, built: '2026-01-01', organisms: { 9606: { name: 'Homo sapiens', file: '9606.json', layers: [] } }, sources: [] },

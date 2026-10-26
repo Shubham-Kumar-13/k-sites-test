@@ -56,6 +56,7 @@
       "viable": 7
      },
      "distant": false,
+     "human_essential_percent": null,
      "infertile": false,
      "mgi_id": "MGI:1340806",
      "mixed": true,
@@ -191,6 +192,7 @@
       "viable": 0
      },
      "distant": false,
+     "human_essential_percent": null,
      "infertile": false,
      "mgi_id": "MGI:102779",
      "mixed": false,
@@ -322,6 +324,7 @@
       "viable": 2
      },
      "distant": false,
+     "human_essential_percent": null,
      "infertile": false,
      "mgi_id": "MGI:1918976",
      "mixed": false,
@@ -468,6 +471,7 @@
       "viable": 3
      },
      "distant": false,
+     "human_essential_percent": null,
      "infertile": false,
      "mgi_id": "MGI:2686058",
      "mixed": false,
@@ -625,6 +629,7 @@
       "viable": 0
      },
      "distant": false,
+     "human_essential_percent": null,
      "infertile": false,
      "mgi_id": "MGI:108247",
      "mixed": false,
@@ -786,6 +791,7 @@
       "viable": 0
      },
      "distant": false,
+     "human_essential_percent": null,
      "infertile": false,
      "mgi_id": "MGI:99137",
      "mixed": false,
@@ -917,6 +923,7 @@
       "viable": 0
      },
      "distant": false,
+     "human_essential_percent": null,
      "infertile": false,
      "mgi_id": null,
      "mixed": false,
@@ -1032,6 +1039,7 @@
       "viable": 0
      },
      "distant": false,
+     "human_essential_percent": null,
      "infertile": false,
      "mgi_id": "MGI:97503",
      "mixed": false,
@@ -1174,9 +1182,9 @@
      "from_human_ortholog": false,
      "label": "likely lethal",
      "other_symbol": "Rpa3",
-     "percent": 94,
-     "probability": 0.94,
-     "text": "No measured knockout result. Estimated 94% chance that a knockout is lethal in mice (likely lethal), from its own cell-line, population and expression data (its mouse ortholog Rpa3 has no knockout result). Among tested mouse genes with such an estimate 88% were lethal (AUC 0.84). This is an estimate, not a measurement."
+     "percent": 93,
+     "probability": 0.93,
+     "text": "No measured knockout result. Estimated 93% chance that a knockout is lethal in mice (likely lethal), from its own cell-line, population and expression data (its mouse ortholog Rpa3 has no knockout result). Among tested mouse genes with such an estimate 88% were lethal (AUC 0.83). This is an estimate, not a measurement."
     },
     "expression": {
      "label": "tissue-specific",
@@ -1201,6 +1209,7 @@
       "viable": 0
      },
      "distant": false,
+     "human_essential_percent": null,
      "infertile": false,
      "mgi_id": null,
      "mixed": false,

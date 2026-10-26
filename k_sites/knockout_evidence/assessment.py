@@ -70,7 +70,8 @@ def _organism_part(index: dict, taxid: str, record: Optional[dict]) -> Dict[str,
         "call": "UNKNOWN", "basis": "none", "distant": False, "stage": None, "stage_text": None,
         "counts": {"lethal": 0, "subviable": 0, "viable": 0}, "mixed": False, "sources": [], "species": None,
         "ortholog": None, "mgi_id": None, "references": [], "systems": [], "reduced_lifespan": False,
-        "infertile": False, "rnai_only": False, "text": "No measured knockout data for this gene",
+        "infertile": False, "rnai_only": False, "human_essential_percent": None,
+        "text": "No measured knockout data for this gene",
     }
     if not record:
         return part
@@ -104,6 +105,7 @@ def _organism_part(index: dict, taxid: str, record: Optional[dict]) -> Dict[str,
     part["reduced_lifespan"] = bool(base.get("r"))
     part["infertile"] = bool(base.get("f"))
     part["rnai_only"] = bool(base.get("k"))
+    part["human_essential_percent"] = base.get("hc")
 
     noun = SPECIES_NOUN.get(species_key, "the model organism")
     if basis == "direct":

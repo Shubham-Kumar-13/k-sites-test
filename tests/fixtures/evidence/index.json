@@ -2,7 +2,7 @@
  "built": "2026-10-26",
  "format": 1,
  "lethality_model": {
-  "auc": 0.84,
+  "auc": 0.83,
   "features": [
    "depmap_percent",
    "depmap_missing",
@@ -16,37 +16,37 @@
   "likely": 0.5,
   "possible": 0.3,
   "tested": {
-   "auc": 0.836,
+   "auc": 0.835,
    "bands": {
     "likely": {
-     "genes": 1812,
-     "lethal_share": 0.882
+     "genes": 1845,
+     "lethal_share": 0.881
     },
     "possible": {
-     "genes": 1598,
-     "lethal_share": 0.404
+     "genes": 1625,
+     "lethal_share": 0.402
     },
     "unlikely": {
-     "genes": 8611,
+     "genes": 8764,
      "lethal_share": 0.14
     }
    },
-   "genes": 12021,
-   "lethal": 3451,
+   "genes": 12234,
+   "lethal": 3502,
    "lethal_found_at_possible": 0.651,
-   "viable": 8570,
+   "viable": 8732,
    "viable_flagged_at_possible": 0.136
   },
   "weights": [
-   -0.9712,
-   2.5064,
-   0.0484,
-   -1.0545,
-   -0.6224,
-   -0.1602,
-   -0.2232,
-   0.1319,
-   -0.1202
+   -0.988,
+   2.4409,
+   0.0527,
+   -1.0237,
+   -0.6201,
+   -0.1544,
+   -0.2296,
+   0.1342,
+   -0.1178
   ]
  },
  "organisms": {
@@ -134,7 +134,7 @@
     "paralogs",
     "lethality-estimate"
    ],
-   "measured": 39,
+   "measured": 38,
    "name": "Homo sapiens"
   }
  },

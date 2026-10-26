@@ -121,7 +121,7 @@ function organismPart(index, taxid, record) {
         call: 'UNKNOWN', basis: 'none', distant: false, stage: null, stage_text: null,
         counts: { lethal: 0, subviable: 0, viable: 0 }, mixed: false, sources: [], species: null,
         ortholog: null, mgi_id: null, references: [], systems: [], reduced_lifespan: false,
-        infertile: false, rnai_only: false, text: 'No measured knockout data for this gene',
+        infertile: false, rnai_only: false, human_essential_percent: null, text: 'No measured knockout data for this gene',
     };
     if (!record) return part;
     let base;
@@ -159,6 +159,7 @@ function organismPart(index, taxid, record) {
     part.reduced_lifespan = !!base.r;
     part.infertile = !!base.f;
     part.rnai_only = !!base.k;
+    part.human_essential_percent = base.hc ?? null;
 
     const noun = SPECIES_NOUN[speciesKey] || 'the model organism';
     let where;

@@ -314,6 +314,24 @@ class TestEssentialButNeverExpressed(TestCellsWithoutACellLineResult):
         assert self.verdict_for({"c": ["C", 99.0, 1059], "l": 0.1, "t": [None, 0, []]}).safety_level.value == "AVOID"
 
 
+class TestViableMouseButEssentialHumanOrtholog:
+    def level(self, record):
+        index = {"format": 1, "built": "2026-01-01", "stages": {}, "systems": [],
+                 "organisms": {"10090": {"name": "Mus musculus", "file": "10090.json", "layers": []}}, "sources": []}
+        provider = EvidenceProvider(DictSource({"index.json": index, "10090.json": {"genes": {"RPL32": record}, "aliases": {}}}))
+        evidence = assess_gene(provider, "10090", "RPL32", "organism")
+        return get_safety_recommendation("RPL32", 2.0, knockout_evidence=evidence)
+
+    def test_a_viable_knockout_of_a_gene_essential_in_human_cells_is_not_safe(self):
+        recommendation = self.level({"v": "V", "n": [0, 0, 2], "hc": 100.0})
+
+        assert recommendation.safety_level.value == "CAUTION"
+        assert any("human ortholog is essential in 100% of cancer cell lines" in c for c in recommendation.concerns)
+
+    def test_without_the_conflict_a_viable_knockout_is_still_safe(self):
+        assert self.level({"v": "V", "n": [0, 0, 2]}).safety_level.value == "SAFE"
+
+
 class TestLethalityEstimate:
     """Genes without a knockout result get an estimate from their human ortholog; it is never a measurement."""
 

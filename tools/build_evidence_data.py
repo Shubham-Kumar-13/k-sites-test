@@ -824,6 +824,9 @@ def read_gtex(path):
     return result, tissues
 
 
+HUMAN_ESSENTIAL_PERCENT = 90      # share of cell lines at which a human ortholog counts as essential for the cross-check
+
+
 def slim(mouse_record):
     """The mouse record as carried on a human or rat gene: without the mouse's own paralogs and expression."""
     return {key: value for key, value in mouse_record.items() if key not in ("p", "t")}
@@ -1853,6 +1856,10 @@ def build_all(out, cache, refresh=False, depmap_path=DEPMAP_SUMMARY, organisms=(
             expression = human.get(human_symbol.upper(), {}).get("t")
             if relation == "1:1" and mouse_record_ is not None and expression:
                 mouse_record_["t"] = expression
+            # where the human ortholog is essential in cell lines: lets a viable mouse result be checked against it
+            cells = human.get(human_symbol.upper(), {}).get("c")
+            if relation in ("1:1", "best") and mouse_record_ is not None and cells and cells[1] is not None and cells[1] >= HUMAN_ESSENTIAL_PERCENT:
+                mouse_record_["hc"] = cells[1]
     if "rat" in organisms:
         organism_files["10116"] = {"genes": build_inferred(pairs, "10116", mouse_records, by_id), "aliases": {}}
         index_organisms["10116"] = {"name": "Rattus norvegicus", "layers": ["ortholog-knockout"]}

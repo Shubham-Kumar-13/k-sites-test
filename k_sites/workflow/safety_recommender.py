@@ -453,6 +453,11 @@ class SafetyRecommender:
                 if primary == RecommendationType.STANDARD_KO:
                     primary, alternatives = RecommendationType.VALIDATED_KO, [RecommendationType.CONDITIONAL_KO]
                 concerns.append("Infertility was reported, so the knockout line must be kept from heterozygotes")
+            if organism.get("human_essential_percent") and level == SafetyLevel.SAFE:
+                # the two measurements disagree: a mouse line may carry a hypomorph, or a copy may cover for the gene in the mouse
+                level, primary, alternatives = SafetyLevel.CAUTION, RecommendationType.VALIDATED_KO, [RecommendationType.CONDITIONAL_KO]
+                concerns.append(f"The knockout is viable in mice, but the human ortholog is essential in {organism['human_essential_percent']:g}% "
+                                "of cancer cell lines: confirm that the mouse line is a complete knockout")
             if level == SafetyLevel.SAFE and pleiotropy_score > 5:
                 level, primary, alternatives = SafetyLevel.CAUTION, RecommendationType.VALIDATED_KO, [RecommendationType.STANDARD_KO]
                 concerns.append("The knockout is viable, but the gene has many annotated roles, so expect broad phenotypes")
