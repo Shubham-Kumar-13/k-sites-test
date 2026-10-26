@@ -10,10 +10,10 @@ import { diff, keggFromRecording, loadPythonResult, loadRecording, offlineClient
 const recording = loadRecording();
 const { input, result: python } = loadPythonResult();
 
-async function runJs(overrides = {}) {
+async function runJs(overrides = {}, ctxExtra = {}) {
     const misses = [];
     const http = offlineClient(replayFetch(recording, misses));
-    const ctx = { http, keggProvider: keggFromRecording(recording) };
+    const ctx = { http, keggProvider: keggFromRecording(recording), ...ctxExtra };
 
     // The Python run analysed only the first N genes of the GO term; do the same here
     const result = await runKSitesPipeline(ctx, {
@@ -24,6 +24,19 @@ async function runJs(overrides = {}) {
     });
     return { result, misses };
 }
+
+test('the phenotype predictor is limited, and the user is told how many genes went without it', async () => {
+    let calls = 0;
+    const predictor = { predict: async () => { calls += 1; return null; } };
+    const progress = [];
+    const { result } = await runJs({
+        predictPhenotypes: true, maxPredictions: 2, onProgress: (stage, done, total) => progress.push([stage, done, total]),
+    }, { phenotypePredictor: predictor });
+
+    assert.equal(calls, 2);
+    assert.ok(result.warnings.some((w) => w.includes('first 2 genes') && w.includes('rated without it')), result.warnings.join(' | '));
+    assert.ok(progress.some(([stage]) => stage === 'Rating genes'), 'the bar moves while the genes are rated');
+});
 
 test('the recording is usable', () => {
     assert.ok(Object.keys(recording).length > 50, 'recording has responses');

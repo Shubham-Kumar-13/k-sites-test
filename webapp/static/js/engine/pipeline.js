@@ -10,6 +10,9 @@ import { assessGene, resolveContext } from './knockoutEvidence.js';
 
 /** Genes whose evidence and cross-species check are looked up at the same time. */
 const ASSESS_CONCURRENCY = 4;
+// The phenotype predictor reads PubMed abstracts and runs a language model for every gene it is asked about, up to a minute each.
+// A zebrafish or Xenopus term has thousands of genes without a measurement, so it is limited and the user is told.
+export const MAX_PREDICTIONS = 25;
 
 export const DEFAULT_SPECIES_VALIDATION = ['9606', '10090', '10116', '7227', '6239'];
 
@@ -34,6 +37,7 @@ export async function runKSitesPipeline(ctx, opts) {
         maxAnnotations = DEFAULT_MAX_ANNOTATIONS,
         knockoutContext = 'auto',
         onProgress = null,
+        maxPredictions = MAX_PREDICTIONS,
         geneLimit = null,        // analyse only the first N genes (used by tests and previews)
     } = opts;
     const speciesValidation = opts.speciesValidation === undefined ? DEFAULT_SPECIES_VALIDATION : opts.speciesValidation;
@@ -150,9 +154,14 @@ export async function runKSitesPipeline(ctx, opts) {
     });
 
     // Phase 2 (one gene at a time): the phenotype prediction where nothing was measured, then the verdict.
+    let predictionsRun = 0;
+    let predictionsOverLimit = 0;
+    let rated = 0;
     for (const lookup of lookups) {
         const { geneInfo, evidence, crossSpecies } = lookup;
         const symbol = geneInfo.symbol || 'unknown';
+        rated += 1;
+        if (onProgress) onProgress('Rating genes', rated, lookups.length);
         if (lookup.failed) continue;
 
         try {
@@ -176,7 +185,10 @@ export async function runKSitesPipeline(ctx, opts) {
             let phenotype = null;
             if (predictPhenotypes && evidence && (evidence.has_measured || evidence.estimate)) {
                 predictionsSkipped += 1;
+            } else if (predictPhenotypes && predictionsRun >= maxPredictions) {
+                predictionsOverLimit += 1;
             } else if (predictPhenotypes && await getPredictor()) {
+                predictionsRun += 1;
                 try {
                     // the protein name is how many papers refer to the gene ("DNA polymerase beta")
                     const description = geneInfo.description || '';
@@ -236,6 +248,10 @@ export async function runKSitesPipeline(ctx, opts) {
         }
     }
     if (onProgress) onProgress('Assessing genes', scored.length, scored.length);
+    if (predictionsOverLimit) {
+        warnings.push(`Phenotype prediction (it reads PubMed abstracts, a few seconds per gene) was run for the first ${maxPredictions} genes `
+            + `without a measured result; the other ${predictionsOverLimit} were rated without it, so they are at most CAUTION.`);
+    }
 
     // Safest genes first (measured evidence decides the tier), then by composite score as before
     const tier = (gene) => SAFETY_TIER[gene.safety_recommendation.safety_level] ?? Object.keys(SAFETY_TIER).length;

@@ -52,7 +52,8 @@ export function estimateSeconds(geneCount, predictPhenotypes, withEvidence = fal
 const PROGRESS_RANGES = {
     'Reading GO annotations': [15, 15],
     'Scoring genes': [30, 30],
-    'Assessing genes': [60, 25],
+    'Assessing genes': [60, 20],
+    'Rating genes': [80, 10],
 };
 
 export class LocalBackend {
