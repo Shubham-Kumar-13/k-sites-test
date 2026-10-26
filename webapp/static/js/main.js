@@ -213,6 +213,10 @@ async function showEvidenceCoverage(taxid) {
             if (data.distant) {
                 text += " Genes without a measurement of their own only have the mouse ortholog's knockout as a hint; verdicts for them are never better than CAUTION.";
             }
+            if (community) {
+                // lethal results are reported far more often than viable ones in these databases (VALIDATION.md, section 8)
+                text += ` ${community} reports lethal mutants far more often than viable ones, so a lethal call is a strong hint to confirm, not proof, and most genes have no result at all.`;
+            }
         }
         note.textContent = text;
         note.style.display = 'block';

@@ -57,15 +57,15 @@ Genes with a call from both the MGI literature curation and the IMPC screen: **7
 
 ## 3. Do mouse lethality and human cell essentiality agree?
 
-Human genes with a one-to-one mouse ortholog and a DepMap result: **12,630**.
+Human genes with a one-to-one mouse ortholog and a DepMap result: **12,825**.
 
 |  | essential in most human cell lines | not essential in most human cell lines |
 |---|---|---|
-| lethal in the mouse knockout | 1011 | 2380 |
-| viable or subviable in the mouse knockout | 69 | 9170 |
+| lethal in the mouse knockout | 1034 | 2402 |
+| viable or subviable in the mouse knockout | 77 | 9312 |
 
-- 93.6% of the genes that are essential in most cell lines are lethal in the mouse; 70.2% of the mouse-lethal genes are *not* essential in cell lines (they are needed for development, not for every cell).
-- Odds ratio 56.1 (95% interval 43.8 to 71.8): the two independent measurements agree far more often than chance, and they are different enough that both are shown.
+- 93.1% of the genes that are essential in most cell lines are lethal in the mouse; 69.9% of the mouse-lethal genes are *not* essential in cell lines (they are needed for development, not for every cell).
+- Odds ratio 51.7 (95% interval 40.9 to 65.5): the two independent measurements agree far more often than chance, and they are different enough that both are shown.
 
 ## 4. How many genes are covered?
 
@@ -76,15 +76,31 @@ Human genes with a one-to-one mouse ortholog and a DepMap result: **12,630**.
 | Human protein-coding genes with a DepMap cell-line result | 17,855 of 19,299 | 92.5% |
 | Human protein-coding genes with at least one of the two | 18,338 of 19,299 | 95.0% |
 | Rattus norvegicus (ortholog-knockout) | 13,793 |  |
-| Saccharomyces cerevisiae S288C (knockout) | 11,443 |  |
-| Caenorhabditis elegans (knockout, ortholog-knockout) | 6,830 | measured: 4,072 lethal, 0 subviable, 33 viable; the other genes carry the mouse-ortholog hint |
-| Drosophila melanogaster (knockout, ortholog-knockout) | 8,563 | measured: 3,950 lethal, 390 subviable, 592 viable; the other genes carry the mouse-ortholog hint |
-| Danio rerio (knockout, ortholog-knockout) | 14,125 | measured: 396 lethal, 101 subviable, 457 viable; the other genes carry the mouse-ortholog hint |
+| Saccharomyces cerevisiae S288C (knockout, paralogs) | 11,443 |  |
+| Caenorhabditis elegans (knockout, ortholog-knockout, paralogs) | 6,830 | measured: 4,072 lethal, 0 subviable, 33 viable; the other genes carry the mouse-ortholog hint |
+| Drosophila melanogaster (knockout, ortholog-knockout, paralogs) | 8,563 | measured: 3,950 lethal, 390 subviable, 592 viable; the other genes carry the mouse-ortholog hint |
+| Danio rerio (knockout, ortholog-knockout, paralogs) | 14,125 | measured: 396 lethal, 101 subviable, 457 viable; the other genes carry the mouse-ortholog hint |
 | Xenopus tropicalis (ortholog-knockout) | 12,067 |  |
 
 Data version 2026-10-26.
 
 ## 5. How good is the estimate for genes without a knockout result?
+
+Most genes were never knocked out in a mouse. For them K-Sites estimates the chance that the knockout is lethal from the measurements of the human ortholog (share of cancer cell lines that need the gene, how rarely people carry loss-of-function variants, tissue expression, close paralogs). The model was fitted on **12,234** mouse genes with a known outcome (3,502 lethal, 8,732 viable) and tested on genes it had not seen (5-fold cross-validation).
+
+- Area under the ROC curve: **0.835** (0.5 is a coin flip, 1.0 is perfect).
+- Flagging the genes estimated at 0.3 or higher finds **65.1%** of the lethal genes and wrongly flags **13.6%** of the viable ones. For comparison, the keyword prediction in section 6 found 23% and wrongly flagged 13%.
+
+| Estimated band | Tested genes | Of these, lethal in the mouse | Mouse genes without a knockout result in this band |
+|---|---|---|---|
+| likely lethal (estimate 0.5 or higher) | 1,845 | 88.1% | 769 |
+| possibly lethal (0.3 to 0.5) | 1,625 | 40.2% | 315 |
+| unlikely to be lethal (under 0.3) | 8,764 | 14.0% | 3,096 |
+
+- Human genes with an estimate (no mouse knockout result): 4,180.
+- The genes that were tested in mice are not a random sample: researchers knock out genes they already suspect to matter, so the lethal share among never-tested genes is probably lower than the shares above. The estimate is shown as an estimate, never rates a gene better than CAUTION, and a measurement always replaces it.
+
+## 6. How good is the old keyword prediction?
 
 Most genes were never knocked out in a mouse. For them K-Sites estimates the chance that the knockout is lethal from the measurements of the human ortholog (share of cancer cell lines that need the gene, how rarely people carry loss-of-function variants, tissue expression, close paralogs). The model was fitted on **12,021** mouse genes with a known outcome (3,451 lethal, 8,570 viable) and tested on genes it had not seen (5-fold cross-validation).
 
@@ -99,19 +115,6 @@ Most genes were never knocked out in a mouse. For them K-Sites estimates the cha
 
 - Human genes with an estimate (no mouse knockout result): 3,909.
 - The genes that were tested in mice are not a random sample: researchers knock out genes they already suspect to matter, so the lethal share among never-tested genes is probably lower than the shares above. The estimate is shown as an estimate, never rates a gene better than CAUTION, and a measurement always replaces it.
-
-## 6. How good is the old keyword prediction?
-
-Random sample of 60 mouse genes with a clear measured outcome (seed 7).
-
-|  | predicted lethal | predicted not lethal | no prediction |
-|---|---|---|---|
-| measured lethal | 7 | 5 | 18 |
-| measured viable | 4 | 3 | 23 |
-
-- Sensitivity: 23.3% of the lethal genes were predicted lethal.
-- False alarms: 13.3% of the viable genes were predicted lethal.
-- No prediction at all: 68.3% of the genes.
 
 ## 7. Does the pleiotropy score track what is measured?
 
@@ -142,6 +145,23 @@ Random sample of 60 mouse genes with a clear measured outcome (seed 7).
 | 9 to 10 | 1,752 | 42.4% | 7.0 |
 
 The score rises with both measures, so it carries real signal, but it is modest: it is a count of annotated roles and genes that are heavily studied have more annotations. Treat it as a hint about broad effects, not as a replacement for the knockout measurement.
+
+## 8. Do the knockout results of every organism agree with the human core-essential genes?
+
+| Organism | Core-essential orthologs with a result | called lethal | Non-essential orthologs with a result | called lethal | Separation (points) |
+|---|---|---|---|---|---|
+| Mouse | 431 | 96.1% | 489 | 8.6% | 87 |
+| Yeast | 524 | 61.3% | 48 | 12.5% | 49 |
+| Zebrafish | 37 | 89.2% | 29 | 27.6% | 62 |
+| Fly | 220 | 95.5% | 64 | 81.2% | 14 |
+| Worm | 472 | 100.0% | 49 | 87.8% | 12 |
+
+A large separation means the organism's lethal calls tell essential genes from non-essential ones. Mouse (a systematic screen
+plus the literature) separates them best. **For fly and worm the separation is small because their databases record lethal
+mutants far more often than viable ones**: a gene is in the database mostly because a mutant was found that died. For them a
+lethal call is a hint to confirm in the literature, not a measurement of how many genes are essential, and the share of
+"non-essential" genes called lethal is inflated by that selection, not necessarily by errors. The site says so before a fly,
+worm or zebrafish run.
 
 ## What these checks do not show
 

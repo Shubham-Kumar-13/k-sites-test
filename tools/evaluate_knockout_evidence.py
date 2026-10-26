@@ -373,6 +373,61 @@ def predictor_check(data, sample_size, seed=7):
 
 
 # --------------------------------------------------------------------------------------------------------------------
+def cross_organism_check(data, cache):
+    """
+    One test for every organism: the human core-essential genes (CEGv2) and non-essential genes (NEGv1) are mapped to each
+    organism through the best one-to-one orthologs (Alliance), and the share of them that the organism's own knockout data
+    call lethal is compared. A good source calls most core-essential orthologs lethal and few non-essential ones.
+    """
+    gold = ROOT / "tools" / "data" / "gold"
+    read = lambda name: {line.split("\t")[0].upper() for number, line in enumerate(open(gold / name, encoding="utf-8")) if number}
+    core, non_essential = read("core_essential_CEGv2.tsv"), read("non_essential_NEGv1.tsv")
+    taxa = {"10090": "Mouse", "559292": "Yeast", "7955": "Zebrafish", "7227": "Fly", "6239": "Worm"}
+    orthologs = collections.defaultdict(lambda: collections.defaultdict(set))
+    with gzip.open(cache / "alliance_orthology.tsv.gz", "rt", encoding="utf-8") as handle:
+        for line in handle:
+            f = line.rstrip("\n").split("\t")
+            if len(f) < 13 or f[11] != "Yes" or f[12] != "Yes":
+                continue
+            a, b = f[2].replace("NCBITaxon:", ""), f[6].replace("NCBITaxon:", "")
+            if a == "9606" and b in taxa:
+                orthologs[b][f[1].upper()].add(f[5].upper())
+            elif b == "9606" and a in taxa:
+                orthologs[a][f[5].upper()].add(f[1].upper())
+    rows = []
+    for taxid, name in taxa.items():
+        path = Path(data) / f"{taxid}.json"
+        if not path.exists():
+            continue
+        genes = json.loads(path.read_text(encoding="utf-8"))["genes"]
+
+        def share(gold_set):
+            measured = lethal = 0
+            for human in gold_set:
+                for gene in orthologs[taxid].get(human, ()):
+                    record = genes.get(gene)
+                    if record and "v" in record:
+                        measured += 1
+                        lethal += record["v"] == "L"
+            return measured, lethal
+
+        (n_core, l_core), (n_non, l_non) = share(core), share(non_essential)
+        if n_core and n_non:
+            rows.append((name, n_core, pct(l_core, n_core), n_non, pct(l_non, n_non),
+                         f"{100 * l_core / n_core - 100 * l_non / n_non:.0f}"))
+    text = table(["Organism", "Core-essential orthologs with a result", "called lethal", "Non-essential orthologs with a result",
+                  "called lethal", "Separation (points)"], rows)
+    return text + """
+
+A large separation means the organism's lethal calls tell essential genes from non-essential ones. Mouse (a systematic screen
+plus the literature) separates them best. **For fly and worm the separation is small because their databases record lethal
+mutants far more often than viable ones**: a gene is in the database mostly because a mutant was found that died. For them a
+lethal call is a hint to confirm in the literature, not a measurement of how many genes are essential, and the share of
+"non-essential" genes called lethal is inflated by that selection, not necessarily by errors. The site says so before a fly,
+worm or zebrafish run."""
+
+
+# --------------------------------------------------------------------------------------------------------------------
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--data", default=str(ROOT / ".cache" / "evidence-out"), help="Folder with the built evidence files")
@@ -401,6 +456,8 @@ def main():
             sections.append(("6. How good is the old keyword prediction?",
                              earlier.split("## 5.", 1)[1].split("\n", 2)[2].split("\n## ", 1)[0].strip()))
     sections.append(("7. Does the pleiotropy score track what is measured?", pleiotropy_check(data, cache)))
+    sections.append(("8. Do the knockout results of every organism agree with the human core-essential genes?",
+                     cross_organism_check(data, cache)))
     report = [INTRO, f"*Generated {date.today().isoformat()} by `tools/evaluate_knockout_evidence.py`.*", ""]
     for title, body in sections:
         report += [f"## {title}", "", body, ""]
