@@ -691,7 +691,7 @@ def validate_analysis():
                                 f'knockout evidence and composite score, and lists the rest as not shown.')
             
             # Estimate time
-            estimated_seconds = estimate_analysis_time(max_genes, data.get('predict_phenotypes', False))
+            estimated_seconds = estimate_analysis_time(total_genes, data.get('predict_phenotypes', False))
             
             return jsonify({
                 'valid': len(errors) == 0,
@@ -716,14 +716,12 @@ def validate_analysis():
 
 
 def estimate_analysis_time(num_genes: int, predict_phenotypes: bool) -> int:
-    """Estimate analysis time in seconds"""
-    base_time = 60  # Startup overhead
-    per_gene_time = 30  # Basic analysis per gene
-    
-    if predict_phenotypes:
-        per_gene_time += 60  # Add time for RAG phenotype prediction
-    
-    return base_time + (num_genes * per_gene_time)
+    """Estimate analysis time in seconds: every gene of the GO term is analysed, whatever the report size.
+
+    Measured in the browser engine (the same steps): about 0.65 s per gene when the evidence files supply conservation and
+    literature counts and 3.7 s per gene when those are searched for in databases; the estimate is on the slow side."""
+    per_gene_time = 4 + (2 if predict_phenotypes else 0)
+    return 20 + int(num_genes * per_gene_time)
 
 
 def format_duration(seconds: int) -> str:

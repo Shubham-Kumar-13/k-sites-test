@@ -394,7 +394,47 @@ function evidenceVerdict(evidence, pleiotropy) {
     }
     if (usable) return organismVerdict(evidence, pleiotropy);
     if (cells.call === 'ESSENTIAL') return organismVerdictFromCells(evidence);
+    if (evidence.estimate) return estimateVerdict(evidence, pleiotropy);
     return null;
+}
+
+/** Nothing was measured, but the estimate of lethality is known: the verdict follows it, never better than CAUTION. */
+function estimateVerdict(evidence, pleiotropy) {
+    const estimate = evidence.estimate;
+    const band = estimate.band;
+    const justification = [estimate.text];
+    const concerns = [];
+    const mitigation = [];
+    let level;
+    let primary;
+    let alternatives;
+    if (band === 'likely') {
+        level = SafetyLevel.HIGH_CONCERN;
+        primary = Recommendation.CONDITIONAL_KO;
+        alternatives = [Recommendation.CRISPRI, Recommendation.HETEROZYGOUS_KO];
+        concerns.push('A knockout is estimated to be lethal (not measured): plan for a conditional or inducible approach');
+        mitigation.push('Use a conditional (Cre-lox) or inducible allele, or knock the gene down (CRISPRi, RNAi) instead of knocking it out',
+            'Look the gene up in MGI and IMPC: a knockout line may exist that is not in the data yet');
+        const tissue = tissueMitigation(evidence);
+        if (tissue) mitigation.push(tissue);
+    } else if (band === 'possible') {
+        level = SafetyLevel.MODERATE_CONCERN;
+        primary = Recommendation.HETEROZYGOUS_KO;
+        alternatives = [Recommendation.CONDITIONAL_KO, Recommendation.VALIDATED_KO];
+        concerns.push('A knockout may be lethal (estimated, not measured): test a heterozygous or conditional allele first');
+        mitigation.push('Start with a heterozygous or conditional allele and check how the homozygotes fare');
+    } else {
+        level = SafetyLevel.CAUTION;
+        primary = Recommendation.VALIDATED_KO;
+        alternatives = [Recommendation.STANDARD_KO];
+        concerns.push('No knockout has been measured; the estimate says lethality is unlikely, but check before committing');
+    }
+    if (pleiotropy > 5) concerns.push('The gene has many annotated roles, so expect broad phenotypes');
+    const paralog = paralogConcern(evidence);
+    if (paralog) concerns.push(paralog);
+    justification.push(...extraFindings(evidence));
+    return { level, primary, alternatives, basis: 'estimate', justification, concerns, mitigation, considerations: [],
+        confidence: { likely: 0.6, possible: 0.4, unlikely: 0.5 }[band] };
 }
 
 /**
@@ -421,6 +461,7 @@ export function getSafetyRecommendation({ symbol, pleiotropyScore, phenotypePred
     const conservation = hasCrossSpecies ? (crossSpecies.conservation_score ?? 0.0) : 0.0;
 
     const measured = knockoutEvidence ? evidenceVerdict(knockoutEvidence, pleiotropyScore) : null;
+    const estimated = !!measured && measured.basis === 'estimate';      // a model's estimate, not a measurement
     let safetyLevel;
     let primary;
     let alternatives;
@@ -452,7 +493,7 @@ export function getSafetyRecommendation({ symbol, pleiotropyScore, phenotypePred
 
     // Without a measurement nothing shows that the knockout is safe: the verdict is never better than CAUTION,
     // and every such gene says that its lethality has not been measured
-    const unverified = !!knockoutEvidence && !measured;
+    const unverified = !!knockoutEvidence && (!measured || estimated);
     if (unverified && safetyLevel === SafetyLevel.SAFE) {
         safetyLevel = SafetyLevel.CAUTION;
         primary = Recommendation.VALIDATED_KO;

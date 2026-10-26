@@ -151,6 +151,15 @@ def run_k_sites_pipeline(
                 "annotations and predictions alone and none is rated better than CAUTION.")
         logger.info(f"Found {len(genes)} genes associated with GO term {go_term} with {evidence_filter} evidence")
         
+        # What the evidence files know about each gene without searching a database: in how many model species it has
+        # an ortholog (conservation) and how many PubMed articles are linked to it (literature)
+        facts_lookup = None
+        if provider is not None:
+            def facts_lookup(symbol, _provider=provider, _taxid=taxid, _context=context):
+                known = assess_gene(_provider, _taxid, symbol, _context)
+                return {"conservation": known["conservation"]["score"] if known["conservation"] else None,
+                        "literature_count": known["literature"]["count"] if known["literature"] else None}
+
         # Step 3: Rank genes by specificity using multi-database integration
         logger.info("Step 3: Ranking genes by specificity (multi-database query)...")
         from k_sites.gene_analysis.pleiotropy_scorer import rank_genes_by_specificity
@@ -162,7 +171,8 @@ def run_k_sites_pipeline(
             include_literature=True,  # Real PubMed queries
             include_cross_species=species_validation is not None,
             max_pleiotropy_threshold=max_pleiotropy,
-            progress_callback=progress_callback
+            progress_callback=progress_callback,
+            facts_lookup=facts_lookup
         )
         logger.info(f"Ranked {len(ranked_genes)} genes by specificity")
         
@@ -224,7 +234,11 @@ def run_k_sites_pipeline(
 
                 # c. Perform cross-species validation if requested
                 cross_species_validation = {}
-                if species_validation:
+                if evidence and evidence.get("conservation"):
+                    # the orthologs in the evidence files answer this without a database search
+                    cross_species_validation = {"conservation_score": evidence["conservation"]["score"],
+                                                "found_in": evidence["conservation"]["found_in"], "source": "orthologs"}
+                elif species_validation:
                     logger.debug(f"Performing cross-species validation for {gene_symbol}...")
                     from k_sites.gene_analysis.pleiotropy_scorer import validate_gene_specificity_across_species
                     cross_species_validation = validate_gene_specificity_across_species(
@@ -234,7 +248,7 @@ def run_k_sites_pipeline(
                 # d. Predict phenotype if requested, but only for genes without a measured knockout result:
                 # a measurement is better than a guess from abstracts, and skipping the guess saves most of the time
                 phenotype_prediction = None
-                if predict_phenotypes and evidence and evidence["has_measured"]:
+                if predict_phenotypes and evidence and (evidence["has_measured"] or evidence.get("estimate")):
                     predictions_skipped += 1
                 elif predict_phenotypes and get_phenotype_predictor():
                     logger.debug(f"Predicting knockout phenotype for {gene_symbol}...")

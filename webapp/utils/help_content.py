@@ -6,92 +6,102 @@ ANALYTICAL_TERMS = {
     "pleiotropy_score": {
         "title": "Pleiotropy Score",
         "icon": "fa-project-diagram",
-        "short_description": "Measures how many different biological processes a gene is involved in",
+        "short_description": "How many biological processes a gene is annotated to (a hint about how broad its effects may be)",
         "detailed_explanation": """
-            <p>The <strong>Pleiotropy Score</strong> quantifies the degree to which a gene influences multiple, 
-            seemingly unrelated phenotypic traits or biological processes.</p>
-            
+            <p>The <strong>Pleiotropy Score</strong> counts how many different biological processes a gene is annotated
+            to. The more roles a gene has, the broader the effects of removing it may be.</p>
+
             <h6>How it's calculated:</h6>
             <ul>
-                <li>Counts the number of Biological Process GO terms associated with the gene</li>
-                <li>Reports the number of KEGG pathways the gene belongs to</li>
-                <li>Uses exponential decay scoring to penalize highly pleiotropic genes</li>
+                <li>Counts the Biological Process GO terms of the gene (with the evidence type you chose).</li>
+                <li>Score = 10 &times; (1 &minus; e<sup>&minus;0.3 &times; (n &minus; 1)</sup>), where n is the number of terms:
+                    1 term gives 0, 2 terms 2.6, 3 terms 4.5, 5 terms 7.0, 8 terms 8.8, and 11 or more terms give 10.</li>
+                <li>The number of KEGG pathways is shown next to the score but is not part of it.</li>
             </ul>
-            
+
             <h6>Score Range:</h6>
             <div class="table-responsive">
                 <table class="table table-sm">
-                    <tr><td class="text-success"><strong>0-2</strong></td><td>Highly specific - excellent CRISPR target</td></tr>
-                    <tr><td class="text-info"><strong>2-5</strong></td><td>Moderately specific - good target</td></tr>
-                    <tr><td class="text-warning"><strong>5-8</strong></td><td>Broadly involved - use with caution</td></tr>
-                    <tr><td class="text-danger"><strong>8-10</strong></td><td>Highly pleiotropic - may cause unintended effects</td></tr>
+                    <tr><td class="text-success"><strong>0-2</strong></td><td>Very few annotated roles</td></tr>
+                    <tr><td class="text-info"><strong>2-5</strong></td><td>A few annotated roles</td></tr>
+                    <tr><td class="text-warning"><strong>5-8</strong></td><td>Many annotated roles: expect broader phenotypes</td></tr>
+                    <tr><td class="text-danger"><strong>8-10</strong></td><td>Very many annotated roles</td></tr>
                 </table>
             </div>
-            
+
             <h6>Max pleiotropy (cutoff):</h6>
             <p>The score is always on a 0-10 scale. The <strong>max pleiotropy</strong> setting is a cutoff on that
-            score: genes scoring above it are left out. 0 keeps only the most specific genes, 10 keeps everything.</p>
-            
-            <h6>Why it matters:</h6>
-            <p>Genes with low pleiotropy scores are preferred for CRISPR experiments because knocking them out 
-            is less likely to cause widespread, unpredictable phenotypic changes. High pleiotropy may indicate 
-            essential genes or hub genes in regulatory networks.</p>
+            score: genes scoring above it are left out of the ranking (they are listed as "not shown" with their
+            measured result). 0 keeps only the most specific genes, 10 keeps everything.</p>
+
+            <h6>How far it can be trusted:</h6>
+            <p>We compared the score with what is measured when the gene is knocked out in the mouse (13,733 genes, see the
+            <a href="/validation">Validation page</a>). Genes with a higher score do affect more organ systems and are more often
+            lethal (14% lethal in the lowest band, 37% in the highest), but the link is modest: the rank correlation with the
+            number of organ systems affected is 0.34, and the area under the ROC curve for telling lethal from viable is 0.61
+            (0.5 is a coin flip). Heavily studied genes simply have more annotations. Use the score as a hint about broad
+            effects; the measured knockout result matters more.</p>
         """,
-        "reference": "Based on GO Biological Process annotations"
+        "reference": "GO Biological Process annotations; checked against MGI and IMPC knockouts (Validation page)"
     },
-    
+
     "specificity_score": {
         "title": "Specificity Score",
         "icon": "fa-bullseye",
-        "short_description": "Inverse measure of pleiotropy - higher is more specific",
+        "short_description": "The inverse of pleiotropy on a 0 to 1 scale - higher is more specific",
         "detailed_explanation": """
-            <p>The <strong>Specificity Score</strong> is calculated as <code>10 - pleiotropy_score</code>, 
-            providing an intuitive measure where higher values indicate more specific genes.</p>
-            
+            <p>The <strong>Specificity Score</strong> is <code>1 &minus; pleiotropy_score / 10</code>, so it runs from
+            0 (very many annotated roles) to 1 (a single annotated process). A pleiotropy score of 2.6 gives 0.74.</p>
+
             <h6>Interpretation:</h6>
             <div class="table-responsive">
                 <table class="table table-sm">
-                    <tr><td class="text-success"><strong>8-10</strong></td><td>Highly specific to your pathway of interest</td></tr>
-                    <tr><td class="text-info"><strong>5-8</strong></td><td>Moderately specific</td></tr>
-                    <tr><td class="text-warning"><strong>2-5</strong></td><td>Low specificity</td></tr>
-                    <tr><td class="text-danger"><strong>0-2</strong></td><td>Very broad involvement</td></tr>
+                    <tr><td class="text-success"><strong>0.8-1.0</strong></td><td>Few annotated roles</td></tr>
+                    <tr><td class="text-info"><strong>0.5-0.8</strong></td><td>A few annotated roles</td></tr>
+                    <tr><td class="text-warning"><strong>0.2-0.5</strong></td><td>Many annotated roles</td></tr>
+                    <tr><td class="text-danger"><strong>0-0.2</strong></td><td>Very many annotated roles</td></tr>
                 </table>
             </div>
-            
+
             <h6>Usage:</h6>
-            <p>Use this score to quickly identify the most specific targets for your CRISPR screen. 
-            Genes with specificity scores above 7 are generally considered safe candidates for knockout studies.</p>
+            <p>It carries no information beyond the pleiotropy score; it is used because the composite score rewards genes
+            with fewer annotated roles. Whether a knockout is safe is decided by the measured knockout evidence, not by this score.</p>
         """,
-        "reference": "Derived from pleiotropy score calculation"
+        "reference": "Derived from the pleiotropy score"
     },
-    
+
     "composite_score": {
         "title": "Composite Score",
         "icon": "fa-star",
-        "short_description": "Weighted combination of specificity, evidence quality, and literature support",
+        "short_description": "Weighted combination of specificity, evidence quality, literature support and conservation",
         "detailed_explanation": """
-            <p>The <strong>Composite Score</strong> integrates multiple factors to rank genes by their 
-            suitability as CRISPR targets.</p>
-            
+            <p>The <strong>Composite Score</strong> combines four measures into one number between 0 and 1. It orders the
+            genes that have the same safety level; the safety level itself comes from the
+            <a href="#knockout_evidence">measured knockout evidence</a>.</p>
+
             <h6>Formula:</h6>
             <div class="alert alert-light">
-                <code>Composite = (Specificity × 0.4) + (Evidence Quality × 0.3) + (Literature Score × 0.2) + (Conservation × 0.1)</code>
+                <code>Composite = 0.40 &times; Specificity + 0.25 &times; Evidence Quality + 0.20 &times; Literature + 0.15 &times; Conservation</code>
             </div>
-            
-            <h6>Components:</h6>
+
+            <h6>Components (each from 0 to 1):</h6>
             <ul>
-                <li><strong>Specificity (40%):</strong> Based on pleiotropy score</li>
-                <li><strong>Evidence Quality (30%):</strong> Experimental vs computational evidence</li>
-                <li><strong>Literature Score (20%):</strong> PubMed citation count and relevance</li>
-                <li><strong>Conservation (10%):</strong> Cross-species conservation of gene function</li>
+                <li><strong>Specificity (40%):</strong> 1 &minus; pleiotropy score / 10.</li>
+                <li><strong>Evidence Quality (25%):</strong> the share of the gene's annotations that rest on experiments (weight 1.0),
+                    computational analysis (0.6) or electronic annotation (0.3).</li>
+                <li><strong>Literature (20%):</strong> the PubMed articles that NCBI Gene links to the gene, on a log scale:
+                    1 article or none gives 0, 10 give 0.33, 100 give 0.67, 1,000 or more give 1.</li>
+                <li><strong>Conservation (15%):</strong> the share of five model species (human, mouse, rat, fly, worm) that have the
+                    gene or an ortholog of it (see Conservation).</li>
             </ul>
-            
+
             <h6>Range:</h6>
-            <p>0-10 scale, where higher scores indicate better overall candidates for CRISPR targeting.</p>
+            <p>0 to 1; higher means a better candidate by these measures. The weights are a design choice, not fitted to knockout
+            outcomes.</p>
         """,
-        "reference": "Multi-factorial weighted scoring algorithm"
+        "reference": "Weighted scoring of annotation, literature and orthology data"
     },
-    
+
     "evidence_quality": {
         "title": "Evidence Quality",
         "icon": "fa-check-double",
@@ -175,8 +185,10 @@ ANALYTICAL_TERMS = {
                     A gene whose knockout is lethal is never rated safe, however specific it looks.</li>
                 <li>The <strong>pleiotropy score</strong> adds caution to a viable gene that has many annotated roles
                     (above 5: validate first), because its phenotypes will be broad.</li>
-                <li>Without any measurement the verdict can only rest on annotations and keyword predictions, and it is
-                    <strong>never better than CAUTION</strong>. The report says "Not verified" for such genes.</li>
+                <li>Without any measurement the verdict follows an <strong>estimate</strong> of lethality made from the
+                    measurements of the gene's human ortholog (cell lines, tolerance of loss-of-function variants, expression),
+                    and it is <strong>never better than CAUTION</strong>. The report says "Estimated from data". Where even
+                    that is impossible it says "Not verified".</li>
             </ol>
             <p>Genes are listed safest first, then by composite score. Each gene card says which measurement decided
             the verdict.</p>
@@ -213,7 +225,8 @@ ANALYTICAL_TERMS = {
                 <table class="table table-sm">
                     <tr><td><strong>Measured</strong></td><td>the organism or the cells were tested for this gene</td></tr>
                     <tr><td><strong>Measured in the mouse ortholog</strong></td><td>the mouse gene was tested; the result is carried over to the human or rat gene</td></tr>
-                    <tr><td><strong>Predicted from the literature</strong></td><td>nothing was measured; a keyword model read abstracts (experimental, see below)</td></tr>
+                    <tr><td><strong>Estimated from data (not measured)</strong></td><td>no knockout was measured; the chance that it is lethal in mice is estimated from the human ortholog's cell-line, population and expression data (a model tested on genes with known outcomes: see the <a href="/validation">Validation page</a>)</td></tr>
+                    <tr><td><strong>Predicted from the literature</strong></td><td>nothing was measured and no estimate exists; a keyword model read abstracts (experimental, see below)</td></tr>
                     <tr><td><strong>Not verified</strong></td><td>no measurement and no prediction: check MGI, IMPC or DepMap yourself</td></tr>
                 </table>
             </div>
@@ -280,8 +293,8 @@ ANALYTICAL_TERMS = {
             </div>
             
             <h6>Limitations (measured, not assumed):</h6>
-            <p>It is only used for genes without a <a href="#knockout_evidence">measured knockout result</a>, and it
-            is switched off by default. We tested it on a random sample of 60 mouse genes whose knockout outcome is known:
+            <p>It is only used for genes without a <a href="#knockout_evidence">measured knockout result</a> and
+            without an estimate, and it is switched off by default. We tested it on a random sample of 60 mouse genes whose knockout outcome is known:
             it recognised 7 of the 30 lethal genes, wrongly called 4 of the 30 viable genes lethal, and gave no answer for
             two thirds of the genes (see the <a href="/validation">Validation page</a>). Treat a prediction as a hint to read the papers, not as a result.</p>
         """,
@@ -291,32 +304,35 @@ ANALYTICAL_TERMS = {
     "conservation_score": {
         "title": "Cross-Species Conservation",
         "icon": "fa-globe",
-        "short_description": "Degree to which gene function is conserved across species",
+        "short_description": "In how many of five model species the gene, or an ortholog of it, exists",
         "detailed_explanation": """
-            <p>The <strong>Conservation Score</strong> measures how well a gene's function is preserved 
-            across different species, indicating its functional importance.</p>
-            
+            <p>The <strong>Conservation Score</strong> is the share of five model species (human, mouse, rat, fruit fly and
+            worm) that carry the gene or an ortholog of it. The organism you analyse counts for itself.</p>
+
             <h6>How it's calculated:</h6>
             <ul>
-                <li>Checks for orthologs in model organisms</li>
-                <li>Compares GO term conservation</li>
-                <li>Evaluates sequence similarity</li>
+                <li>The orthologs come from the Alliance of Genome Resources. A call counts when at least three of its
+                    algorithms agree, or two agree and it is the best pair in both directions.</li>
+                <li>Score = species with the gene or an ortholog / 5, so it takes the values 0, 0.2, 0.4, 0.6, 0.8 and 1.</li>
+                <li>Orthologs are matched by identifier, not by name: the fly counterpart of PCNA is called mus209, and a gene
+                    with the same name in another species is not necessarily an ortholog.</li>
             </ul>
-            
+
             <h6>Interpretation:</h6>
             <div class="table-responsive">
                 <table class="table table-sm">
-                    <tr><td class="text-info"><strong>0.0-0.3</strong></td><td>Species-specific function</td></tr>
-                    <tr><td class="text-success"><strong>0.3-0.7</strong></td><td>Moderately conserved</td></tr>
-                    <tr><td class="text-warning"><strong>0.7-1.0</strong></td><td>Highly conserved - likely essential</td></tr>
+                    <tr><td class="text-info"><strong>0-0.2</strong></td><td>Found in one species only: possibly species-specific</td></tr>
+                    <tr><td class="text-success"><strong>0.4-0.8</strong></td><td>Moderately conserved</td></tr>
+                    <tr><td class="text-warning"><strong>1.0</strong></td><td>In all five species: an old, widely kept gene</td></tr>
                 </table>
             </div>
-            
+
             <h6>Usage:</h6>
-            <p>Highly conserved genes may be essential and more challenging to knockout. 
-            Species-specific genes might be better targets for selective studies.</p>
+            <p>Genes kept in all five species are more often needed for basic functions, so the report notes it. It does not
+            decide the verdict: the measured knockout result does. For organisms without orthology data (plants, for example)
+            the conservation is searched for by gene name instead, which is less precise.</p>
         """,
-        "reference": "Cross-species ortholog analysis via UniProt and NCBI"
+        "reference": "Alliance of Genome Resources orthologs (Validation page for the checks of the other scores)"
     }
 }
 
@@ -391,17 +407,13 @@ METHODOLOGY_SECTIONS = [
         "title": "Step 4: Literature Mining",
         "icon": "fa-book",
         "content": """
-            <p>The system queries <strong>PubMed</strong> to gather supporting literature:</p>
-            
-            <ul>
-                <li>Search for gene knockout/deletion studies</li>
-                <li>Extract reported phenotypes</li>
-                <li>Assess viability data</li>
-                <li>Count relevant publications</li>
-            </ul>
-            
-            <p>When enabled, the <strong>RAG (Retrieval-Augmented Generation)</strong> system uses 
-            natural language processing to predict knockout phenotypes based on the literature corpus.</p>
+            <p>The <strong>literature score</strong> counts the PubMed articles that NCBI Gene links to the gene
+            (the gene2pubmed list), not a text search of its name, so a gene symbol that is also an ordinary word
+            is not confused with the gene. The count is shown with each gene and enters the composite score.</p>
+
+            <p>When enabled, the experimental <strong>RAG (Retrieval-Augmented Generation)</strong> predictor reads
+            abstracts to guess knockout phenotypes, but only for genes that have neither a measured knockout result nor
+            a lethality estimate.</p>
         """
     },
     {

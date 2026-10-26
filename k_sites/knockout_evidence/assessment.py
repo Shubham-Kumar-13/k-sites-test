@@ -12,11 +12,18 @@ four parts:
     expression  how many human tissues express the gene, and which most (GTEx)
 
     paralogs    the closest paralogs, which may take over the gene's work and hide the effect of a knockout (Ensembl)
+    conservation  in how many of the five model species (human, mouse, rat, fly, worm) the gene or an ortholog exists
+                (Alliance of Genome Resources orthologs)
+    literature  how many PubMed articles NCBI Gene links to the gene
+    estimate    only for a gene without a knockout result: the chance that its knockout is lethal in mice, estimated from
+                the measurements of its human ortholog (a model tested on genes whose outcome is known). It is labelled
+                as an estimate and never counts as a measurement.
 
-Every part carries ``call`` / ``text`` and the sources behind it. Nothing is guessed: a gene without a record gets
+Every part carries ``call`` / ``text`` and the sources behind it. Nothing is made up: a gene without a record gets
 ``UNKNOWN`` and the safety verdict says so.
 """
 
+import math
 from typing import Any, Dict, List, Optional
 
 from .provider import EvidenceProvider
@@ -39,6 +46,11 @@ SOURCE_OF_LETTER = {"M": "mgi", "I": "impc", "S": "sgd", "Z": "zfin", "F": "flyb
 # what the counts of knockout lines are counts of, (one, many)
 LINE_NOUN = {"7955": ("mutant line", "mutant lines"), "7227": ("allele", "alleles"), "6239": ("allele or RNAi test", "alleles or RNAi tests")}
 CALL_OF_LETTER = {"L": "LETHAL", "S": "SUBVIABLE", "V": "VIABLE"}
+# the model species of the conservation score, in the order of the bits in a record's "cv" number
+CONSERVATION_SPECIES = ["human", "mouse", "rat", "fly", "worm"]
+# the bands of the lethality estimate (the cut-offs are in index.json, written by the data builder)
+ESTIMATE_LIKELY, ESTIMATE_POSSIBLE = 0.5, 0.3
+ESTIMATE_LABELS = {"likely": "likely lethal", "possible": "possibly lethal", "unlikely": "unlikely to be lethal"}
 
 
 def resolve_context(taxid, context: str = "auto") -> str:
@@ -149,6 +161,50 @@ def _cells_part(record: Optional[dict]) -> Dict[str, Any]:
     return part
 
 
+def _conservation_part(record: Optional[dict]) -> Optional[Dict[str, Any]]:
+    """In how many of the model species the gene (or an ortholog) exists, or None when the gene is not in the orthology table."""
+    if not record or "cv" not in record:
+        return None
+    found = [name for i, name in enumerate(CONSERVATION_SPECIES) if record["cv"] >> i & 1]
+    return {"score": len(found) / len(CONSERVATION_SPECIES), "found_in": found,
+            "text": f"Present in {len(found)} of {len(CONSERVATION_SPECIES)} model species ({', '.join(found)})"}
+
+
+def _literature_part(record: Optional[dict]) -> Optional[Dict[str, Any]]:
+    """The number of PubMed articles that NCBI Gene links to the gene, or None when it is not known."""
+    if not record or "lc" not in record:
+        return None
+    return {"count": record["lc"]}
+
+
+def _percent(fraction: float) -> int:
+    return int(math.floor(fraction * 100 + 0.5))
+
+
+def _estimate_part(index: dict, taxid: str, record: Optional[dict], organism: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """The lethality estimate of a gene that has no knockout result (see the module notes), or None."""
+    if not record or "pl" not in record or organism["call"] != "UNKNOWN":
+        return None
+    probability, other = record["pl"]
+    model = index.get("lethality_model") or {}
+    likely, possible = model.get("likely", ESTIMATE_LIKELY), model.get("possible", ESTIMATE_POSSIBLE)
+    band = "likely" if probability >= likely else "possible" if probability >= possible else "unlikely"
+    percent = max(1, min(99, _percent(probability)))      # an estimate is never shown as certain
+    from_human = taxid != "9606"
+    if from_human:
+        source = f"the cell-line, population and expression data of its human ortholog {other}"
+    else:
+        source = f"its own cell-line, population and expression data (its mouse ortholog {other} has no knockout result)"
+    text = (f"No measured knockout result. Estimated {percent}% chance that a knockout is lethal in mice "
+            f"({ESTIMATE_LABELS[band]}), from {source}.")
+    share = ((model.get("tested") or {}).get("bands") or {}).get(band, {}).get("lethal_share")
+    if share is not None and model.get("auc") is not None:
+        text += f" Among tested mouse genes with such an estimate {_percent(share)}% were lethal (AUC {model['auc']:g})."
+    text += " This is an estimate, not a measurement."
+    return {"probability": probability, "percent": percent, "band": band, "label": ESTIMATE_LABELS[band],
+            "other_symbol": other, "from_human_ortholog": from_human, "text": text}
+
+
 def _constraint_part(record: Optional[dict]) -> Optional[Dict[str, Any]]:
     if not record or "l" not in record:
         return None
@@ -184,8 +240,10 @@ def _paralogs_part(record: Optional[dict]) -> Optional[Dict[str, Any]]:
     return {"genes": genes, "close": close, "text": f"Closest paralogs: {listing}"}
 
 
-def _sources_used(index: dict, organism: dict, cells: dict, constraint, expression, paralogs=None) -> List[dict]:
+def _sources_used(index: dict, organism: dict, cells: dict, constraint, expression, paralogs=None, estimate=None) -> List[dict]:
     wanted = list(organism["sources"])
+    if estimate:
+        wanted += ["mgi", "impc", "depmap", "gnomad", "gtex"]
     if cells["call"] != "UNKNOWN":
         wanted.append("depmap")
     if constraint:
@@ -205,7 +263,8 @@ def assess_gene(provider: Optional[EvidenceProvider], taxid, symbol: str, contex
     result: Dict[str, Any] = {
         "symbol": symbol, "taxid": taxid, "context": resolved, "covered": False, "found": False,
         "organism": _organism_part({}, taxid, None), "cells": _cells_part(None), "constraint": None,
-        "expression": None, "paralogs": None, "has_measured": False, "sources": [], "data_version": None,
+        "expression": None, "paralogs": None, "estimate": None, "conservation": None, "literature": None,
+        "has_measured": False, "sources": [], "data_version": None,
     }
     if provider is None:
         return result
@@ -226,9 +285,12 @@ def assess_gene(provider: Optional[EvidenceProvider], taxid, symbol: str, contex
     if result["expression"] and organism.taxid != "9606":
         result["expression"]["text"] += " (in the human ortholog)"
     result["paralogs"] = _paralogs_part(record)
+    result["estimate"] = _estimate_part(index, organism.taxid, record, result["organism"])
+    result["conservation"] = _conservation_part(record)
+    result["literature"] = _literature_part(record)
     # a distant relative's mouse ortholog is a hint, not a measurement
     result["has_measured"] = ((result["organism"]["call"] != "UNKNOWN" and not result["organism"]["distant"])
                               or result["cells"]["call"] != "UNKNOWN")
     result["sources"] = _sources_used(index, result["organism"], result["cells"], result["constraint"], result["expression"],
-                                      result["paralogs"])
+                                      result["paralogs"], result["estimate"])
     return result

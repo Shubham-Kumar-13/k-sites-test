@@ -69,7 +69,7 @@ def sample_result(provider):
         }
 
     genes = [gene_entry(*row) for row in [("SMUG1", 2.61, 0.667), ("NEIL2", 0.05, 0.659), ("TDG", 6.99, 0.614),
-                                          ("XRCC1", 9.33, 0.501), ("PCNA", 9.87, 0.45), ("NOSUCHGENE", 1.05, 0.4)]]
+                                          ("XRCC1", 9.33, 0.501), ("PCNA", 9.87, 0.45), ("RPA3", 9.09, 0.389), ("NOSUCHGENE", 1.05, 0.4)]]
     genes.sort(key=lambda g: (SAFETY_TIER[g["safety_recommendation"]["safety_level"]], -g["composite_score"]))
     excluded = [
         {"symbol": "PARP1", "description": "PARP1 protein", "reason": "pleiotropy",
@@ -118,6 +118,15 @@ def main():
         stale.unlink()
 
     index = json.loads((source / "index.json").read_text(encoding="utf-8"))
+    # genes without a knockout result that have an estimate: four known essential ones, and two of each band
+    mouse_all = json.loads((source / index["organisms"]["10090"]["file"]).read_text(encoding="utf-8"))["genes"]
+    human_all = json.loads((source / index["organisms"]["9606"]["file"]).read_text(encoding="utf-8"))["genes"]
+    estimate_keys = ["POLE", "RPA2", "RPA3", "RPS3"]
+    band_examples = []
+    for low, high in ((0.5, 1.01), (0.3, 0.5), (-1.0, 0.3)):
+        band_examples += [k for k in sorted(mouse_all) if "pl" in mouse_all[k] and low <= mouse_all[k]["pl"][0] < high
+                          and "pl" in human_all.get(k, {}) and k not in estimate_keys][:2]
+    estimate_keys += band_examples
     for taxid, info in index["organisms"].items():
         data = json.loads((source / info["file"]).read_text(encoding="utf-8"))
         own = "knockout" in info["layers"] and info.get("distant")      # zebrafish, fly, worm: measurements of their own
@@ -135,7 +144,7 @@ def main():
                 keys += [k for k in sorted(records) if "v" in records[k] and kind(records[k]) and k not in keys][:2]
             keys = sorted(set(keys) | {g for g in PAPER_GENES.get(taxid, []) if g in records})
         else:
-            keys = YEAST if taxid == "559292" else GENES + ["Polb".upper(), "Tdg".upper()]
+            keys = YEAST if taxid == "559292" else GENES + ["Polb".upper(), "Tdg".upper()] + estimate_keys
         genes = pick(data["genes"], keys)
         if info.get("distant"):
             aliases = dict(sorted((a, t) for a, t in data["aliases"].items() if t.upper() in genes)[:3])
@@ -157,6 +166,11 @@ def main():
             fixture_genes = json.loads((FIXTURES / info["file"]).read_text(encoding="utf-8"))["genes"]
             fixture_aliases = json.loads((FIXTURES / info["file"]).read_text(encoding="utf-8"))["aliases"]
             cases += [(taxid, symbol, 5.0, "auto") for symbol in sorted(fixture_genes) + sorted(fixture_aliases)]
+    for symbol in estimate_keys:
+        for taxid, context in (("10090", "auto"), ("10090", "cells"), ("9606", "organism"), ("9606", "auto")):
+            cases.append((taxid, symbol, 6.0, context))
+        if symbol in band_examples or symbol == "RPA3":
+            cases += [("10090", symbol, 2.0, "auto"), ("9606", symbol, 2.0, "organism")]
     for taxid, symbol, pleiotropy, context in cases:
         evidence = assess_gene(provider, taxid, symbol, context)
         recommendation = get_safety_recommendation(symbol, pleiotropy, knockout_evidence=evidence,

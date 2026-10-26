@@ -1,14 +1,63 @@
 {
  "built": "2026-10-26",
  "format": 1,
+ "lethality_model": {
+  "auc": 0.84,
+  "features": [
+   "depmap_percent",
+   "depmap_missing",
+   "common_essential",
+   "loeuf",
+   "loeuf_missing",
+   "tau",
+   "tissues",
+   "paralog"
+  ],
+  "likely": 0.5,
+  "possible": 0.3,
+  "tested": {
+   "auc": 0.836,
+   "bands": {
+    "likely": {
+     "genes": 1812,
+     "lethal_share": 0.882
+    },
+    "possible": {
+     "genes": 1598,
+     "lethal_share": 0.404
+    },
+    "unlikely": {
+     "genes": 8611,
+     "lethal_share": 0.14
+    }
+   },
+   "genes": 12021,
+   "lethal": 3451,
+   "lethal_found_at_possible": 0.651,
+   "viable": 8570,
+   "viable_flagged_at_possible": 0.136
+  },
+  "weights": [
+   -0.9712,
+   2.5064,
+   0.0484,
+   -1.0545,
+   -0.6224,
+   -0.1602,
+   -0.2232,
+   0.1319,
+   -0.1202
+  ]
+ },
  "organisms": {
   "10090": {
    "file": "10090.json",
-   "genes": 29,
+   "genes": 39,
    "layers": [
     "knockout",
     "expression",
-    "paralogs"
+    "paralogs",
+    "lethality-estimate"
    ],
    "measured": 29,
    "name": "Mus musculus"
@@ -76,15 +125,16 @@
   },
   "9606": {
    "file": "9606.json",
-   "genes": 30,
+   "genes": 39,
    "layers": [
     "ortholog-knockout",
     "cell-essentiality",
     "constraint",
     "expression",
-    "paralogs"
+    "paralogs",
+    "lethality-estimate"
    ],
-   "measured": 30,
+   "measured": 39,
    "name": "Homo sapiens"
   }
  },
@@ -144,6 +194,13 @@
    "name": "Ensembl Compara (via BioMart)",
    "url": "https://www.ensembl.org/biomart/",
    "what": "paralogs: genes of the same species descended from the same ancestor gene"
+  },
+  {
+   "id": "ncbi",
+   "license": "no restrictions (NCBI data usage policy)",
+   "name": "NCBI Gene (gene2pubmed)",
+   "url": "https://ftp.ncbi.nlm.nih.gov/gene/DATA/",
+   "what": "the PubMed articles linked to each gene"
   },
   {
    "id": "sgd",

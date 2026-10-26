@@ -1,7 +1,8 @@
 # Validation of the measured knockout evidence
 
 K-Sites rates a gene from what has been *measured* when the gene is lost. This page checks how far those measurements
-can be trusted, and how the keyword prediction that is used where nothing is measured performs. The numbers below are
+can be trusted, how well the estimate for genes without a measurement works, and how informative the pleiotropy score is.
+The numbers below are
 produced by `tools/evaluate_knockout_evidence.py`; they describe the data version named below and are refreshed with it.
 
 *Generated 2026-10-26 by `tools/evaluate_knockout_evidence.py`.*
@@ -83,7 +84,23 @@ Human genes with a one-to-one mouse ortholog and a DepMap result: **12,630**.
 
 Data version 2026-10-26.
 
-## 5. How good is the fallback prediction where nothing is measured?
+## 5. How good is the estimate for genes without a knockout result?
+
+Most genes were never knocked out in a mouse. For them K-Sites estimates the chance that the knockout is lethal from the measurements of the human ortholog (share of cancer cell lines that need the gene, how rarely people carry loss-of-function variants, tissue expression, close paralogs). The model was fitted on **12,021** mouse genes with a known outcome (3,451 lethal, 8,570 viable) and tested on genes it had not seen (5-fold cross-validation).
+
+- Area under the ROC curve: **0.836** (0.5 is a coin flip, 1.0 is perfect).
+- Flagging the genes estimated at 0.3 or higher finds **65.1%** of the lethal genes and wrongly flags **13.6%** of the viable ones. For comparison, the keyword prediction in section 6 found 23% and wrongly flagged 13%.
+
+| Estimated band | Tested genes | Of these, lethal in the mouse | Mouse genes without a knockout result in this band |
+|---|---|---|---|
+| likely lethal (estimate 0.5 or higher) | 1,812 | 88.2% | 726 |
+| possibly lethal (0.3 to 0.5) | 1,598 | 40.4% | 306 |
+| unlikely to be lethal (under 0.3) | 8,611 | 14.0% | 2,877 |
+
+- Human genes with an estimate (no mouse knockout result): 3,909.
+- The genes that were tested in mice are not a random sample: researchers knock out genes they already suspect to matter, so the lethal share among never-tested genes is probably lower than the shares above. The estimate is shown as an estimate, never rates a gene better than CAUTION, and a measurement always replaces it.
+
+## 6. How good is the old keyword prediction?
 
 Random sample of 60 mouse genes with a clear measured outcome (seed 7).
 
@@ -96,30 +113,35 @@ Random sample of 60 mouse genes with a clear measured outcome (seed 7).
 - False alarms: 13.3% of the viable genes were predicted lethal.
 - No prediction at all: 68.3% of the genes.
 
-## What these checks do not show
+## 7. Does the pleiotropy score track what is measured?
 
-- **They do not prove that a knockout will work in your hands.** A measurement says what happened in the published mice, yeast
-  or cell lines; strain, allele, cell type, culture conditions and the way the gene is removed all matter.
-- **The two mouse sources are not fully independent.** IMPC alleles are often knockout-first or deletion alleles that can be
-  hypomorphic, while literature nulls are often classical alleles; where they disagree the report shows both and rates the
-  gene at least HIGH_CONCERN if any line was lethal.
-- **Absence of a lethality annotation is weak evidence of viability.** K-Sites therefore counts a knockout as viable only when
-  the null animals were examined as young or adult animals (or declared normal); genes with only embryonic findings stay
-  "not verified".
-- **Cell-line essentiality comes from cancer cell lines** (DepMap 24Q4). Primary cells, stem cells and other cell types can differ.
-- **Species other than human, mouse, rat and yeast have no measured data here.** Zebrafish, fly, worm and Xenopus only get the
-  knockout of their mouse ortholog as a hint, never a measurement.
+**all evidence**: 13,733 mouse genes with GO biological-process terms and a measured knockout.
 
-## How to reproduce
+- Rank correlation between the pleiotropy score and the number of organ systems with a knockout phenotype: **0.34**.
+- Area under the ROC curve for telling lethal from viable knockouts: **0.61** (12,661 genes).
 
-```bash
-python tools/build_evidence_data.py --out .cache/evidence-out        # builds the data files (downloads the sources once)
-python tools/evaluate_knockout_evidence.py --out VALIDATION.md       # re-runs sections 1-4
-python tools/evaluate_knockout_evidence.py --predictor 60            # adds section 5 (needs the network, about 20 minutes)
-python -m pytest tests/test_paper_truth.py                            # the published-knockout check as a unit test
-```
+| Pleiotropy score | Genes | Lethal knockouts | Mean organ systems affected |
+|---|---|---|---|
+| 0 to 0.01 | 1,603 | 13.8% | 2.6 |
+| 0.01 to 3 | 1,438 | 21.1% | 2.7 |
+| 3 to 6 | 2,358 | 25.0% | 3.2 |
+| 6 to 9 | 2,964 | 28.0% | 3.8 |
+| 9 to 10 | 4,298 | 36.7% | 5.6 |
 
-The published-knockout list is `tests/fixtures/benchmark/paper_truth.json`; every entry cites the paper whose abstract was read.
+**experimental evidence only**: 8,990 mouse genes with GO biological-process terms and a measured knockout.
+
+- Rank correlation between the pleiotropy score and the number of organ systems with a knockout phenotype: **0.32**.
+- Area under the ROC curve for telling lethal from viable knockouts: **0.58** (8,224 genes).
+
+| Pleiotropy score | Genes | Lethal knockouts | Mean organ systems affected |
+|---|---|---|---|
+| 0 to 0.01 | 1,890 | 27.0% | 3.5 |
+| 0.01 to 3 | 1,285 | 23.3% | 3.9 |
+| 3 to 6 | 1,663 | 25.3% | 4.3 |
+| 6 to 9 | 1,634 | 30.4% | 4.9 |
+| 9 to 10 | 1,752 | 42.4% | 7.0 |
+
+The score rises with both measures, so it carries real signal, but it is modest: it is a count of annotated roles and genes that are heavily studied have more annotations. Treat it as a hint about broad effects, not as a replacement for the knockout measurement.
 
 ## What these checks do not show
 
@@ -144,8 +166,8 @@ The published-knockout list is `tests/fixtures/benchmark/paper_truth.json`; ever
 
 ```bash
 python tools/build_evidence_data.py --out .cache/evidence-out        # builds the data files (downloads the sources once)
-python tools/evaluate_knockout_evidence.py --out VALIDATION.md       # re-runs sections 1-4
-python tools/evaluate_knockout_evidence.py --predictor 60            # adds section 5 (needs the network, about 20 minutes)
+python tools/evaluate_knockout_evidence.py --out VALIDATION.md       # re-runs sections 1-5 and 7
+python tools/evaluate_knockout_evidence.py --predictor 60            # adds section 6 (needs the network, about 20 minutes)
 python -m pytest tests/test_paper_truth.py                            # the published-knockout check as a unit test
 ```
 

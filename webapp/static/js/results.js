@@ -254,6 +254,7 @@ const BASIS_BADGES = {
     measured: ['bg-success', 'Measured'], ortholog: ['bg-info text-dark', 'Measured in the mouse ortholog'],
     distant: ['bg-secondary', 'Mouse ortholog only (distant relative)'],
     predicted: ['bg-warning text-dark', 'Predicted from the literature'], none: ['bg-secondary', 'Not verified'],
+    estimate: ['bg-warning text-dark', 'Estimated from data (not measured)'],
 };
 
 function callBadge(call) {
@@ -272,7 +273,9 @@ function verdictDriver(evidence) {
     const { organism, cells } = evidence;
     const organismKnown = organism.call !== 'UNKNOWN' && !organism.distant;   // a distant relative is only a hint
     if (evidence.context === 'cells') return cells.call !== 'UNKNOWN' ? 'cells' : (organismKnown ? 'organism' : '');
-    return organismKnown ? 'organism' : (cells.call === 'ESSENTIAL' ? 'cells' : '');
+    if (organismKnown) return 'organism';
+    if (cells.call === 'ESSENTIAL') return 'cells';
+    return evidence.estimate ? 'estimate' : '';
 }
 
 function evidencePanel(gene) {
@@ -289,6 +292,11 @@ function evidencePanel(gene) {
     }
     if (evidence && evidence.cells.call !== 'UNKNOWN') {
         lines.push(`<div class="mb-1">${callBadge(evidence.cells.call)}${esc(evidence.cells.text)}${driver === 'cells' ? decides : ''}</div>`);
+    }
+    if (evidence && evidence.estimate) {
+        const estimate = evidence.estimate;
+        const cls = estimate.band === 'likely' ? 'bg-danger' : estimate.band === 'possible' ? 'bg-warning text-dark' : 'bg-secondary';
+        lines.push(`<div class="mb-1"><span class="badge ${cls} me-1">${esc(estimate.percent)}% lethal (estimate)</span>${esc(estimate.text)}${driver === 'estimate' ? decides : ''}</div>`);
     }
     if (!lines.length) {
         lines.push(`<div class="mb-1 text-muted">No measured knockout data for this gene. Check MGI, IMPC or DepMap before committing to a knockout.</div>`);
@@ -317,8 +325,9 @@ function renderExcluded(entries) {
         const lines = [];
         if (evidence && evidence.organism.call !== 'UNKNOWN') lines.push(`${callBadge(evidence.organism.call)}${esc(evidence.organism.text)}${referenceLinks(evidence.organism)}`);
         if (evidence && evidence.cells.call !== 'UNKNOWN') lines.push(`${callBadge(evidence.cells.call)}${esc(evidence.cells.text)}`);
+        if (evidence && evidence.estimate) lines.push(`<span class="badge bg-warning text-dark me-1">${esc(evidence.estimate.percent)}% lethal (estimate)</span>${esc(evidence.estimate.text)}`);
         return `<tr><td><strong>${esc(entry.symbol)}</strong></td><td>${esc(entry.detail)}</td>
-            <td>${measured ? lines.join('<br>') : '<span class="text-muted">No measured knockout data</span>'}</td></tr>`;
+            <td>${lines.length ? lines.join('<br>') : '<span class="text-muted">No measured knockout data</span>'}</td></tr>`;
     }).join('');
     container.insertAdjacentHTML('beforeend', `
         <div class="card mt-4">

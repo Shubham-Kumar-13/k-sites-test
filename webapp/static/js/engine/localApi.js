@@ -39,8 +39,13 @@ export function formatDuration(seconds) {
 }
 
 /** Rough run time: every gene of the GO term is scored (about 4 s each); phenotype prediction adds about 12 s each. */
-export function estimateSeconds(geneCount, predictPhenotypes) {
-    return Math.round(30 + geneCount * (4 + (predictPhenotypes ? 12 : 0)));
+export function estimateSeconds(geneCount, predictPhenotypes, withEvidence = false) {
+    // Measured in the browser: 193 genes took 125 s (0.65 s per gene) when the evidence files supply conservation and
+    // literature counts, and 49 genes took about 3 minutes (3.7 s per gene) when those are searched for in databases.
+    // The estimate is deliberately on the slow side. The keyword predictor only runs for genes with neither a measurement
+    // nor an estimate, so it adds little per gene on average (plus a one-off model download).
+    const perGene = (withEvidence ? 1.0 : 4.0) + (predictPhenotypes ? 2 : 0);
+    return Math.round(20 + geneCount * perGene);
 }
 
 /** Where each pipeline stage sits on the 0-100% progress bar (same stops as the page's step list). */
@@ -189,7 +194,8 @@ export class LocalBackend {
                 warnings.push(`${total} genes found. All are assessed; the report shows the ${maxGenes} safest by measured knockout evidence and composite score, and lists the rest as not shown.`);
             }
 
-            const seconds = estimateSeconds(total, !!data.predict_phenotypes);
+            const covered = !!(await this.evidenceCoverage(taxid)).covered;
+            const seconds = estimateSeconds(total, !!data.predict_phenotypes, covered);
             return {
                 valid: errors.length === 0, errors, warnings, gene_count: total, organism_resolved: organism, taxid,
                 estimated_time_seconds: seconds, estimated_time_formatted: (data.predict_phenotypes ? 'up to ' : '') + formatDuration(seconds),

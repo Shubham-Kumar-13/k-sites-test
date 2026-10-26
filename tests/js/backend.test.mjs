@@ -128,6 +128,8 @@ test('validation counts the genes and estimates the time', async () => {
     assert.equal(result.estimated_time_seconds, estimateSeconds(6, false));
     assert.ok(result.warnings.some((w) => w.includes('6 genes found') && w.includes('3 safest')));
     assert.equal(estimateSeconds(10, true) > estimateSeconds(10, false), true);
+    assert.ok(estimateSeconds(100, false, true) < estimateSeconds(100, false, false));     // the evidence files save the database searches
+    assert.equal(estimateSeconds(193, false, true), 213);                                  // measured: 193 genes took 125 s
     assert.equal(formatDuration(45), '45 seconds');
     assert.equal(formatDuration(600), '10 minutes');
     assert.equal(formatDuration(3720), '1 hour 2 min');
@@ -302,7 +304,7 @@ test('a missing KEGG data file only removes the pathway count, it does not stop 
 
 // ------------------------------------------------------------------ measured knockout evidence
 
-/** The small copy of the real evidence files (tests/fixtures/evidence): it knows UNG, POLB, POLQ and PARP1, not LIG1 or RPA2. */
+/** The small copy of the real evidence files (tests/fixtures/evidence): it knows UNG, POLB, POLQ, PARP1 and RPA2, not LIG1. */
 const evidenceProvider = () => new EvidenceProvider(async (name) => JSON.parse(
     fs.readFileSync(path.join(ROOT, 'tests', 'fixtures', 'evidence', name), 'utf8')));
 
@@ -327,7 +329,7 @@ test('a job uses the measured knockout evidence, lists the safest genes first an
     assert.equal(bySymbol.POLB.safety_recommendation.evidence_basis, 'measured');
     assert.equal(bySymbol.LIG1.knockout_evidence.has_measured, false);             // not in the small test copy
     assert.equal(bySymbol.LIG1.safety_recommendation.safety_level, 'CAUTION');     // never better than CAUTION without a measurement
-    assert.deepEqual(results.statistics.by_evidence_basis, { measured: 4, none: 2 });
+    assert.deepEqual(results.statistics.by_evidence_basis, { measured: 5, none: 1 });
 });
 
 test('the same genes read as a whole organism follow the mouse knockout instead', async () => {
@@ -370,8 +372,8 @@ test('the phenotype model is only loaded for genes without a measured result', a
     const results = await runJob(backend, { ...JOB, predict_phenotypes: true });
 
     assert.equal(loaded, 1);
-    assert.deepEqual(predictions.sort(), ['LIG1', 'RPA2']);
-    assert.equal(results.statistics.phenotype_predictions_skipped, 4);
+    assert.deepEqual(predictions.sort(), ['LIG1']);
+    assert.equal(results.statistics.phenotype_predictions_skipped, 5);
 
     // with every gene measured the 90 MB model is never downloaded
     loaded = 0;
@@ -417,4 +419,15 @@ test('an organism file that cannot be read is reported and no gene is rated safe
     assert.ok(results.warnings.some((w) => /Measured knockout data could not be loaded/.test(w) && /HTTP 404/.test(w)));
     assert.equal(results.metadata.knockout_evidence_data.available, false);
     assert.ok(results.genes.length > 0 && results.genes.every((g) => g.safety_recommendation.safety_level !== 'SAFE'));
+});
+
+test('the time estimate is shorter for an organism with evidence files, which save the database searches', async () => {
+    const files = path.join(ROOT, 'tests', 'fixtures', 'evidence');
+    const provider = new EvidenceProvider(async (name) => JSON.parse(fs.readFileSync(path.join(files, name), 'utf8')));
+    const { backend } = makeBackend({ evidenceProvider: provider });
+
+    const result = (await post(backend, '/api/analyze/validate', { ...JOB, max_genes: 3 })).body;
+
+    assert.equal(result.estimated_time_seconds, estimateSeconds(6, false, true));
+    assert.ok(result.estimated_time_seconds < estimateSeconds(6, false, false));
 });

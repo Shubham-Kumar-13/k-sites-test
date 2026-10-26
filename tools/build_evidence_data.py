@@ -31,6 +31,7 @@ import csv
 import gzip
 import io
 import json
+import math
 import re
 import sys
 import time
@@ -89,6 +90,14 @@ def latest_in_listing(index_url, pattern, key=None):
     return index_url + max(names, key=lambda n: (key or str)(names[n]))
 
 
+NCBI_GENE = "https://ftp.ncbi.nlm.nih.gov/gene/DATA/"
+NCBI_GENE_INFO = {
+    "9606": "Mammalia/Homo_sapiens", "10090": "Mammalia/Mus_musculus", "10116": "Mammalia/Rattus_norvegicus",
+    "7227": "Invertebrates/Drosophila_melanogaster", "6239": "Invertebrates/Caenorhabditis_elegans",
+    "7955": "Non-mammalian_vertebrates/Danio_rerio", "8364": "Non-mammalian_vertebrates/Xenopus_tropicalis",
+    "559292": "Fungi/Saccharomyces_cerevisiae",
+}
+
 SOURCES = {
     "mgi": {
         "name": "Mouse Genome Informatics (MGI)", "url": "https://www.informatics.jax.org/downloads/reports/",
@@ -138,6 +147,13 @@ SOURCES = {
         "what": "paralogs: genes of the same species descended from the same ancestor gene",
         "license": "no restrictions on use (Ensembl disclaimer)",
         "files": {},          # downloaded per chromosome by download_paralogs()
+    },
+    "ncbi": {
+        "name": "NCBI Gene (gene2pubmed)", "url": "https://ftp.ncbi.nlm.nih.gov/gene/DATA/",
+        "what": "the PubMed articles linked to each gene", "license": "no restrictions (NCBI data usage policy)",
+        "optional": True,
+        "files": {"ncbi_gene2pubmed.gz": NCBI_GENE + "gene2pubmed.gz",
+                  **{f"ncbi_gene_info_{taxid}.gz": f"{NCBI_GENE}GENE_INFO/{path}.gene_info.gz" for taxid, path in NCBI_GENE_INFO.items()}},
     },
     "sgd": {
         "name": "Saccharomyces Genome Database (SGD)", "url": "https://www.yeastgenome.org/",
@@ -1403,6 +1419,301 @@ def parse_paralogs(lines, allowed_genes=None, allowed_paralogs=None):
             for gene, candidates in found.items()}
 
 
+
+# --------------------------------------------------------------------------------------------------
+# an estimate of lethality for genes that have no knockout result
+# --------------------------------------------------------------------------------------------------
+# Most genes were never knocked out in a mouse. For those the measurements of their human ortholog (how many cancer cell
+# lines need it, how rarely people carry loss-of-function variants, where it is expressed, whether a close paralog
+# exists) are used in a small logistic regression that was fitted on the mouse genes whose outcome is known. The fit is
+# tested on genes it has not seen (5-fold cross-validation); the result goes into index.json and VALIDATION.md.
+# It is an estimate, labelled as such everywhere, and never makes a verdict better than CAUTION.
+
+LETHALITY_FEATURES = ["depmap_percent", "depmap_missing", "common_essential", "loeuf", "loeuf_missing", "tau",
+                      "tissues", "paralog"]
+LETHAL_LIKELY, LETHAL_POSSIBLE = 0.5, 0.3       # probability bands used in the report and the verdict
+MIN_TRAINING_GENES = 500                        # fewer known knockouts than this: no estimate is made
+
+
+def lethality_features(record):
+    """The feature vector of a human gene record, or None when it has no cell-line, constraint or expression data."""
+    cells, loeuf, tissue = record.get("c"), record.get("l"), record.get("t")
+    has_cells = bool(cells) and cells[1] is not None
+    if not (has_cells or loeuf is not None or tissue):
+        return None
+    return [
+        (cells[1] / 100.0) if has_cells else 0.0,
+        0.0 if has_cells else 1.0,
+        1.0 if cells and cells[0] == "C" else 0.0,
+        min(float(loeuf), 2.0) if loeuf is not None else 1.0,
+        0.0 if loeuf is not None else 1.0,
+        float(tissue[0]) if tissue and tissue[0] is not None else 0.5,
+        (tissue[1] / 54.0) if tissue and tissue[1] is not None else 0.5,
+        1.0 if record.get("p") else 0.0,
+    ]
+
+
+def _solve(matrix, vector):
+    """Solves matrix x = vector by Gaussian elimination with partial pivoting (the matrices are 9 x 9)."""
+    n = len(vector)
+    a = [row[:] + [vector[i]] for i, row in enumerate(matrix)]
+    for column in range(n):
+        pivot = max(range(column, n), key=lambda r: abs(a[r][column]))
+        a[column], a[pivot] = a[pivot], a[column]
+        for row in range(column + 1, n):
+            factor = a[row][column] / a[column][column]
+            for k in range(column, n + 1):
+                a[row][k] -= factor * a[column][k]
+    x = [0.0] * n
+    for row in range(n - 1, -1, -1):
+        x[row] = (a[row][n] - sum(a[row][k] * x[k] for k in range(row + 1, n))) / a[row][row]
+    return x
+
+
+def _sigmoid(z):
+    if z >= 0:
+        return 1.0 / (1.0 + math.exp(-z))
+    e = math.exp(z)
+    return e / (1.0 + e)
+
+
+def fit_lethality_model(rows, l2=1.0, max_iterations=30):
+    """Logistic regression (Newton's method, ridge penalty). rows: [(1 lethal | 0 viable, feature vector)]."""
+    k = len(rows[0][1])
+    means = [sum(x[i] for _, x in rows) / len(rows) for i in range(k)]
+    sds = [math.sqrt(sum((x[i] - means[i]) ** 2 for _, x in rows) / len(rows)) or 1.0 for i in range(k)]
+    data = [(y, [1.0] + [(x[i] - means[i]) / sds[i] for i in range(k)]) for y, x in rows]
+    weights = [0.0] * (k + 1)
+    for _ in range(max_iterations):
+        gradient = [0.0] * (k + 1)
+        hessian = [[0.0] * (k + 1) for _ in range(k + 1)]
+        for y, z in data:
+            p = _sigmoid(sum(w * v for w, v in zip(weights, z)))
+            error, weight = p - y, p * (1.0 - p)
+            for i in range(k + 1):
+                gradient[i] += error * z[i]
+                row = hessian[i]
+                scaled = weight * z[i]
+                for j in range(i, k + 1):
+                    row[j] += scaled * z[j]
+        for i in range(k + 1):
+            for j in range(i):
+                hessian[i][j] = hessian[j][i]
+            if i:
+                gradient[i] += l2 * weights[i]
+                hessian[i][i] += l2
+        step = _solve(hessian, gradient)
+        weights = [w - s for w, s in zip(weights, step)]
+        if max(abs(s) for s in step) < 1e-8:
+            break
+    return {"means": means, "sds": sds, "weights": weights}
+
+
+def lethality_probability(model, features):
+    z = model["weights"][0] + sum(w * (v - m) / s for w, v, m, s in
+                                  zip(model["weights"][1:], features, model["means"], model["sds"]))
+    return _sigmoid(z)
+
+
+def rank_auc(labels, scores):
+    """Area under the ROC curve (probability that a lethal gene scores above a viable one; ties count half)."""
+    order = sorted(range(len(scores)), key=lambda i: scores[i])
+    ranks = [0.0] * len(scores)
+    i = 0
+    while i < len(order):
+        j = i
+        while j + 1 < len(order) and scores[order[j + 1]] == scores[order[i]]:
+            j += 1
+        for position in range(i, j + 1):
+            ranks[order[position]] = (i + j) / 2.0 + 1.0
+        i = j + 1
+    positives = [r for r, y in zip(ranks, labels) if y]
+    negatives = len(labels) - len(positives)
+    if not positives or not negatives:
+        return 0.5
+    return (sum(positives) - len(positives) * (len(positives) + 1) / 2.0) / (len(positives) * negatives)
+
+
+def train_lethality_model(human):
+    """Fit on the human genes whose one-to-one mouse ortholog was knocked out (lethal or viable) and test by 5-fold
+    cross-validation. Returns the model with its accuracy figures in "tested"."""
+    rows = []
+    for symbol in sorted(human):
+        record = human[symbol]
+        mouse = record.get("m")
+        if not mouse or record["o"][1] != "1:1" or mouse.get("v") not in ("L", "V"):
+            continue
+        features = lethality_features(record)
+        if features:
+            rows.append((1 if mouse["v"] == "L" else 0, features))
+    if len(rows) < MIN_TRAINING_GENES:
+        return None
+    folds = 5
+    held_out = []
+    for fold in range(folds):
+        train = [row for i, row in enumerate(rows) if i % folds != fold]
+        model = fit_lethality_model(train)
+        held_out += [(y, lethality_probability(model, x)) for i, (y, x) in enumerate(rows) if i % folds == fold]
+    labels, scores = [y for y, _ in held_out], [p for _, p in held_out]
+    lethal, viable = sum(labels), len(labels) - sum(labels)
+    bands = {}
+    for name, low, high in (("likely", LETHAL_LIKELY, 1.01), ("possible", LETHAL_POSSIBLE, LETHAL_LIKELY), ("unlikely", -1.0, LETHAL_POSSIBLE)):
+        inside = [y for y, p in held_out if low <= p < high]
+        bands[name] = {"genes": len(inside), "lethal_share": round(sum(inside) / len(inside), 3) if inside else None}
+    flagged = [(y, p) for y, p in held_out if p >= LETHAL_POSSIBLE]
+    model = fit_lethality_model(rows)
+    model["tested"] = {
+        "genes": len(rows), "lethal": lethal, "viable": viable, "auc": round(rank_auc(labels, scores), 3),
+        "bands": bands,
+        "lethal_found_at_possible": round(sum(y for y, _ in flagged) / lethal, 3),
+        "viable_flagged_at_possible": round(sum(1 - y for y, _ in flagged) / viable, 3),
+    }
+    return model
+
+
+def add_lethality_estimates(human, human_aliases, mouse_records, mouse_paralogs, pairs):
+    """Give the genes without a mouse knockout result an estimate: record["pl"] = [probability, the other gene].
+    On a human gene "the other gene" is its mouse ortholog; on a mouse gene (a new stub record) it is the human ortholog.
+    Only one-to-one orthologs get one. Returns the model, or None when there are too few genes to fit it."""
+    model = train_lethality_model(human)
+    if model is None:
+        return None
+    given = 0
+    for _, (_, mouse_symbol, relation, human_symbol) in sorted(orthologs_to_mouse(pairs, "9606").items(), key=lambda kv: kv[1][3]):
+        if relation != "1:1" or mouse_symbol.upper() in mouse_records:
+            continue
+        key = human_symbol.upper()
+        record = human.get(key) or human.get(human_aliases.get(key, "").upper())
+        if record is None or "m" in record:
+            continue
+        features = lethality_features(record)
+        if not features:
+            continue
+        probability = round(lethality_probability(model, features), 2)
+        record["pl"] = [probability, mouse_symbol]
+        stub = {"pl": [probability, human_symbol]}
+        if record.get("t"):
+            stub["t"] = record["t"]
+        if mouse_symbol.upper() in mouse_paralogs:
+            stub["p"] = mouse_paralogs[mouse_symbol.upper()]
+        mouse_records[mouse_symbol.upper()] = stub
+        given += 1
+    print(f"  lethality estimate for {given} genes without a mouse knockout (cross-validated AUC {model['tested']['auc']})")
+    return model
+
+
+
+# --------------------------------------------------------------------------------------------------
+# conservation and literature, read from the databases instead of searched for by gene name
+# --------------------------------------------------------------------------------------------------
+# Conservation: in how many of the five model species (human, mouse, rat, fly, worm) does the gene, or an ortholog of it,
+# exist? The old way asked a database for the same gene symbol in each species, which misses every ortholog that has a
+# different name (PCNA is mus209 in the fly) and can match an unrelated gene with the same name.
+# Literature: how many PubMed articles NCBI Gene links to the gene (gene2pubmed), not a text search of the symbol.
+
+CONSERVATION_SPECIES = ("9606", "10090", "10116", "7227", "6239")        # bit 0 = human ... bit 4 = worm
+MIN_ALGORITHMS = 3          # an ortholog call counts when this many algorithms agree, or two do and it is the best pair both ways
+
+
+def read_conservation(lines, taxa):
+    """One pass over the Alliance orthology table. Returns ({gene id: taxon ids of the model species with an ortholog},
+    {(taxon id, SYMBOL): gene id}) for the genes of the species in `taxa`."""
+    species = set(CONSERVATION_SPECIES)
+    orthologs = collections.defaultdict(set)
+    ids = {}
+    header = False
+    for line in lines:
+        if line.startswith("#") or not line.strip():
+            continue
+        f = line.rstrip("\r\n").split("\t")
+        if not header:
+            header = True
+            continue
+        if len(f) < 13:
+            continue
+        a_tax, b_tax = f[2].replace("NCBITaxon:", ""), f[6].replace("NCBITaxon:", "")
+        if not ((a_tax in species and b_tax in taxa) or (b_tax in species and a_tax in taxa)):
+            continue
+        ids[(a_tax, f[1].upper())] = f[0]
+        ids[(b_tax, f[5].upper())] = f[4]
+        matched = int(f[9] or 0)
+        if matched >= MIN_ALGORITHMS or (matched >= 2 and f[11] == "Yes" and f[12] == "Yes"):
+            orthologs[f[0]].add(b_tax)
+            orthologs[f[4]].add(a_tax)
+    return orthologs, ids
+
+
+def conservation_bits(taxid, symbol, orthologs, ids):
+    """Which model species carry the gene (or an ortholog) as a number: bit i is CONSERVATION_SPECIES[i]. None when the
+    gene is not in the orthology table under that symbol."""
+    gene = ids.get((taxid, symbol.upper()))
+    if gene is None:
+        return None
+    found = set(orthologs.get(gene, ()))
+    if taxid in CONSERVATION_SPECIES:
+        found.add(taxid)
+    return sum(1 << i for i, species in enumerate(CONSERVATION_SPECIES) if species in found)
+
+
+def read_gene_info(lines):
+    """From an NCBI gene_info file: ({SYMBOL: Entrez gene id} for the official symbol, the nomenclature symbol and the locus
+    tag, {SYNONYM: official symbol} for the older names that point to one gene only). Databases and papers still use the
+    older names (the mouse gene Trp53bp1 is called Tp53bp1 in GO), so they are kept as aliases."""
+    primary, secondary, synonyms, clashes = {}, {}, {}, set()
+    for line in lines:
+        if line.startswith("#"):
+            continue
+        f = line.rstrip("\r\n").split("\t")
+        if len(f) < 11:
+            continue
+        if f[2] and f[2] != "-":
+            primary.setdefault(f[2].upper(), f[1])                # an official symbol always beats another gene's tag
+        for name in (f[10], f[3]):
+            if name and name != "-":
+                secondary.setdefault(name.upper(), f[1])
+        for synonym in f[4].split("|"):
+            key = synonym.strip().upper()
+            if key and key != "-":
+                if key in synonyms and synonyms[key] != f[2]:
+                    clashes.add(key)
+                synonyms[key] = f[2]
+    ids = {**secondary, **primary}
+    return ids, {key: symbol for key, symbol in synonyms.items() if key not in clashes and key not in ids}
+
+
+def read_gene2pubmed(lines, taxa):
+    """{Entrez gene id: number of PubMed articles linked to it} for the genes of the species in `taxa`."""
+    counts = collections.Counter()
+    for line in lines:
+        if line.startswith("#"):
+            continue
+        f = line.split("\t", 2)
+        if len(f) == 3 and f[0] in taxa:
+            counts[f[1]] += 1
+    return counts
+
+
+def add_gene_facts(organism_files, orthologs, ids, literature):
+    """Put the conservation (record["cv"]) and the literature count (record["lc"]) on every gene that has them, and
+    the older names of the genes as aliases. `literature`: {taxon id: (symbol -> gene id, gene id -> articles,
+    older name -> symbol)} or empty."""
+    for taxid, data in organism_files.items():
+        # genes known by several names (yeast: RPS3 and YNL178W) share one record; each name gets its own copy
+        data["genes"] = {key: dict(record) for key, record in data["genes"].items()}
+        symbols, counts, synonyms = literature.get(taxid, ({}, {}, {}))
+        for synonym, symbol in synonyms.items():
+            if symbol.upper() in data["genes"] and synonym not in data["genes"] and synonym not in data["aliases"]:
+                data["aliases"][synonym] = symbol
+        for symbol, record in data["genes"].items():
+            if orthologs is not None:
+                bits = conservation_bits(taxid, symbol, orthologs, ids)
+                if bits is not None:
+                    record["cv"] = bits
+            gene = symbols.get(symbol)
+            if gene is not None:
+                record["lc"] = counts.get(gene, 0)
+
+
 # --------------------------------------------------------------------------------------------------
 # writing
 # --------------------------------------------------------------------------------------------------
@@ -1485,6 +1796,7 @@ def build_all(out, cache, refresh=False, depmap_path=DEPMAP_SUMMARY, organisms=(
     out.mkdir(parents=True, exist_ok=True)
     print("Downloading the sources", flush=True)
     files = {}
+    build_warnings = []             # what could not be read in this build; written to index.json so the site's builds are auditable
     for source in SOURCES.values():
         for name, url in source["files"].items():
             try:
@@ -1495,6 +1807,7 @@ def build_all(out, cache, refresh=False, depmap_path=DEPMAP_SUMMARY, organisms=(
                 # a community database that cannot be reached (or answers a script with a bot check) must not stop the
                 # whole build: its organism then keeps the mouse-ortholog hint
                 print(f"  WARNING: {name} could not be downloaded ({error}); {source['name']} is left out of this build", flush=True)
+                build_warnings.append(f"{name} could not be downloaded ({type(error).__name__}: {str(error)[:200]}); {source['name']} is left out")
     wanted = {frozenset(("9606", "10090")), frozenset(("10116", "10090"))}
     wanted |= {frozenset((taxid, "10090")) for taxid in DISTANT}
     pairs = parse_orthology(open_text(files["alliance_orthology.tsv.gz"]), wanted=wanted)
@@ -1507,14 +1820,17 @@ def build_all(out, cache, refresh=False, depmap_path=DEPMAP_SUMMARY, organisms=(
                 paralog_files[species] = download_paralogs(species, downloader.cache, refresh)
         except requests.RequestException as error:
             print(f"  WARNING: the paralogs could not be downloaded ({error}); the data are built without them", flush=True)
+            build_warnings.append(f"the paralogs could not be downloaded ({type(error).__name__}: {str(error)[:200]})")
             paralog_files.clear()
+    mouse_paralogs = {}
     if paralog_files:
         mouse_genes = {p["a_sym"].upper() for p in pairs if p["a_tax"] == "10090"} | \
                       {p["b_sym"].upper() for p in pairs if p["b_tax"] == "10090"} | set(mouse_records)
         with open_text(paralog_files["mouse"]) as handle:
-            for gene, found in parse_paralogs(handle, allowed_genes=mouse_genes, allowed_paralogs=mouse_genes).items():
-                if gene in mouse_records:
-                    mouse_records[gene]["p"] = found
+            mouse_paralogs = parse_paralogs(handle, allowed_genes=mouse_genes, allowed_paralogs=mouse_genes)
+        for gene, found in mouse_paralogs.items():
+            if gene in mouse_records:
+                mouse_records[gene]["p"] = found
         print(f"  {sum(1 for r in mouse_records.values() if 'p' in r)} mouse genes with a close paralog")
     organism_files, index_organisms = {}, {}
     if "mouse" in organisms:
@@ -1524,6 +1840,7 @@ def build_all(out, cache, refresh=False, depmap_path=DEPMAP_SUMMARY, organisms=(
              "systems": info["systems"], "organisms": index_organisms}
     if "human" in organisms:
         human, aliases, tissues = build_human(files, mouse_records, by_id, pairs, depmap_path, paralog_files.get("human"))
+        human_aliases = aliases
         organism_files["9606"] = {"genes": human, "aliases": aliases}
         index_organisms["9606"] = {"name": "Homo sapiens",
                                    "layers": ["ortholog-knockout", "cell-essentiality", "constraint", "expression"]
@@ -1555,6 +1872,37 @@ def build_all(out, cache, refresh=False, depmap_path=DEPMAP_SUMMARY, organisms=(
             organism_files["559292"] = {"genes": build_yeast(handle), "aliases": {}}
         index_organisms["559292"] = {"name": "Saccharomyces cerevisiae S288C", "layers": ["knockout"]}
 
+    if "mouse" in organisms and "human" in organisms:
+        model = add_lethality_estimates(human, human_aliases, mouse_records, mouse_paralogs, pairs)
+        if model:
+            index["lethality_model"] = {
+                "features": LETHALITY_FEATURES, "likely": LETHAL_LIKELY, "possible": LETHAL_POSSIBLE,
+                "auc": round(model["tested"]["auc"], 2), "tested": model["tested"],
+                "weights": [round(w, 4) for w in model["weights"]],
+            }
+            for taxid in ("10090", "9606"):
+                index_organisms[taxid]["layers"].append("lethality-estimate")
+
+    taxa = set(organism_files)
+    orthologs = ids = None
+    if taxa:
+        print("Conservation: reading the orthologs of the model species", flush=True)
+        orthologs, ids = read_conservation(open_text(files["alliance_orthology.tsv.gz"]), taxa | set(CONSERVATION_SPECIES))
+    literature = {}
+    counts = collections.Counter()
+    if "ncbi_gene2pubmed.gz" in files:
+        print("Literature: counting the PubMed articles of each gene", flush=True)
+        counts = read_gene2pubmed(open_text(files["ncbi_gene2pubmed.gz"]), taxa)
+    for taxid in taxa:
+        name = f"ncbi_gene_info_{taxid}.gz"
+        if name in files:
+            with open_text(files[name]) as handle:
+                symbols, synonyms = read_gene_info(handle)
+            literature[taxid] = (symbols, counts, synonyms)
+    add_gene_facts(organism_files, orthologs, ids, literature)
+    print(f"  conservation for {sum(1 for d in organism_files.values() for r in d['genes'].values() if 'cv' in r):,} genes, "
+          f"literature counts for {sum(1 for d in organism_files.values() for r in d['genes'].values() if 'lc' in r):,} genes")
+
     drop_empty_organisms(organism_files, index_organisms, out)
     for taxid, data in organism_files.items():
         index_organisms[taxid]["genes"] = len(data["genes"])
@@ -1564,7 +1912,9 @@ def build_all(out, cache, refresh=False, depmap_path=DEPMAP_SUMMARY, organisms=(
         write_json(out / f"{taxid}.json", data)
     index["sources"] = [
         {"id": key, "name": s["name"], "url": s["url"], "what": s["what"], "license": s.get("license", "")}
-        for key, s in SOURCES.items()]
+        for key, s in SOURCES.items() if not s["files"] or any(name in files for name in s["files"])]
+    if build_warnings:
+        index["build_warnings"] = build_warnings
     write_json(out / "index.json", index)
     sizes = {p.name: p.stat().st_size for p in out.glob("*.json")}
     print("Wrote", ", ".join(f"{n} ({s / 1e6:.2f} MB)" for n, s in sorted(sizes.items())))

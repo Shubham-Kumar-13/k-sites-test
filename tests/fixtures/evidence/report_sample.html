@@ -189,6 +189,7 @@
         .basis-measured { background: #d4edda; color: #155724; }
         .basis-ortholog { background: #d1ecf1; color: #0c5460; }
         .basis-predicted { background: #fff3cd; color: #856404; }
+        .basis-estimate { background: #fff3cd; color: #856404; }
         .basis-distant { background: #e2e3e5; color: #41464b; }
         .basis-none { background: #e2e3e5; color: #41464b; }
         .evidence-line { font-size: 0.88em; margin-top: 3px; }
@@ -235,7 +236,7 @@
                     <div class="summary-label">Proceed with Caution</div>
                 </div>
                 <div class="summary-item">
-                    <div class="summary-value">1</div>
+                    <div class="summary-value">2</div>
                     <div class="summary-label">High Concern / Avoid</div>
                 </div>
                 <div class="summary-item">
@@ -395,6 +396,27 @@
                         </td>
                     </tr>
 
+                    <tr>
+                        <td>7</td>
+                        <td><strong>RPA3</strong></td>
+                        <td>9.09</td>
+                        <td>0.091</td>
+                        <td>
+                            <div class="visual-indicator low-specificity"></div>
+                            <div class="specificity-bar">
+                                <div class="specificity-fill" style="width: 9.1%"></div>
+                            </div>
+                        </td>
+                        <td>0.389</td>
+                        <td><span class="safety-level safety-critical">Avoid</span></td>
+                        <td><span class="basis basis-measured">Measured</span><div class="evidence-line">Essential in 100% of 1,178 human cancer cell lines; DepMap common essential</div><div class="evidence-line">No measured knockout result. Estimated 94% chance that a knockout is lethal in mice (likely lethal), from its own cell-line, population and expression data (its mouse ortholog Rpa3 has no knockout result). Among tested mouse genes with such an estimate 88% were lethal (AUC 0.84). This is an estimate, not a measurement.</div></td>
+                        <td>2</td>
+                        <td>
+                            CRISPR Interference (CRISPRi)
+                            <div class="justification-box">Essential in 100% of 1,178 human cancer cell lines; DepMap common essential; Very high pleiotropy score (9.1) indicates multiple biological functions</div>
+                        </td>
+                    </tr>
+
                 </tbody>
             </table>
         </div>
@@ -431,7 +453,7 @@
         <div class="section">
             <h2 class="section-title">Data Sources</h2>
             <p class="sources-list">Measured knockout data version 2026-10-26.</p>
-            <ul class="sources-list"><li><a href="https://www.informatics.jax.org/downloads/reports/">Mouse Genome Informatics (MGI)</a>: knockout phenotypes curated from the literature</li><li><a href="https://ftp.ebi.ac.uk/pub/databases/impc/all-data-releases/latest/results/">International Mouse Phenotyping Consortium (IMPC)</a>: systematic knockout viability and phenotyping screen</li><li><a href="https://www.alliancegenome.org/downloads">Alliance of Genome Resources</a>: orthologs between human, mouse, rat, zebrafish, fly, worm and yeast</li><li><a href="https://www.genenames.org/download/">HGNC (HUGO Gene Nomenclature Committee)</a>: approved human gene symbols and their older names</li><li><a href="https://doi.org/10.6084/m9.figshare.27993248">DepMap 24Q4 Public (Broad Institute)</a>: CRISPR knockout screens in 1,178 human cancer cell lines</li><li><a href="https://gnomad.broadinstitute.org/downloads#v4-constraint">gnomAD v4.1 constraint</a>: how rarely loss-of-function variants are seen in people</li><li><a href="https://gtexportal.org/home/downloads/adult-gtex/bulk_tissue_expression">GTEx v8</a>: gene expression in 54 human tissues</li><li><a href="https://www.ensembl.org/biomart/">Ensembl Compara (via BioMart)</a>: paralogs: genes of the same species descended from the same ancestor gene</li><li><a href="https://www.yeastgenome.org/">Saccharomyces Genome Database (SGD)</a>: yeast deletion phenotypes (viable / inviable)</li><li><a href="https://zfin.org/downloads">Zebrafish Information Network (ZFIN)</a>: zebrafish mutant phenotypes</li><li><a href="https://s3ftp.flybase.org/releases/current/precomputed_files/">FlyBase</a>: Drosophila allele phenotypes (lethality, viability, sterility)</li><li><a href="https://downloads.wormbase.org/releases/current-production-release/ONTOLOGY/">WormBase</a>: C. elegans allele and RNAi phenotypes (lethal, sterile)</li></ul>
+            <ul class="sources-list"><li><a href="https://www.informatics.jax.org/downloads/reports/">Mouse Genome Informatics (MGI)</a>: knockout phenotypes curated from the literature</li><li><a href="https://ftp.ebi.ac.uk/pub/databases/impc/all-data-releases/latest/results/">International Mouse Phenotyping Consortium (IMPC)</a>: systematic knockout viability and phenotyping screen</li><li><a href="https://www.alliancegenome.org/downloads">Alliance of Genome Resources</a>: orthologs between human, mouse, rat, zebrafish, fly, worm and yeast</li><li><a href="https://www.genenames.org/download/">HGNC (HUGO Gene Nomenclature Committee)</a>: approved human gene symbols and their older names</li><li><a href="https://doi.org/10.6084/m9.figshare.27993248">DepMap 24Q4 Public (Broad Institute)</a>: CRISPR knockout screens in 1,178 human cancer cell lines</li><li><a href="https://gnomad.broadinstitute.org/downloads#v4-constraint">gnomAD v4.1 constraint</a>: how rarely loss-of-function variants are seen in people</li><li><a href="https://gtexportal.org/home/downloads/adult-gtex/bulk_tissue_expression">GTEx v8</a>: gene expression in 54 human tissues</li><li><a href="https://www.ensembl.org/biomart/">Ensembl Compara (via BioMart)</a>: paralogs: genes of the same species descended from the same ancestor gene</li><li><a href="https://ftp.ncbi.nlm.nih.gov/gene/DATA/">NCBI Gene (gene2pubmed)</a>: the PubMed articles linked to each gene</li><li><a href="https://www.yeastgenome.org/">Saccharomyces Genome Database (SGD)</a>: yeast deletion phenotypes (viable / inviable)</li><li><a href="https://zfin.org/downloads">Zebrafish Information Network (ZFIN)</a>: zebrafish mutant phenotypes</li><li><a href="https://s3ftp.flybase.org/releases/current/precomputed_files/">FlyBase</a>: Drosophila allele phenotypes (lethality, viability, sterility)</li><li><a href="https://downloads.wormbase.org/releases/current-production-release/ONTOLOGY/">WormBase</a>: C. elegans allele and RNAi phenotypes (lethal, sterile)</li></ul>
         </div>
 
         <div class="download-section">

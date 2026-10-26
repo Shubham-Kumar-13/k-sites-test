@@ -418,6 +418,176 @@ class TestYeast:
         assert "YAL001C" in records and records["YAL001C"]["v"] == "V"
 
 
+class TestLethalityEstimate:
+    def test_the_area_under_the_curve(self):
+        assert bed.rank_auc([1, 1, 0, 0], [0.9, 0.8, 0.2, 0.1]) == 1.0
+        assert bed.rank_auc([1, 1, 0, 0], [0.1, 0.2, 0.8, 0.9]) == 0.0
+        assert bed.rank_auc([1, 0, 1, 0], [0.5, 0.5, 0.5, 0.5]) == 0.5            # ties count half
+
+    def test_features_need_some_cell_line_constraint_or_expression_data(self):
+        assert bed.lethality_features({"o": ["x", "1:1"]}) is None
+        full = bed.lethality_features({"c": ["C", 80.0, 1000], "l": 0.2, "t": [0.4, 40, [1]], "p": [["B", 60]]})
+        assert full == [0.8, 0.0, 1.0, 0.2, 0.0, 0.4, 40 / 54.0, 1.0]
+        sparse = bed.lethality_features({"l": 5.0})                              # LOEUF is capped, the rest is marked missing
+        assert sparse[0] == 0.0 and sparse[1] == 1.0 and sparse[3] == 2.0 and sparse[4] == 0.0
+
+    def test_the_model_learns_a_clear_signal(self):
+        import random
+        generator = random.Random(4)
+        rows = []
+        for _ in range(400):
+            lethal = generator.random() < 0.4
+            percent = generator.uniform(0.5, 1.0) if lethal else generator.uniform(0.0, 0.5)
+            rows.append((1 if lethal else 0, [percent, 0.0, 0.0, generator.uniform(0, 2), 0.0, 0.5, 0.5, 0.0]))
+        model = bed.fit_lethality_model(rows)
+
+        scores = [bed.lethality_probability(model, x) for _, x in rows]
+        assert bed.rank_auc([y for y, _ in rows], scores) > 0.95
+        assert all(0.0 <= s <= 1.0 for s in scores)
+
+    def test_estimates_are_given_only_to_unmeasured_one_to_one_orthologs(self, monkeypatch):
+        import random
+        generator = random.Random(2)
+        human, mouse = {}, {}
+        pairs_by_id = {}
+        for i in range(700):                               # genes with a mouse knockout: the training data
+            lethal = generator.random() < 0.4
+            pct = generator.uniform(60, 100) if lethal else generator.uniform(0, 30)
+            human[f"G{i}"] = {"o": [f"G{i}", "1:1"], "m": {"v": "L" if lethal else "V", "n": [1, 0, 0]},
+                              "c": ["", pct, 1000], "l": 0.5, "t": [0.4, 30, []]}
+            mouse[f"G{i}".upper()] = {"v": "L"}
+            pairs_by_id[f"HGNC:{i}"] = (f"MGI:{i}", f"G{i}", "1:1", f"G{i}")
+        human["NEW1"] = {"c": ["C", 95.0, 1000], "l": 0.1, "t": [0.4, 30, []]}                  # never knocked out
+        human["NEW2"] = {"c": ["", 1.0, 1000], "l": 1.5, "t": [0.4, 30, []]}
+        human["MANY"] = {"c": ["C", 95.0, 1000]}                                                    # not a one-to-one ortholog
+        human["NODATA"] = {"o": None}
+        pairs_by_id["HGNC:n1"] = ("MGI:n1", "New1", "1:1", "NEW1")
+        pairs_by_id["HGNC:n2"] = ("MGI:n2", "New2", "1:1", "NEW2")
+        pairs_by_id["HGNC:n3"] = ("MGI:n3", "Many", "n:1", "MANY")
+        monkeypatch.setattr(bed, "orthologs_to_mouse", lambda pairs, tax: pairs_by_id)
+
+        model = bed.add_lethality_estimates(human, {}, mouse, {"NEW1": [["NEW1B", 70]]}, [])
+
+        assert model["tested"]["auc"] > 0.9
+        assert human["NEW1"]["pl"][1] == "New1" and human["NEW1"]["pl"][0] > 0.5
+        assert human["NEW2"]["pl"][0] < 0.3
+        assert "pl" not in human["MANY"] and "pl" not in human["G0"]                     # not 1:1, and measured genes are left alone
+        stub = mouse["NEW1"]
+        assert stub["pl"] == [human["NEW1"]["pl"][0], "NEW1"] and stub["p"] == [["NEW1B", 70]] and "v" not in stub
+        assert bed.count_measured(mouse) == 700                                       # a stub is not a measurement
+
+    def test_too_few_genes_give_no_model(self):
+        human = {f"G{i}": {"o": ["g", "1:1"], "m": {"v": "L"}, "c": ["", 50.0, 10]} for i in range(20)}
+
+        assert bed.add_lethality_estimates(human, {}, {}, {}, []) is None
+
+
+class TestGeneFacts:
+    HEADER = ("Gene1ID\tGene1Symbol\tGene1SpeciesTaxonID\tGene1SpeciesName\tGene2ID\tGene2Symbol\tGene2SpeciesTaxonID\t"
+              "Gene2SpeciesName\tAlgorithms\tAlgorithmsMatch\tOutOfAlgorithms\tIsBestScore\tIsBestRevScore\n")
+
+    @staticmethod
+    def row(id1, sym1, tax1, id2, sym2, tax2, matched, best="No", best_rev="No"):
+        return f"{id1}\t{sym1}\tNCBITaxon:{tax1}\tx\t{id2}\t{sym2}\tNCBITaxon:{tax2}\ty\tA|B\t{matched}\t9\t{best}\t{best_rev}\n"
+
+    def table(self):
+        return io.StringIO(self.HEADER
+                           + self.row("HGNC:1", "PCNA", 9606, "MGI:1", "Pcna", 10090, 9, "Yes", "Yes")
+                           + self.row("HGNC:1", "PCNA", 9606, "FB:1", "mus209", 7227, 5)
+                           + self.row("HGNC:1", "PCNA", 9606, "WB:1", "pcn-1", 6239, 2, "Yes", "Yes")      # two algorithms, best both ways
+                           + self.row("HGNC:1", "PCNA", 9606, "RGD:1", "Pcna", 10116, 1, "Yes", "Yes")     # a single algorithm: not enough
+                           + self.row("HGNC:2", "SMUG1", 9606, "MGI:2", "Smug1", 10090, 8, "Yes", "Yes")
+                           + self.row("HGNC:2", "SMUG1", 9606, "SGD:1", "UNG1", 559292, 2))                 # two algorithms, not the best pair
+
+    def test_which_model_species_carry_an_ortholog(self):
+        taxa = {"9606", "10090", "10116", "7227", "6239", "559292"}
+        orthologs, ids = bed.read_conservation(self.table(), taxa)
+
+        assert orthologs["HGNC:1"] == {"10090", "7227", "6239"}                   # not rat: one algorithm is too little
+        assert orthologs["MGI:1"] == {"9606"} and orthologs["HGNC:2"] == {"10090"}
+        assert bed.conservation_bits("9606", "pcna", orthologs, ids) == 0b11011         # human, mouse, fly, worm
+        assert bed.conservation_bits("10090", "Pcna", orthologs, ids) == 0b00011        # mouse and human only
+        assert bed.conservation_bits("9606", "SMUG1", orthologs, ids) == 0b00011
+        assert bed.conservation_bits("559292", "UNG1", orthologs, ids) == 0               # yeast is not one of the five
+        assert bed.conservation_bits("9606", "NOSUCHGENE", orthologs, ids) is None
+
+    def test_gene_info_maps_symbols_and_locus_tags_to_gene_ids(self):
+        text = ("#tax_id\tGeneID\tSymbol\tLocusTag\tSynonyms\tdbXrefs\tchromosome\tmap_location\tdescription\ttype_of_gene\t"
+                "Symbol_from_nomenclature_authority\n"
+                "559292\t850\tACT1\tYFL039C\t-\t-\tVI\t-\tactin\tprotein-coding\tACT1\n"
+                "9606\t5111\tPCNA\t-\tPOLD\t-\t20\t-\tproliferating cell nuclear antigen\tprotein-coding\tPCNA\n")
+
+        ids, synonyms = bed.read_gene_info(io.StringIO(text))
+
+        assert ids == {"ACT1": "850", "YFL039C": "850", "PCNA": "5111"}
+        assert synonyms == {"POLD": "PCNA"}
+
+    def test_an_official_symbol_beats_the_locus_tag_or_nomenclature_symbol_of_another_gene(self):
+        text = ("#tax_id\tGeneID\tSymbol\tLocusTag\tSynonyms\tdbXrefs\tchromosome\tmap_location\tdescription\ttype_of_gene\t"
+                "Symbol_from_nomenclature_authority\n"
+                "559292\t111\tOTHER\tRPS3\t-\t-\tI\t-\td\tprotein-coding\t-\n"           # another gene whose locus tag is RPS3
+                "559292\t855543\tRPS3\tYNL178W\t-\t-\tXIV\t-\td\tprotein-coding\tRPS3\n")
+
+        ids, _ = bed.read_gene_info(io.StringIO(text))
+
+        assert ids["RPS3"] == "855543" and ids["OTHER"] == "111" and ids["YNL178W"] == "855543"
+
+    def test_older_names_become_aliases_only_when_they_point_to_one_gene(self):
+        text = ("#tax_id\tGeneID\tSymbol\tLocusTag\tSynonyms\tdbXrefs\tchromosome\tmap_location\tdescription\ttype_of_gene\t"
+                "Symbol_from_nomenclature_authority\n"
+                "10090\t1\tTrp53bp1\t-\tTp53bp1|53BP1\t-\t2\t-\td\tprotein-coding\tTrp53bp1\n"
+                "10090\t2\tMre11a\t-\tMre11|SHARED\t-\t9\t-\td\tprotein-coding\tMre11a\n"
+                "10090\t3\tOther\t-\tSHARED|Trp53bp1\t-\t1\t-\td\tprotein-coding\tOther\n")
+
+        ids, synonyms = bed.read_gene_info(io.StringIO(text))
+
+        assert synonyms == {"TP53BP1": "Trp53bp1", "53BP1": "Trp53bp1", "MRE11": "Mre11a"}     # SHARED is ambiguous, TRP53BP1 is an official symbol
+
+    def test_aliases_are_added_for_genes_in_the_file_and_never_for_a_name_that_is_a_gene(self):
+        files = {"10090": {"genes": {"TRP53BP1": {}, "MRE11A": {}, "TP53BP1": {}}, "aliases": {}}}
+        synonyms = {"TP53BP1": "Trp53bp1", "MRE11": "Mre11a", "GONE": "Absent"}
+
+        bed.add_gene_facts(files, None, {}, {"10090": ({}, {}, synonyms)})
+
+        assert files["10090"]["aliases"] == {"MRE11": "Mre11a"}        # TP53BP1 is itself a record; GONE points to no record
+
+    def test_articles_are_counted_per_gene_for_the_wanted_species_only(self):
+        text = "#tax_id\tGeneID\tPubMed_ID\n9606\t5111\t101\n9606\t5111\t102\n10090\t18538\t7\n3702\t99\t1\n"
+
+        counts = bed.read_gene2pubmed(io.StringIO(text), {"9606", "10090"})
+
+        assert counts == {"5111": 2, "18538": 1}
+
+    def test_the_facts_are_put_on_the_genes_that_have_them(self):
+        orthologs, ids = bed.read_conservation(self.table(), {"9606", "10090", "7227", "6239", "10116"})
+        files = {"9606": {"genes": {"PCNA": {}, "SMUG1": {"c": ["", 1.0, 5]}, "NOPE": {}}}, "10090": {"genes": {"PCNA": {}}}}
+        literature = {"9606": ({"PCNA": "5111", "SMUG1": "23583"}, {"5111": 2}, {})}
+
+        bed.add_gene_facts(files, orthologs, ids, literature)
+
+        assert files["9606"]["genes"]["PCNA"] == {"cv": 0b11011, "lc": 2}
+        assert files["9606"]["genes"]["SMUG1"]["lc"] == 0 and files["9606"]["genes"]["SMUG1"]["cv"] == 0b00011   # a known gene with no articles
+        assert files["9606"]["genes"]["NOPE"] == {}                                                           # unknown to both: nothing is invented
+        assert files["10090"]["genes"]["PCNA"] == {"cv": 0b00011}                                              # mouse symbols match, no literature file
+
+    def test_two_names_of_one_gene_get_their_own_copy_of_the_record(self):
+        shared = {"v": "L"}
+        files = {"559292": {"genes": {"RPS3": shared, "YNL178W": shared}, "aliases": {}}}
+        literature = {"559292": ({"RPS3": "1", "YNL178W": "2"}, {"1": 5, "2": 7}, {})}
+
+        bed.add_gene_facts(files, None, {}, literature)
+
+        assert files["559292"]["genes"]["RPS3"]["lc"] == 5 and files["559292"]["genes"]["YNL178W"]["lc"] == 7
+
+    def test_a_build_without_the_ncbi_files_has_no_literature(self):
+        orthologs, ids = bed.read_conservation(self.table(), {"9606"})
+        files = {"9606": {"genes": {"PCNA": {}}}}
+
+        bed.add_gene_facts(files, orthologs, ids, {})
+
+        assert "lc" not in files["9606"]["genes"]["PCNA"] and "cv" in files["9606"]["genes"]["PCNA"]
+
+
 class TestDownloader:
     class Response:
         def __init__(self, chunks, fail_after=None):
@@ -808,4 +978,4 @@ class TestOwnMeasurementsBesideTheMouseHint:
     def test_the_community_databases_are_optional_and_the_licences_are_recorded(self):
         for key in ("zfin", "flybase", "wormbase"):
             assert bed.SOURCES[key]["optional"] and bed.SOURCES[key]["license"]
-        assert not any(s.get("optional") for key, s in bed.SOURCES.items() if key not in ("zfin", "flybase", "wormbase"))
+        assert not any(s.get("optional") for key, s in bed.SOURCES.items() if key not in ("zfin", "flybase", "wormbase", "ncbi"))     # the NCBI literature counts are optional too

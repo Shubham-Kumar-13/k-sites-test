@@ -213,6 +213,50 @@ function cellsPart(record) {
     return part;
 }
 
+// the model species of the conservation score, in the order of the bits in a record's "cv" number
+const CONSERVATION_SPECIES = ['human', 'mouse', 'rat', 'fly', 'worm'];
+
+/** In how many of the model species the gene (or an ortholog) exists, or null when the gene is not in the orthology table. */
+function conservationPart(record) {
+    if (!record || record.cv === undefined || record.cv === null) return null;
+    const found = CONSERVATION_SPECIES.filter((_, i) => (record.cv >> i) & 1);
+    return {
+        score: found.length / CONSERVATION_SPECIES.length, found_in: found,
+        text: `Present in ${found.length} of ${CONSERVATION_SPECIES.length} model species (${found.join(', ')})`,
+    };
+}
+
+/** The number of PubMed articles that NCBI Gene links to the gene, or null when it is not known. */
+function literaturePart(record) {
+    if (!record || record.lc === undefined || record.lc === null) return null;
+    return { count: record.lc };
+}
+
+const ESTIMATE_LABELS = { likely: 'likely lethal', possible: 'possibly lethal', unlikely: 'unlikely to be lethal' };
+const percentOf = (fraction) => Math.floor(fraction * 100 + 0.5);
+
+/** The lethality estimate of a gene that has no knockout result (see k_sites/knockout_evidence/assessment.py), or null. */
+function estimatePart(index, taxid, record, organism) {
+    if (!record || !record.pl || organism.call !== 'UNKNOWN') return null;
+    const [probability, other] = record.pl;
+    const model = index.lethality_model || {};
+    const likely = model.likely ?? 0.5;
+    const possible = model.possible ?? 0.3;
+    const band = probability >= likely ? 'likely' : probability >= possible ? 'possible' : 'unlikely';
+    const percent = Math.max(1, Math.min(99, percentOf(probability)));      // an estimate is never shown as certain
+    const fromHuman = taxid !== '9606';
+    const source = fromHuman
+        ? `the cell-line, population and expression data of its human ortholog ${other}`
+        : `its own cell-line, population and expression data (its mouse ortholog ${other} has no knockout result)`;
+    let text = `No measured knockout result. Estimated ${percent}% chance that a knockout is lethal in mice (${ESTIMATE_LABELS[band]}), from ${source}.`;
+    const share = ((((model.tested || {}).bands || {})[band]) || {}).lethal_share;
+    if (share !== undefined && share !== null && model.auc !== undefined && model.auc !== null) {
+        text += ` Among tested mouse genes with such an estimate ${percentOf(share)}% were lethal (AUC ${model.auc}).`;
+    }
+    text += ' This is an estimate, not a measurement.';
+    return { probability, percent, band, label: ESTIMATE_LABELS[band], other_symbol: other, from_human_ortholog: fromHuman, text };
+}
+
 function constraintPart(record) {
     if (!record || record.l === undefined) return null;
     const loeuf = record.l;
@@ -248,8 +292,9 @@ function paralogsPart(record) {
     return { genes, close, text: `Closest paralogs: ${listing}` };
 }
 
-function sourcesUsed(index, organism, cells, constraint, expression, paralogs) {
+function sourcesUsed(index, organism, cells, constraint, expression, paralogs, estimate) {
     const wanted = [...organism.sources];
+    if (estimate) wanted.push('mgi', 'impc', 'depmap', 'gnomad', 'gtex');
     if (cells.call !== 'UNKNOWN') wanted.push('depmap');
     if (constraint) wanted.push('gnomad');
     if (expression) wanted.push('gtex');
@@ -264,7 +309,8 @@ export async function assessGene(provider, taxid, symbol, context = 'auto') {
     const result = {
         symbol, taxid, context: resolveContext(taxid, context), covered: false, found: false,
         organism: organismPart({}, taxid, null), cells: cellsPart(null), constraint: null,
-        expression: null, paralogs: null, has_measured: false, sources: [], data_version: null,
+        expression: null, paralogs: null, estimate: null, conservation: null, literature: null,
+        has_measured: false, sources: [], data_version: null,
     };
     if (!provider) return result;
     const index = await provider.index();
@@ -281,8 +327,11 @@ export async function assessGene(provider, taxid, symbol, context = 'auto') {
     result.expression = expressionPart(index, record);
     if (result.expression && organism.taxid !== '9606') result.expression.text += ' (in the human ortholog)';
     result.paralogs = paralogsPart(record);
+    result.estimate = estimatePart(index, organism.taxid, record, result.organism);
+    result.conservation = conservationPart(record);
+    result.literature = literaturePart(record);
     // a distant relative's mouse ortholog is a hint, not a measurement
     result.has_measured = (result.organism.call !== 'UNKNOWN' && !result.organism.distant) || result.cells.call !== 'UNKNOWN';
-    result.sources = sourcesUsed(index, result.organism, result.cells, result.constraint, result.expression, result.paralogs);
+    result.sources = sourcesUsed(index, result.organism, result.cells, result.constraint, result.expression, result.paralogs, result.estimate);
     return result;
 }

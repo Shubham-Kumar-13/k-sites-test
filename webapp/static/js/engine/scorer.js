@@ -131,6 +131,13 @@ export async function scoreGenePleiotropy(ctx, symbol, taxid, targetGoTerm = nul
     }
 }
 
+/** Literature score (0-1) on a log scale: 1000 or more articles = 1.0, 100 = 0.67, 10 = 0.33, 1 or none = 0.0. */
+export function literatureScoreFromCount(count) {
+    if (count >= 1000) return 1.0;
+    if (count > 0) return Math.min(1.0, Math.log10(count) / 3.0);
+    return 0.0;
+}
+
 /** PubMed publication count -> a 0-1 literature score on a log scale (1000+ papers = 1.0). */
 export async function getLiteratureSupport(ctx, symbol, taxid = '9606') {
     const result = { gene_symbol: symbol, pubmed_count: 0, literature_score: 0.0, query_status: 'pending' };
@@ -148,9 +155,7 @@ export async function getLiteratureSupport(ctx, symbol, taxid = '9606') {
         if (response.status === 200) {
             const count = parseInt(response.json().esearchresult?.count ?? 0, 10) || 0;
             result.pubmed_count = count;
-            if (count >= 1000) result.literature_score = 1.0;
-            else if (count > 0) result.literature_score = Math.min(1.0, Math.log10(count) / 3.0);
-            else result.literature_score = 0.0;
+            result.literature_score = literatureScoreFromCount(count);
             result.query_status = 'success';
         } else {
             result.query_status = `failed: HTTP ${response.status}`;
@@ -249,7 +254,7 @@ export function insufficientDataRecord(geneInfo, scoring = {}) {
     };
 }
 
-async function rankSingleGene(ctx, geneInfo, taxid, targetGoTerm, evidenceFilter, includeLiterature, includeCrossSpecies, maxPleiotropy) {
+async function rankSingleGene(ctx, geneInfo, taxid, targetGoTerm, evidenceFilter, includeLiterature, includeCrossSpecies, maxPleiotropy, factsLookup = null) {
     const symbol = geneInfo.symbol || '';
     if (!symbol) return null;
 
@@ -257,20 +262,33 @@ async function rankSingleGene(ctx, geneInfo, taxid, targetGoTerm, evidenceFilter
         const scoring = await scoreGenePleiotropy(ctx, symbol, taxid, targetGoTerm, evidenceFilter, true);
         if (scoring.data_status !== DATA_OK) return insufficientDataRecord(geneInfo, scoring);
 
+        // Facts read from the evidence data files (the PubMed articles NCBI Gene links to the gene, and the model species
+        // that carry an ortholog); a gene they do not know falls back to searching the databases
+        const facts = (factsLookup ? await factsLookup(symbol) : null) || {};
+
         let literatureScore = 0.5;
         let pubmedCount = 0;
         if (includeLiterature) {
-            const literature = await getLiteratureSupport(ctx, symbol, taxid);
-            literatureScore = literature.literature_score ?? 0.5;
-            pubmedCount = literature.pubmed_count || 0;
+            if (facts.literature_count !== undefined && facts.literature_count !== null) {
+                pubmedCount = facts.literature_count;
+                literatureScore = literatureScoreFromCount(pubmedCount);
+            } else {
+                const literature = await getLiteratureSupport(ctx, symbol, taxid);
+                literatureScore = literature.literature_score ?? 0.5;
+                pubmedCount = literature.pubmed_count || 0;
+            }
         }
 
         let conservationScore = 0.0;
         let specificityConsistency = 0.0;
         if (includeCrossSpecies) {
-            const cross = await validateAcrossSpecies(ctx, symbol, targetGoTerm);
-            conservationScore = cross.conservation_score ?? 0.0;
-            specificityConsistency = cross.specificity_consistency ?? 0.0;
+            if (facts.conservation !== undefined && facts.conservation !== null) {
+                conservationScore = facts.conservation;
+            } else {
+                const cross = await validateAcrossSpecies(ctx, symbol, targetGoTerm);
+                conservationScore = cross.conservation_score ?? 0.0;
+                specificityConsistency = cross.specificity_consistency ?? 0.0;
+            }
         }
 
         const specificity = scoring.specificity_score;
@@ -325,14 +343,14 @@ export async function mapLimit(items, limit, worker) {
 export async function rankGenesBySpecificity(ctx, geneList, taxid, options = {}) {
     const {
         targetGoTerm = null, evidenceFilter = 'experimental', includeLiterature = true,
-        includeCrossSpecies = true, maxPleiotropyThreshold = 10, onProgress = null, concurrency = 6,
+        includeCrossSpecies = true, maxPleiotropyThreshold = 10, onProgress = null, concurrency = 6, factsLookup = null,
     } = options;
 
     let done = 0;
     const total = geneList.length;
     const records = await mapLimit(geneList, concurrency, async (geneInfo) => {
         const record = await rankSingleGene(ctx, geneInfo, taxid, targetGoTerm, evidenceFilter,
-            includeLiterature, includeCrossSpecies, maxPleiotropyThreshold);
+            includeLiterature, includeCrossSpecies, maxPleiotropyThreshold, factsLookup);
         done += 1;
         if (onProgress) onProgress('Scoring genes', done, total);
         return record;

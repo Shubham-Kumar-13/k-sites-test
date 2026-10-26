@@ -202,6 +202,7 @@ async function showEvidenceCoverage(taxid) {
                 knockout: 'knockout viability', 'ortholog-knockout': "the mouse ortholog's knockout", 'cell-essentiality': 'cell-line screens (DepMap)',
                 constraint: 'tolerance of loss-of-function variants (gnomAD)', paralogs: 'close paralogs',
                 expression: String(taxid) === '9606' ? 'tissue expression (GTEx)' : 'tissue expression of the human ortholog (GTEx)',
+                'lethality-estimate': 'an estimate of lethality for genes that were never knocked out',
             };
             const community = { 7955: 'ZFIN', 7227: 'FlyBase', 6239: 'WormBase' }[String(taxid)];
             if (community) phrases.knockout = `knockout viability (${community} mutants)`;

@@ -246,6 +246,43 @@ class TestCrossSpecies:
         assert result["species_queried"] == 0
 
 
+class TestFactsFromTheEvidenceFiles:
+    """Where the evidence files know a gene, conservation and literature are read from them, not searched for."""
+
+    @patch("k_sites.gene_analysis.pleiotropy_scorer.validate_across_species")
+    @patch("k_sites.gene_analysis.pleiotropy_scorer.get_literature_support")
+    @patch(QUERY)
+    def test_known_genes_cause_no_database_search(self, mock_query, mock_literature, mock_cross):
+        mock_query.return_value = db_result(experimental=2)
+
+        ranked = rank_genes_by_specificity(
+            [{"symbol": "PCNA"}], "9606", facts_lookup=lambda symbol: {"conservation": 0.8, "literature_count": 100})[0]
+
+        assert ranked["conservation_score"] == 0.8
+        assert ranked["pubmed_count"] == 100 and ranked["literature_score"] == pytest.approx(math.log10(100) / 3)
+        mock_literature.assert_not_called()
+        mock_cross.assert_not_called()
+
+    @patch("k_sites.gene_analysis.pleiotropy_scorer.validate_across_species")
+    @patch("k_sites.gene_analysis.pleiotropy_scorer.get_literature_support")
+    @patch(QUERY)
+    def test_unknown_genes_fall_back_to_the_searches(self, mock_query, mock_literature, mock_cross):
+        mock_query.return_value = db_result(experimental=2)
+        mock_literature.return_value = {"literature_score": 0.4, "pubmed_count": 7}
+        mock_cross.return_value = {"conservation_score": 0.6, "specificity_consistency": 0.9}
+
+        ranked = rank_genes_by_specificity(
+            [{"symbol": "ODD"}], "9606", facts_lookup=lambda symbol: {"conservation": None, "literature_count": None})[0]
+
+        assert ranked["conservation_score"] == 0.6 and ranked["literature_score"] == 0.4 and ranked["pubmed_count"] == 7
+
+    def test_literature_score_scale(self):
+        from k_sites.gene_analysis.pleiotropy_scorer import literature_score_from_count
+        assert [literature_score_from_count(c) for c in (0, 1, 1000, 50000)] == [0.0, 0.0, 1.0, 1.0]
+        assert literature_score_from_count(100) == pytest.approx(2 / 3)
+        assert literature_score_from_count(10) == pytest.approx(1 / 3)
+
+
 class TestCutoffAndProgress:
     @patch(QUERY)
     def test_passes_threshold_follows_the_zero_to_ten_score(self, mock_query):

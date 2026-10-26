@@ -258,6 +258,105 @@ class TestVerdicts:
 # paralogs, tissue-restricted expression and distant relatives, with a small hand-made data set
 
 
+class TestLethalityEstimate:
+    """Genes without a knockout result get an estimate from their human ortholog; it is never a measurement."""
+
+    def test_a_mouse_gene_without_a_knockout_gets_an_estimate_from_its_human_ortholog(self, provider):
+        recommendation, evidence = verdict(provider, "10090", "Pole", 10.0)
+
+        estimate = evidence["estimate"]
+        assert evidence["organism"]["call"] == "UNKNOWN" and not evidence["has_measured"]
+        assert estimate["band"] == "likely" and estimate["from_human_ortholog"] and estimate["other_symbol"] == "POLE"
+        assert "Estimated" in estimate["text"] and "not a measurement" in estimate["text"]
+        assert estimate["percent"] <= 99                                          # never shown as certain
+        assert recommendation.evidence_basis == "estimate"
+        assert recommendation.safety_level.value == "HIGH_CONCERN"
+        assert recommendation.primary_recommendation.value == "Conditional Knockout (Cre-Lox)"
+        assert recommendation.justification[0] == estimate["text"]
+        assert any("Lethality has not been measured" in c for c in recommendation.concerns)
+
+    def test_a_human_gene_whose_mouse_ortholog_was_never_knocked_out_gets_one_too(self, provider):
+        # where the cell lines call the gene essential they decide a whole-organism verdict; otherwise the estimate does
+        symbol = next(s for s, r in provider.organism("9606").genes.items() if "pl" in r and "m" not in r
+                      and assess_gene(provider, "9606", s, "organism")["cells"]["call"] != "ESSENTIAL")
+        recommendation, evidence = verdict(provider, "9606", symbol, 6.0, context="organism")
+
+        assert not evidence["estimate"]["from_human_ortholog"] and evidence["estimate"]["other_symbol"]
+        assert recommendation.evidence_basis == "estimate"
+        assert recommendation.safety_level.value in ("HIGH_CONCERN", "MODERATE_CONCERN", "CAUTION")
+
+    def test_where_the_cell_lines_call_the_gene_essential_they_decide_a_whole_organism_verdict(self, provider):
+        recommendation, evidence = verdict(provider, "9606", "POLE", 10.0, context="organism")
+
+        assert evidence["cells"]["call"] == "ESSENTIAL" and evidence["estimate"]["band"] == "likely"
+        assert recommendation.evidence_basis == "measured" and recommendation.safety_level.value == "HIGH_CONCERN"
+
+    def test_the_bands_follow_the_probability_and_nothing_is_ever_safe(self, provider):
+        seen = {}
+        for symbol, record in provider.organism("10090").genes.items():
+            if "pl" in record and "v" not in record:
+                recommendation, evidence = verdict(provider, "10090", symbol, 1.0)
+                band = evidence["estimate"]["band"]
+                probability = record["pl"][0]
+                assert band == ("likely" if probability >= 0.5 else "possible" if probability >= 0.3 else "unlikely")
+                assert recommendation.safety_level.value == {"likely": "HIGH_CONCERN", "possible": "MODERATE_CONCERN",
+                                                             "unlikely": "CAUTION"}[band]
+                seen[band] = seen.get(band, 0) + 1
+        assert set(seen) == {"likely", "possible", "unlikely"}
+
+    def test_a_measured_gene_has_no_estimate_and_the_estimate_never_overrides_a_measurement(self, provider):
+        recommendation, evidence = verdict(provider, "10090", "Tdg", 7.0)
+
+        assert evidence["estimate"] is None and recommendation.evidence_basis == "measured"
+        assert recommendation.safety_level.value == "AVOID"
+
+    def test_cells_are_judged_by_the_cell_lines_not_by_the_estimate(self, provider):
+        recommendation, evidence = verdict(provider, "9606", "RPA3", 9.0)             # human: cultured cells
+
+        assert evidence["cells"]["call"] == "ESSENTIAL" and recommendation.evidence_basis == "measured"
+
+    def test_the_estimate_adds_its_sources(self, provider):
+        _, evidence = verdict(provider, "10090", "Pole", 10.0)
+
+        assert {"mgi", "impc", "depmap", "gnomad", "gtex"} <= {s["id"] for s in evidence["sources"]}
+
+
+class TestConservationAndLiterature:
+    def provider(self, human):
+        index = {"format": 1, "built": "2026-01-01", "organisms": {"9606": {"name": "Homo sapiens", "file": "9606.json", "layers": []}},
+                 "sources": []}
+        return EvidenceProvider(DictSource({"index.json": index, "9606.json": {"genes": human, "aliases": {}}}))
+
+    def test_conservation_counts_the_model_species_that_carry_the_gene(self):
+        provider = self.provider({"PCNA": {"cv": 0b11011, "lc": 6361}, "TINY": {"cv": 0b00001, "lc": 0}, "NOCV": {}})
+
+        pcna = assess_gene(provider, "9606", "PCNA")
+        tiny = assess_gene(provider, "9606", "TINY")
+
+        assert pcna["conservation"]["score"] == 0.8
+        assert pcna["conservation"]["found_in"] == ["human", "mouse", "fly", "worm"]
+        assert pcna["conservation"]["text"] == "Present in 4 of 5 model species (human, mouse, fly, worm)"
+        assert tiny["conservation"]["score"] == 0.2 and tiny["literature"]["count"] == 0
+        assert pcna["literature"]["count"] == 6361
+
+    def test_a_gene_without_the_facts_has_none(self):
+        provider = self.provider({"NOCV": {}})
+
+        evidence = assess_gene(provider, "9606", "NOCV")
+        unknown = assess_gene(provider, "9606", "NOSUCHGENE")
+
+        assert evidence["conservation"] is None and evidence["literature"] is None
+        assert unknown["conservation"] is None and unknown["literature"] is None
+
+    def test_the_fixture_genes_carry_them_in_the_same_way(self, provider):
+        for symbol, record in provider.organism("9606").genes.items():
+            evidence = assess_gene(provider, "9606", symbol)
+            if "cv" in record:
+                assert evidence["conservation"]["score"] == bin(record["cv"]).count("1") / 5
+            if "lc" in record:
+                assert evidence["literature"]["count"] == record["lc"]
+
+
 class DictSource:
     def __init__(self, files):
         self.files = files

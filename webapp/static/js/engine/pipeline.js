@@ -72,6 +72,13 @@ export async function runKSitesPipeline(ctx, opts) {
     }
     log(`Found ${genes.length} genes for ${goTerm} with ${evidenceFilter} evidence`);
 
+    // What the evidence files know about each gene without searching a database: in how many model species it has an
+    // ortholog (conservation) and how many PubMed articles are linked to it (literature)
+    const factsLookup = provider ? async (symbol) => {
+        const known = await assessGene(provider, taxid, symbol, context);
+        return { conservation: known.conservation ? known.conservation.score : null, literature_count: known.literature ? known.literature.count : null };
+    } : null;
+
     // Step 3: score and rank
     const ranked = await rankGenesBySpecificity(ctx, genes, taxid, {
         targetGoTerm: goTerm,
@@ -80,6 +87,7 @@ export async function runKSitesPipeline(ctx, opts) {
         includeCrossSpecies: speciesValidation !== null,
         maxPleiotropyThreshold: maxPleiotropy,
         onProgress,
+        factsLookup,
     });
 
     // Genes whose data could not be retrieved are reported separately, never treated as "specific"
@@ -119,8 +127,11 @@ export async function runKSitesPipeline(ctx, opts) {
         try {
             const evidence = provider || evidenceExpected ? await assessGene(provider, taxid, symbol, context) : null;
             let crossSpecies = {};
-            // genes above the cutoff are left out before the slower lookups
-            if (!(geneInfo.pleiotropy_score > maxPleiotropy) && speciesValidation && speciesValidation.length) {
+            if (evidence && evidence.conservation) {
+                // the orthologs in the evidence files answer this without a database search
+                crossSpecies = { conservation_score: evidence.conservation.score, found_in: evidence.conservation.found_in, source: 'orthologs' };
+            } else if (!(geneInfo.pleiotropy_score > maxPleiotropy) && speciesValidation && speciesValidation.length) {
+                // genes above the cutoff are left out before the slower lookups
                 crossSpecies = await validateAcrossSpecies(ctx, symbol, goTerm, speciesValidation);
             }
             return { geneInfo, evidence, crossSpecies };
@@ -159,7 +170,7 @@ export async function runKSitesPipeline(ctx, opts) {
 
             // a measurement is better than a guess from abstracts, and skipping the guess saves most of the time
             let phenotype = null;
-            if (predictPhenotypes && evidence && evidence.has_measured) {
+            if (predictPhenotypes && evidence && (evidence.has_measured || evidence.estimate)) {
                 predictionsSkipped += 1;
             } else if (predictPhenotypes && await getPredictor()) {
                 try {

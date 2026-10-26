@@ -11,7 +11,7 @@ EVIDENCE_HEADERS = [
     "Evidence_Basis", "Knockout_Context", "Organism_Knockout", "Organism_Knockout_Stage", "Organism_Knockout_Lines",
     "Organism_Knockout_Basis", "Organism_Knockout_Sources", "Organism_Phenotype_Systems", "Cell_Essentiality",
     "Cell_Lines_Dependent_Percent", "LOEUF", "Expression_Tau", "Expression_Pattern", "Close_Paralogs",
-    "Knockout_References", "Knockout_Evidence",
+    "Estimated_Lethality_Probability", "Knockout_References", "Knockout_Evidence",
 ]
 
 EXCLUDED_HEADERS = ["Gene_Symbol", "Gene_Description", "Reason", "Detail", "Pleiotropy_Score", "Composite_Score",
@@ -19,7 +19,7 @@ EXCLUDED_HEADERS = ["Gene_Symbol", "Gene_Description", "Reason", "Detail", "Plei
 
 BASIS_LABELS = {
     "measured": "Measured", "ortholog": "Measured in the mouse ortholog", "distant": "Mouse ortholog only (distant relative)",
-    "predicted": "Predicted from the literature", "none": "Not verified",
+    "predicted": "Predicted from the literature", "estimate": "Estimated from data (not measured)", "none": "Not verified",
 }
 
 
@@ -43,6 +43,8 @@ def evidence_summary(evidence: Optional[Dict[str, Any]]) -> str:
     parts = []
     if evidence["organism"]["call"] != "UNKNOWN":
         parts.append(evidence["organism"]["text"])
+    elif evidence.get("estimate"):
+        parts.append(evidence["estimate"]["text"])
     if evidence["cells"]["call"] != "UNKNOWN":
         parts.append(evidence["cells"]["text"])
     return " | ".join(parts)
@@ -69,6 +71,8 @@ def evidence_cells(gene: Dict[str, Any]) -> List[Any]:
             values["Organism_Knockout_Sources"] = "; ".join(s["name"] for s in evidence["sources"] if s["id"] in organism["sources"])
             values["Organism_Phenotype_Systems"] = "; ".join(organism["systems"])
             values["Knockout_References"] = "; ".join(f"PMID:{p}" for p in organism["references"])
+        if evidence.get("estimate"):
+            values["Estimated_Lethality_Probability"] = evidence["estimate"]["probability"]
         if cells["call"] != "UNKNOWN":
             values["Cell_Essentiality"] = cells["call"]
             values["Cell_Lines_Dependent_Percent"] = cells["percent"]

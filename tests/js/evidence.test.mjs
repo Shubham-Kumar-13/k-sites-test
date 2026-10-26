@@ -165,6 +165,62 @@ test('the expression of a mouse gene is marked as coming from the human ortholog
     assert.ok(evidence.expression.text.endsWith('(in the human ortholog)'));
 });
 
+test('a gene without a knockout result gets a lethality estimate from its human ortholog, never a measurement', async () => {
+    const p = provider();
+    const evidence = await assessGene(p, '10090', 'Pole');
+    const recommendation = getSafetyRecommendation({ symbol: 'Pole', pleiotropyScore: 10.0, knockoutEvidence: evidence });
+
+    assert.equal(evidence.organism.call, 'UNKNOWN');
+    assert.equal(evidence.has_measured, false);
+    assert.equal(evidence.estimate.band, 'likely');
+    assert.equal(evidence.estimate.other_symbol, 'POLE');
+    assert.ok(evidence.estimate.percent <= 99);
+    assert.equal(recommendation.evidence_basis, 'estimate');
+    assert.equal(recommendation.safety_level, 'HIGH_CONCERN');
+    assert.equal(recommendation.justification[0], evidence.estimate.text);
+
+    const measured = await assessGene(p, '10090', 'Tdg');
+    assert.equal(measured.estimate, null);                                  // a measurement needs no estimate
+});
+
+test('no estimate is ever rated better than CAUTION, and the bands follow the probability', async () => {
+    const p = provider();
+    const mouse = await p.organism('10090');
+    const seen = new Set();
+    for (const [symbol, record] of Object.entries(mouse.genes)) {
+        if (!record.pl || record.v) continue;
+        const evidence = await assessGene(p, '10090', symbol);
+        const recommendation = getSafetyRecommendation({ symbol, pleiotropyScore: 1.0, knockoutEvidence: evidence });
+        const probability = record.pl[0];
+        const band = probability >= 0.5 ? 'likely' : probability >= 0.3 ? 'possible' : 'unlikely';
+        assert.equal(evidence.estimate.band, band);
+        assert.equal(recommendation.safety_level, { likely: 'HIGH_CONCERN', possible: 'MODERATE_CONCERN', unlikely: 'CAUTION' }[band]);
+        seen.add(band);
+    }
+    assert.deepEqual([...seen].sort(), ['likely', 'possible', 'unlikely']);
+});
+
+test('conservation counts the model species that carry the gene; literature is the number of linked articles', async () => {
+    const files = {
+        'index.json': { format: 1, built: '2026-01-01', organisms: { 9606: { name: 'Homo sapiens', file: '9606.json', layers: [] } }, sources: [] },
+        '9606.json': { genes: { PCNA: { cv: 27, lc: 6361 }, TINY: { cv: 1, lc: 0 }, NOCV: {} }, aliases: {} },
+    };
+    const p = new EvidenceProvider(async (name) => files[name]);
+
+    const pcna = await assessGene(p, '9606', 'PCNA');
+    const tiny = await assessGene(p, '9606', 'TINY');
+    const none = await assessGene(p, '9606', 'NOCV');
+
+    assert.equal(pcna.conservation.score, 0.8);
+    assert.deepEqual(pcna.conservation.found_in, ['human', 'mouse', 'fly', 'worm']);
+    assert.equal(pcna.conservation.text, 'Present in 4 of 5 model species (human, mouse, fly, worm)');
+    assert.equal(pcna.literature.count, 6361);
+    assert.equal(tiny.conservation.score, 0.2);
+    assert.equal(tiny.literature.count, 0);
+    assert.equal(none.conservation, null);
+    assert.equal(none.literature, null);
+});
+
 test('an unmeasured gene that the old rules rated worse than CAUTION still says it was not measured', async () => {
     const evidence = await assessGene(tinyProvider(), '9606', 'NOSUCHGENE');
     const recommendation = getSafetyRecommendation({ symbol: 'NOSUCHGENE', pleiotropyScore: 9.0, knockoutEvidence: evidence });

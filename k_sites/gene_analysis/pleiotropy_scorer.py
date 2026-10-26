@@ -280,6 +280,15 @@ def _calculate_evidence_quality(scores: Dict) -> float:
     return min(1.0, max(0.0, quality))
 
 
+def literature_score_from_count(count: int) -> float:
+    """Literature score (0-1) on a log scale: 1000 or more articles = 1.0, 100 = 0.67, 10 = 0.33, 1 or none = 0.0."""
+    if count >= 1000:
+        return 1.0
+    if count > 0:
+        return min(1.0, math.log10(count) / 3.0)
+    return 0.0
+
+
 def get_literature_support(gene_symbol: str, taxid: str = "9606") -> Dict:
     """
     Get REAL literature support by querying PubMed.
@@ -333,12 +342,7 @@ def get_literature_support(gene_symbol: str, taxid: str = "9606") -> Dict:
             
             # Calculate literature score (0-1 scale)
             # Log scale: 1000+ papers = 1.0, 100 papers = 0.67, 10 papers = 0.33, 1 paper = 0.0
-            if count >= 1000:
-                result["literature_score"] = 1.0
-            elif count > 0:
-                result["literature_score"] = min(1.0, math.log10(count) / 3.0)
-            else:
-                result["literature_score"] = 0.0
+            result["literature_score"] = literature_score_from_count(count)
             
             result["query_status"] = "success"
             
@@ -494,7 +498,8 @@ def _rank_single_gene(
     evidence_filter: str,
     include_literature: bool,
     include_cross_species: bool,
-    max_pleiotropy_threshold: int
+    max_pleiotropy_threshold: int,
+    facts_lookup: Optional[Callable[[str], Optional[Dict]]] = None
 ) -> Dict:
     """Rank a single gene - helper for parallel processing."""
     gene_symbol = gene_info.get("symbol", "")
@@ -515,20 +520,32 @@ def _rank_single_gene(
         if scoring.get("data_status") != DATA_OK:
             return _insufficient_data_record(gene_info, scoring)
 
-        # Get literature support (REAL PubMed query)
+        # Facts read from the evidence data files (the PubMed articles NCBI Gene links to the gene, and the model
+        # species that carry an ortholog); a gene they do not know falls back to searching the databases
+        facts = (facts_lookup(gene_symbol) if facts_lookup else None) or {}
+
+        # Get literature support
         if include_literature:
-            lit_data = get_literature_support(gene_symbol, taxid)
-            literature_score = lit_data.get("literature_score", 0.5)
-            pubmed_count = lit_data.get("pubmed_count", 0)
+            if facts.get("literature_count") is not None:
+                pubmed_count = facts["literature_count"]
+                literature_score = literature_score_from_count(pubmed_count)
+            else:
+                lit_data = get_literature_support(gene_symbol, taxid)
+                literature_score = lit_data.get("literature_score", 0.5)
+                pubmed_count = lit_data.get("pubmed_count", 0)
         else:
             literature_score = 0.5
             pubmed_count = 0
         
         # Get cross-species validation
         if include_cross_species:
-            cross_species = validate_across_species(gene_symbol, target_go_term)
-            conservation_score = cross_species.get("conservation_score", 0.0)
-            specificity_consistency = cross_species.get("specificity_consistency", 0.0)
+            if facts.get("conservation") is not None:
+                conservation_score = facts["conservation"]
+                specificity_consistency = 0.0
+            else:
+                cross_species = validate_across_species(gene_symbol, target_go_term)
+                conservation_score = cross_species.get("conservation_score", 0.0)
+                specificity_consistency = cross_species.get("specificity_consistency", 0.0)
         else:
             conservation_score = 0.0
             specificity_consistency = 0.0
@@ -587,7 +604,8 @@ def rank_genes_by_specificity(
     include_literature: bool = True,
     include_cross_species: bool = True,
     max_pleiotropy_threshold: int = 10,
-    progress_callback: Optional[Callable[[str, int, int], None]] = None
+    progress_callback: Optional[Callable[[str, int, int], None]] = None,
+    facts_lookup: Optional[Callable[[str], Optional[Dict]]] = None
 ) -> List[Dict]:
     """
     Rank genes by specificity using weighted scoring combining:
@@ -608,6 +626,8 @@ def rank_genes_by_specificity(
         max_pleiotropy_threshold: Pleiotropy cutoff on the 0-10 score; a gene scoring above it
             has ``passes_threshold`` False
         progress_callback: Optional ``callback(stage, done, total)`` called as each gene is scored
+        facts_lookup: Optional ``lookup(symbol)`` returning ``{"conservation": 0-1 or None, "literature_count": int or None}``
+            read from the evidence data files; where it knows a gene no database search is made for it
 
     Returns:
         Ranked list of genes with comprehensive scoring
@@ -629,7 +649,8 @@ def rank_genes_by_specificity(
                 evidence_filter,
                 include_literature,
                 include_cross_species,
-                max_pleiotropy_threshold
+                max_pleiotropy_threshold,
+                facts_lookup
             ): gene_info
             for gene_info in gene_list
         }

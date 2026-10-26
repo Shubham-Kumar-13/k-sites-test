@@ -33,13 +33,13 @@ const num = (value, digits) => (typeof value === 'number' && Number.isFinite(val
 export const CONTEXT_LABELS = { cells: 'cultured cells', organism: 'whole organism' };
 export const BASIS_LABELS = {
     measured: 'Measured', ortholog: 'Measured in the mouse ortholog', distant: 'Mouse ortholog only (distant relative)',
-    predicted: 'Predicted from the literature', none: 'Not verified',
+    predicted: 'Predicted from the literature', estimate: 'Estimated from data (not measured)', none: 'Not verified',
 };
 export const EVIDENCE_HEADERS = [
     'Evidence_Basis', 'Knockout_Context', 'Organism_Knockout', 'Organism_Knockout_Stage', 'Organism_Knockout_Lines',
     'Organism_Knockout_Basis', 'Organism_Knockout_Sources', 'Organism_Phenotype_Systems', 'Cell_Essentiality',
     'Cell_Lines_Dependent_Percent', 'LOEUF', 'Expression_Tau', 'Expression_Pattern', 'Close_Paralogs',
-    'Knockout_References', 'Knockout_Evidence',
+    'Estimated_Lethality_Probability', 'Knockout_References', 'Knockout_Evidence',
 ];
 export const EXCLUDED_HEADERS = ['Gene_Symbol', 'Gene_Description', 'Reason', 'Detail', 'Pleiotropy_Score', 'Composite_Score',
     'Organism_Knockout', 'Organism_Knockout_Stage', 'Cell_Essentiality', 'Knockout_Evidence'];
@@ -49,6 +49,7 @@ export function evidenceSummary(evidence) {
     if (!evidence) return '';
     const parts = [];
     if (evidence.organism.call !== 'UNKNOWN') parts.push(evidence.organism.text);
+    else if (evidence.estimate) parts.push(evidence.estimate.text);
     if (evidence.cells.call !== 'UNKNOWN') parts.push(evidence.cells.text);
     return parts.join(' | ');
 }
@@ -72,6 +73,7 @@ export function evidenceCells(gene) {
             values.Organism_Phenotype_Systems = organism.systems.join('; ');
             values.Knockout_References = organism.references.map((p) => `PMID:${p}`).join('; ');
         }
+        if (evidence.estimate) values.Estimated_Lethality_Probability = evidence.estimate.probability;
         if (cells.call !== 'UNKNOWN') {
             values.Cell_Essentiality = cells.call;
             values.Cell_Lines_Dependent_Percent = cells.percent;
@@ -211,7 +213,7 @@ tr:nth-child(even){background:#f8f9fa}
 .justification{background:#f8f9fa;padding:8px;border-radius:4px;font-size:.9em;margin-top:5px;border-left:3px solid var(--accent)}
 .basis{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.75em;font-weight:bold;margin-bottom:4px}
 .basis-measured{background:#d4edda;color:#155724}.basis-ortholog{background:#d1ecf1;color:#0c5460}
-.basis-predicted{background:#fff3cd;color:#856404}.basis-none,.basis-distant{background:#e2e3e5;color:#41464b}
+.basis-predicted,.basis-estimate{background:#fff3cd;color:#856404}.basis-none,.basis-distant{background:#e2e3e5;color:#41464b}
 .evidence-line{font-size:.88em;margin-top:3px}.evidence-refs{font-size:.8em;color:var(--muted);margin-top:3px}
 .sources-list{font-size:.9em;color:var(--muted)}
 .report-warning{background:#fff3cd;color:#664d03;border-left:4px solid #f39c12;border-radius:6px;padding:12px 16px;margin:20px 0}
@@ -228,6 +230,7 @@ export function evidenceHtml(entry) {
         basis = 'none';
         if (evidence.has_measured) basis = evidence.organism.basis === 'direct' || evidence.cells.call !== 'UNKNOWN' ? 'measured' : 'ortholog';
         else if (evidence.organism.call !== 'UNKNOWN' && evidence.organism.distant) basis = 'distant';
+        else if (evidence.estimate) basis = 'estimate';
     }
     basis = basis || 'none';
     const parts = [`<span class="basis basis-${escapeHtml(basis)}">${escapeHtml(BASIS_LABELS[basis] || basis)}</span>`];
@@ -235,6 +238,7 @@ export function evidenceHtml(entry) {
         for (const part of [evidence.organism, evidence.cells]) {
             if (part.call !== 'UNKNOWN') parts.push(`<div class="evidence-line">${escapeHtml(part.text)}</div>`);
         }
+        if (evidence.estimate && evidence.organism.call === 'UNKNOWN') parts.push(`<div class="evidence-line">${escapeHtml(evidence.estimate.text)}</div>`);
         const links = evidence.organism.references.map((p) => `<a href="https://pubmed.ncbi.nlm.nih.gov/${Number(p)}/">PMID ${Number(p)}</a>`);
         if (evidence.organism.mgi_id) links.push(`<a href="https://www.informatics.jax.org/marker/${escapeHtml(evidence.organism.mgi_id)}">MGI</a>`);
         if (links.length) parts.push(`<div class="evidence-refs">${links.join(' | ')}</div>`);

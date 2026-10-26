@@ -481,6 +481,8 @@ def _evidence_html(entry: dict) -> str:
             basis = "measured" if evidence["organism"]["basis"] == "direct" or evidence["cells"]["call"] != "UNKNOWN" else "ortholog"
         elif evidence["organism"]["call"] != "UNKNOWN" and evidence["organism"]["distant"]:
             basis = "distant"
+        elif evidence.get("estimate"):
+            basis = "estimate"
     basis = basis or "none"
     parts = [f'<span class="basis basis-{html.escape(basis)}">{html.escape(BASIS_LABELS.get(basis, basis))}</span>']
     if evidence:
@@ -488,6 +490,8 @@ def _evidence_html(entry: dict) -> str:
         for part in (organism, cells):
             if part["call"] != "UNKNOWN":
                 parts.append(f'<div class="evidence-line">{html.escape(part["text"])}</div>')
+        if evidence.get("estimate") and organism["call"] == "UNKNOWN":
+            parts.append(f'<div class="evidence-line">{html.escape(evidence["estimate"]["text"])}</div>')
         links = [f'<a href="https://pubmed.ncbi.nlm.nih.gov/{int(p)}/">PMID {int(p)}</a>' for p in organism["references"]]
         if organism["mgi_id"]:
             links.append(f'<a href="https://www.informatics.jax.org/marker/{html.escape(organism["mgi_id"])}">MGI</a>')
@@ -727,6 +731,7 @@ def _generate_report_html(
         .basis-measured {{ background: #d4edda; color: #155724; }}
         .basis-ortholog {{ background: #d1ecf1; color: #0c5460; }}
         .basis-predicted {{ background: #fff3cd; color: #856404; }}
+        .basis-estimate {{ background: #fff3cd; color: #856404; }}
         .basis-distant {{ background: #e2e3e5; color: #41464b; }}
         .basis-none {{ background: #e2e3e5; color: #41464b; }}
         .evidence-line {{ font-size: 0.88em; margin-top: 3px; }}

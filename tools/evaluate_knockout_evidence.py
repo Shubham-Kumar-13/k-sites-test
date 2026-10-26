@@ -19,6 +19,7 @@ What is checked
 import argparse
 import collections
 import csv
+import gzip
 import importlib.util
 import json
 import math
@@ -40,7 +41,8 @@ FLAGGED = ("AVOID", "HIGH_CONCERN")
 INTRO = """# Validation of the measured knockout evidence
 
 K-Sites rates a gene from what has been *measured* when the gene is lost. This page checks how far those measurements
-can be trusted, and how the keyword prediction that is used where nothing is measured performs. The numbers below are
+can be trusted, how well the estimate for genes without a measurement works, and how informative the pleiotropy score is.
+The numbers below are
 produced by `tools/evaluate_knockout_evidence.py`; they describe the data version named below and are refreshed with it.
 """
 
@@ -67,8 +69,8 @@ OUTRO = """## What these checks do not show
 
 ```bash
 python tools/build_evidence_data.py --out .cache/evidence-out        # builds the data files (downloads the sources once)
-python tools/evaluate_knockout_evidence.py --out VALIDATION.md       # re-runs sections 1-4
-python tools/evaluate_knockout_evidence.py --predictor 60            # adds section 5 (needs the network, about 20 minutes)
+python tools/evaluate_knockout_evidence.py --out VALIDATION.md       # re-runs sections 1-5 and 7
+python tools/evaluate_knockout_evidence.py --predictor 60            # adds section 6 (needs the network, about 20 minutes)
 python -m pytest tests/test_paper_truth.py                            # the published-knockout check as a unit test
 ```
 
@@ -205,6 +207,7 @@ def coverage(data, hgnc):
     index = json.loads((data / "index.json").read_text(encoding="utf-8"))
     mouse = json.loads((data / "10090.json").read_text(encoding="utf-8"))["genes"]
     human = json.loads((data / "9606.json").read_text(encoding="utf-8"))["genes"]
+    mouse = {symbol: r for symbol, r in mouse.items() if "v" in r}          # the others only carry a lethality estimate
     calls = collections.Counter(r["v"] for r in mouse.values())
     rows = [["Mouse knockout (MGI and IMPC)", f"{len(mouse):,}", f"{calls['L']:,} lethal, {calls['S']:,} subviable, {calls['V']:,} viable"]]
     protein_coding = None
@@ -231,11 +234,119 @@ def coverage(data, hgnc):
     return table(["Data", "Genes", "Detail"], rows) + f"\n\nData version {index['built']}."
 
 
+
+# --------------------------------------------------------------------------------------------------------------------
+def estimate_check(data):
+    """How well does the lethality estimate for genes without a knockout result work (it is tested on genes whose outcome is known)?"""
+    index = json.loads((data / "index.json").read_text(encoding="utf-8"))
+    model = index.get("lethality_model")
+    if not model:
+        return "*Skipped: this data build has no lethality estimate.*"
+    tested = model["tested"]
+    mouse = json.loads((data / "10090.json").read_text(encoding="utf-8"))["genes"]
+    human = json.loads((data / "9606.json").read_text(encoding="utf-8"))["genes"]
+    mouse_bands = collections.Counter(
+        "likely" if r["pl"][0] >= model["likely"] else "possible" if r["pl"][0] >= model["possible"] else "unlikely"
+        for r in mouse.values() if "pl" in r and "v" not in r)
+    names = {"likely": f"likely lethal (estimate {model['likely']:g} or higher)",
+             "possible": f"possibly lethal ({model['possible']:g} to {model['likely']:g})",
+             "unlikely": f"unlikely to be lethal (under {model['possible']:g})"}
+    rows = [[names[band], f"{tested['bands'][band]['genes']:,}",
+             f"{100 * tested['bands'][band]['lethal_share']:.1f}%" if tested["bands"][band]["lethal_share"] is not None else "",
+             f"{mouse_bands[band]:,}"] for band in ("likely", "possible", "unlikely")]
+    return "\n".join([
+        f"Most genes were never knocked out in a mouse. For them K-Sites estimates the chance that the knockout is lethal from the "
+        f"measurements of the human ortholog (share of cancer cell lines that need the gene, how rarely people carry loss-of-function "
+        f"variants, tissue expression, close paralogs). The model was fitted on **{tested['genes']:,}** mouse genes with a known outcome "
+        f"({tested['lethal']:,} lethal, {tested['viable']:,} viable) and tested on genes it had not seen (5-fold cross-validation).", "",
+        f"- Area under the ROC curve: **{tested['auc']:.3f}** (0.5 is a coin flip, 1.0 is perfect).",
+        f"- Flagging the genes estimated at {model['possible']:g} or higher finds **{100 * tested['lethal_found_at_possible']:.1f}%** of the lethal genes "
+        f"and wrongly flags **{100 * tested['viable_flagged_at_possible']:.1f}%** of the viable ones. "
+        "For comparison, the keyword prediction in section 6 found 23% and wrongly flagged 13%.", "",
+        table(["Estimated band", "Tested genes", "Of these, lethal in the mouse", "Mouse genes without a knockout result in this band"], rows), "",
+        f"- Human genes with an estimate (no mouse knockout result): {sum(1 for r in human.values() if 'pl' in r):,}.",
+        "- The genes that were tested in mice are not a random sample: researchers knock out genes they already suspect to matter, so the lethal "
+        "share among never-tested genes is probably lower than the shares above. The estimate is shown as an estimate, never rates a gene better "
+        "than CAUTION, and a measurement always replaces it."])
+
+
+# --------------------------------------------------------------------------------------------------------------------
+def pleiotropy_check(data, cache):
+    """Does the pleiotropy score (from the number of GO biological-process terms) track what is measured when a mouse gene is knocked out?"""
+    from k_sites.gene_analysis.pleiotropy_scorer import calculate_pleiotropy_score
+    gaf = cache / "mgi.gaf.gz"
+    if not gaf.exists():
+        import requests
+        response = requests.get("http://current.geneontology.org/annotations/mgi.gaf.gz", timeout=300)
+        response.raise_for_status()
+        gaf.write_bytes(response.content)
+    bed = load_builder()
+    experimental = {"EXP", "IDA", "IPI", "IMP", "IGI", "IEP", "HTP", "HDA", "HMP", "HGI", "HEP"}
+    terms = {"all evidence": collections.defaultdict(set), "experimental evidence only": collections.defaultdict(set)}
+    with gzip.open(gaf, "rt", encoding="utf-8") as handle:
+        for line in handle:
+            if line.startswith("!"):
+                continue
+            f = line.rstrip("\n").split("\t")
+            if len(f) < 15 or f[8] != "P" or "NOT" in f[3]:
+                continue
+            terms["all evidence"][f[2].upper()].add(f[4])
+            if f[6] in experimental:
+                terms["experimental evidence only"][f[2].upper()].add(f[4])
+    mouse = json.loads((data / "10090.json").read_text(encoding="utf-8"))["genes"]
+
+    def ranks(values):
+        order = sorted(range(len(values)), key=lambda i: values[i])
+        out = [0.0] * len(values)
+        i = 0
+        while i < len(order):
+            j = i
+            while j + 1 < len(order) and values[order[j + 1]] == values[order[i]]:
+                j += 1
+            for k in range(i, j + 1):
+                out[order[k]] = (i + j) / 2.0
+            i = j + 1
+        return out
+
+    def spearman(a, b):
+        ra, rb = ranks(a), ranks(b)
+        n = len(a)
+        ma, mb = sum(ra) / n, sum(rb) / n
+        cov = sum((x - ma) * (y - mb) for x, y in zip(ra, rb))
+        return cov / math.sqrt(sum((x - ma) ** 2 for x in ra) * sum((y - mb) ** 2 for y in rb))
+
+    lines = []
+    for label, source in terms.items():
+        rows = []
+        for symbol, record in mouse.items():
+            n = len(source.get(symbol, ()))
+            if n and "v" in record:
+                rows.append((calculate_pleiotropy_score(n), len(record.get("sys", [])), record["v"]))
+        labelled = [(p, 1 if v == "L" else 0) for p, _, v in rows if v in ("L", "V")]
+        auc = bed.rank_auc([y for _, y in labelled], [p for p, _ in labelled])
+        bands = []
+        for low, high in ((0, 0.01), (0.01, 3), (3, 6), (6, 9), (9, 10.01)):
+            inside = [(s, v) for p, s, v in rows if low <= p < high and v in ("L", "V")]
+            if inside:
+                bands.append([f"{low:g} to {min(high, 10):g}", f"{len(inside):,}", pct(sum(1 for _, v in inside if v == "L"), len(inside)),
+                              f"{sum(s for s, _ in inside) / len(inside):.1f}"])
+        lines += [f"**{label}**: {len(rows):,} mouse genes with GO biological-process terms and a measured knockout.", "",
+                  f"- Rank correlation between the pleiotropy score and the number of organ systems with a knockout phenotype: "
+                  f"**{spearman([p for p, _, _ in rows], [s for _, s, _ in rows]):.2f}**.",
+                  f"- Area under the ROC curve for telling lethal from viable knockouts: **{auc:.2f}** ({len(labelled):,} genes).", "",
+                  table(["Pleiotropy score", "Genes", "Lethal knockouts", "Mean organ systems affected"], bands), ""]
+    lines += ["The score rises with both measures, so it carries real signal, but it is modest: it is a count of annotated roles and "
+              "genes that are heavily studied have more annotations. Treat it as a hint about broad effects, not as a replacement for "
+              "the knockout measurement."]
+    return "\n".join(lines)
+
+
 # --------------------------------------------------------------------------------------------------------------------
 def predictor_check(data, sample_size, seed=7):
     """Run the keyword-based phenotype predictor on genes whose knockout outcome is measured, and compare."""
     from k_sites.rag_system.literature_context import RAGPhenotypePredictor, PhenotypeSeverity
     mouse = json.loads((data / "10090.json").read_text(encoding="utf-8"))["genes"]
+    mouse = {symbol: r for symbol, r in mouse.items() if "v" in r}
     rng = random.Random(seed)
     lethal = sorted(s for s, r in mouse.items() if r["v"] == "L" and not r.get("x") and r["n"][0] >= 2)
     viable = sorted(s for s, r in mouse.items() if r["v"] == "V" and not r.get("x") and r["n"][2] >= 2)
@@ -267,7 +378,8 @@ def main():
     parser.add_argument("--data", default=str(ROOT / ".cache" / "evidence-out"), help="Folder with the built evidence files")
     parser.add_argument("--cache", default=str(ROOT / ".cache" / "evidence-sources"), help="Folder with the raw source downloads")
     parser.add_argument("--predictor", type=int, default=0, help="Also test the keyword predictor on this many genes (network needed)")
-    parser.add_argument("--predictor-from", help="Take section 5 (the keyword predictor check) from an earlier report file")
+    parser.add_argument("--predictor-from", help="Take section 6 (the old keyword predictor check) from an earlier report file; "
+                                                  "its section number in that file is 5")
     parser.add_argument("--out", help="Write the report to this file (default: print)")
     args = parser.parse_args()
     data, cache = Path(args.data), Path(args.cache)
@@ -278,15 +390,17 @@ def main():
         ("2. Do the two sources agree with each other?", source_concordance(cache)),
         ("3. Do mouse lethality and human cell essentiality agree?", mouse_vs_cells(data)),
         ("4. How many genes are covered?", coverage(data, cache / "hgnc.tsv")),
+        ("5. How good is the estimate for genes without a knockout result?", estimate_check(data)),
     ]
     if args.predictor:
         print("Testing the keyword predictor ...", flush=True)
-        sections.append(("5. How good is the fallback prediction where nothing is measured?", predictor_check(data, args.predictor)))
+        sections.append(("6. How good is the old keyword prediction?", predictor_check(data, args.predictor)))
     if args.predictor_from and not args.predictor:
         earlier = Path(args.predictor_from).read_text(encoding="utf-8")
         if "## 5." in earlier:
-            sections.append(("5. How good is the fallback prediction where nothing is measured?",
-                             earlier.split("## 5.", 1)[1].split("\n", 2)[2].strip()))
+            sections.append(("6. How good is the old keyword prediction?",
+                             earlier.split("## 5.", 1)[1].split("\n", 2)[2].split("\n## ", 1)[0].strip()))
+    sections.append(("7. Does the pleiotropy score track what is measured?", pleiotropy_check(data, cache)))
     report = [INTRO, f"*Generated {date.today().isoformat()} by `tools/evaluate_knockout_evidence.py`.*", ""]
     for title, body in sections:
         report += [f"## {title}", "", body, ""]

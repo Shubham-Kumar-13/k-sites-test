@@ -149,6 +149,7 @@ class SafetyRecommender:
         conservation_score = cross_species_validation.get("conservation_score", 0.0) if cross_species_validation else 0.0
 
         measured = self._evidence_verdict(knockout_evidence, pleiotropy_score) if knockout_evidence else None
+        estimated = bool(measured) and measured["basis"] == "estimate"      # a model's estimate, not a measurement
         if measured:
             safety_level, primary_rec, alternative_recs = measured["level"], measured["primary"], measured["alternatives"]
             evidence_basis = measured["basis"]
@@ -178,7 +179,7 @@ class SafetyRecommender:
 
         # Without a measurement nothing shows that the knockout is safe: the verdict is never better than CAUTION,
         # and every such gene says that its lethality has not been measured
-        unverified = bool(knockout_evidence) and not measured
+        unverified = bool(knockout_evidence) and (not measured or estimated)
         if unverified and safety_level == SafetyLevel.SAFE:
             safety_level = SafetyLevel.CAUTION
             primary_rec = RecommendationType.VALIDATED_KO
@@ -299,7 +300,43 @@ class SafetyRecommender:
             return self._organism_verdict(evidence, pleiotropy_score)
         if cells["call"] == "ESSENTIAL":
             return self._organism_verdict_from_cells(evidence)
+        if evidence.get("estimate"):
+            return self._estimate_verdict(evidence, pleiotropy_score)
         return None
+
+    def _estimate_verdict(self, evidence: Dict, pleiotropy_score: float) -> Dict[str, Any]:
+        """Nothing was measured, but the estimate of lethality is known: the verdict follows it and is never better
+        than CAUTION."""
+        estimate = evidence["estimate"]
+        band = estimate["band"]
+        justification = [estimate["text"]]
+        concerns, mitigation = [], []
+        if band == "likely":
+            level, primary = SafetyLevel.HIGH_CONCERN, RecommendationType.CONDITIONAL_KO
+            alternatives = [RecommendationType.CRISPRI, RecommendationType.HETEROZYGOUS_KO]
+            concerns.append("A knockout is estimated to be lethal (not measured): plan for a conditional or inducible approach")
+            mitigation += ["Use a conditional (Cre-lox) or inducible allele, or knock the gene down (CRISPRi, RNAi) instead of knocking it out",
+                           "Look the gene up in MGI and IMPC: a knockout line may exist that is not in the data yet"]
+            tissue = self._tissue_mitigation(evidence)
+            if tissue:
+                mitigation.append(tissue)
+        elif band == "possible":
+            level, primary = SafetyLevel.MODERATE_CONCERN, RecommendationType.HETEROZYGOUS_KO
+            alternatives = [RecommendationType.CONDITIONAL_KO, RecommendationType.VALIDATED_KO]
+            concerns.append("A knockout may be lethal (estimated, not measured): test a heterozygous or conditional allele first")
+            mitigation.append("Start with a heterozygous or conditional allele and check how the homozygotes fare")
+        else:
+            level, primary, alternatives = SafetyLevel.CAUTION, RecommendationType.VALIDATED_KO, [RecommendationType.STANDARD_KO]
+            concerns.append("No knockout has been measured; the estimate says lethality is unlikely, but check before committing")
+        if pleiotropy_score > 5:
+            concerns.append("The gene has many annotated roles, so expect broad phenotypes")
+        paralog = self._paralog_concern(evidence)
+        if paralog:
+            concerns.append(paralog)
+        justification += self._extra_findings(evidence)
+        return {"level": level, "primary": primary, "alternatives": alternatives, "basis": "estimate",
+                "justification": justification, "concerns": concerns, "mitigation": mitigation, "considerations": [],
+                "confidence": {"likely": 0.6, "possible": 0.4, "unlikely": 0.5}[band]}
 
     @staticmethod
     def _extra_findings(evidence: Dict) -> List[str]:

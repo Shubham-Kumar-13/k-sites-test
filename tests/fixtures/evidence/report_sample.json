@@ -13,6 +13,17 @@
      "source": "depmap",
      "text": "Rarely essential: needed in 3.9% of 1,178 human cancer cell lines"
     },
+    "conservation": {
+     "found_in": [
+      "human",
+      "mouse",
+      "rat",
+      "fly",
+      "worm"
+     ],
+     "score": 1.0,
+     "text": "Present in 5 of 5 model species (human, mouse, rat, fly, worm)"
+    },
     "constraint": {
      "label": "constrained",
      "loeuf": 0.454,
@@ -21,6 +32,7 @@
     "context": "cells",
     "covered": true,
     "data_version": "2026-10-26",
+    "estimate": null,
     "expression": {
      "label": "tissue-specific",
      "tau": 0.82,
@@ -32,6 +44,9 @@
     },
     "found": true,
     "has_measured": true,
+    "literature": {
+     "count": 3533
+    },
     "organism": {
      "basis": "ortholog",
      "call": "VIABLE",
@@ -133,6 +148,17 @@
      "source": "depmap",
      "text": "Essential in 83.5% of 1,178 human cancer cell lines; DepMap common essential"
     },
+    "conservation": {
+     "found_in": [
+      "human",
+      "mouse",
+      "rat",
+      "fly",
+      "worm"
+     ],
+     "score": 1.0,
+     "text": "Present in 5 of 5 model species (human, mouse, rat, fly, worm)"
+    },
     "constraint": {
      "label": "not constrained",
      "loeuf": 1.071,
@@ -141,6 +167,7 @@
     "context": "cells",
     "covered": true,
     "data_version": "2026-10-26",
+    "estimate": null,
     "expression": {
      "label": "tissue-specific",
      "tau": 0.91,
@@ -152,6 +179,9 @@
     },
     "found": true,
     "has_measured": true,
+    "literature": {
+     "count": 562
+    },
     "organism": {
      "basis": "ortholog",
      "call": "LETHAL",
@@ -248,6 +278,16 @@
      "source": "depmap",
      "text": "Rarely essential: needed in 1.5% of 1,178 human cancer cell lines"
     },
+    "conservation": {
+     "found_in": [
+      "human",
+      "mouse",
+      "rat",
+      "fly"
+     ],
+     "score": 0.8,
+     "text": "Present in 4 of 5 model species (human, mouse, rat, fly)"
+    },
     "constraint": {
      "label": "not constrained",
      "loeuf": 0.819,
@@ -256,6 +296,7 @@
     "context": "cells",
     "covered": true,
     "data_version": "2026-10-26",
+    "estimate": null,
     "expression": {
      "label": "broadly expressed",
      "tau": 0.36,
@@ -269,6 +310,9 @@
     },
     "found": true,
     "has_measured": true,
+    "literature": {
+     "count": 94
+    },
     "organism": {
      "basis": "ortholog",
      "call": "VIABLE",
@@ -381,6 +425,15 @@
      "source": "depmap",
      "text": "Rarely essential: needed in 0.1% of 1,178 human cancer cell lines"
     },
+    "conservation": {
+     "found_in": [
+      "human",
+      "mouse",
+      "rat"
+     ],
+     "score": 0.6,
+     "text": "Present in 3 of 5 model species (human, mouse, rat)"
+    },
     "constraint": {
      "label": "not constrained",
      "loeuf": 1.565,
@@ -389,6 +442,7 @@
     "context": "cells",
     "covered": true,
     "data_version": "2026-10-26",
+    "estimate": null,
     "expression": {
      "label": "tissue-enriched",
      "tau": 0.67,
@@ -402,6 +456,9 @@
     },
     "found": true,
     "has_measured": true,
+    "literature": {
+     "count": 91
+    },
     "organism": {
      "basis": "ortholog",
      "call": "VIABLE",
@@ -524,6 +581,16 @@
      "source": "depmap",
      "text": "Rarely essential: needed in 3.7% of 1,178 human cancer cell lines"
     },
+    "conservation": {
+     "found_in": [
+      "human",
+      "mouse",
+      "rat",
+      "fly"
+     ],
+     "score": 0.8,
+     "text": "Present in 4 of 5 model species (human, mouse, rat, fly)"
+    },
     "constraint": {
      "label": "not constrained",
      "loeuf": 0.811,
@@ -532,6 +599,7 @@
     "context": "cells",
     "covered": true,
     "data_version": "2026-10-26",
+    "estimate": null,
     "expression": {
      "label": "tissue-enriched",
      "tau": 0.67,
@@ -545,6 +613,9 @@
     },
     "found": true,
     "has_measured": true,
+    "literature": {
+     "count": 124
+    },
     "organism": {
      "basis": "ortholog",
      "call": "LETHAL",
@@ -671,6 +742,16 @@
      "source": "depmap",
      "text": "Essential in 16% of 1,178 human cancer cell lines; check that your cell type is not one of them"
     },
+    "conservation": {
+     "found_in": [
+      "human",
+      "mouse",
+      "rat",
+      "fly"
+     ],
+     "score": 0.8,
+     "text": "Present in 4 of 5 model species (human, mouse, rat, fly)"
+    },
     "constraint": {
      "label": "not constrained",
      "loeuf": 0.773,
@@ -679,6 +760,7 @@
     "context": "cells",
     "covered": true,
     "data_version": "2026-10-26",
+    "estimate": null,
     "expression": {
      "label": "tissue-enriched",
      "tau": 0.55,
@@ -692,6 +774,9 @@
     },
     "found": true,
     "has_measured": true,
+    "literature": {
+     "count": 1851
+    },
     "organism": {
      "basis": "ortholog",
      "call": "LETHAL",
@@ -813,13 +898,16 @@
      "source": "depmap",
      "text": "No human cell-line screen data for this gene"
     },
+    "conservation": null,
     "constraint": null,
     "context": "cells",
     "covered": true,
     "data_version": "2026-10-26",
+    "estimate": null,
     "expression": null,
     "found": false,
     "has_measured": false,
+    "literature": null,
     "organism": {
      "basis": "none",
      "call": "UNKNOWN",
@@ -901,6 +989,17 @@
      "source": "depmap",
      "text": "Essential in 99.9% of 1,178 human cancer cell lines; DepMap common essential"
     },
+    "conservation": {
+     "found_in": [
+      "human",
+      "mouse",
+      "rat",
+      "fly",
+      "worm"
+     ],
+     "score": 1.0,
+     "text": "Present in 5 of 5 model species (human, mouse, rat, fly, worm)"
+    },
     "constraint": {
      "label": "constrained",
      "loeuf": 0.42,
@@ -909,6 +1008,7 @@
     "context": "cells",
     "covered": true,
     "data_version": "2026-10-26",
+    "estimate": null,
     "expression": {
      "label": "tissue-specific",
      "tau": 0.9,
@@ -920,6 +1020,9 @@
     },
     "found": true,
     "has_measured": true,
+    "literature": {
+     "count": 1180
+    },
     "organism": {
      "basis": "ortholog",
      "call": "LETHAL",
@@ -1025,6 +1128,165 @@
    },
    "specificity_score": 0.013,
    "symbol": "PCNA"
+  },
+  {
+   "bp_term_count": 3,
+   "composite_score": 0.389,
+   "computational_evidence_count": 2,
+   "conservation_score": 0.5,
+   "cross_species_validation": {},
+   "data_issues": [],
+   "description": "RPA3 protein",
+   "entrez_id": "",
+   "evidence_quality": 0.65,
+   "experimental_evidence_count": 1,
+   "iea_evidence_count": 0,
+   "kegg_pathway_count": 2,
+   "knockout_evidence": {
+    "cells": {
+     "call": "ESSENTIAL",
+     "common_essential": true,
+     "lines": 1178,
+     "percent": 100.0,
+     "source": "depmap",
+     "text": "Essential in 100% of 1,178 human cancer cell lines; DepMap common essential"
+    },
+    "conservation": {
+     "found_in": [
+      "human",
+      "mouse",
+      "rat",
+      "fly"
+     ],
+     "score": 0.8,
+     "text": "Present in 4 of 5 model species (human, mouse, rat, fly)"
+    },
+    "constraint": {
+     "label": "not constrained",
+     "loeuf": 1.968,
+     "text": "Loss-of-function variants are tolerated in people (gnomAD LOEUF 1.968, not constrained)"
+    },
+    "context": "cells",
+    "covered": true,
+    "data_version": "2026-10-26",
+    "estimate": {
+     "band": "likely",
+     "from_human_ortholog": false,
+     "label": "likely lethal",
+     "other_symbol": "Rpa3",
+     "percent": 94,
+     "probability": 0.94,
+     "text": "No measured knockout result. Estimated 94% chance that a knockout is lethal in mice (likely lethal), from its own cell-line, population and expression data (its mouse ortholog Rpa3 has no knockout result). Among tested mouse genes with such an estimate 88% were lethal (AUC 0.84). This is an estimate, not a measurement."
+    },
+    "expression": {
+     "label": "tissue-specific",
+     "tau": 0.83,
+     "text": "Tissue-specific: expressed in 54 of 54 tissues (tau 0.83); highest in Cells - EBV-transformed lymphocytes",
+     "tissues_expressed": 54,
+     "top_tissues": [
+      "Cells - EBV-transformed lymphocytes"
+     ]
+    },
+    "found": true,
+    "has_measured": true,
+    "literature": {
+     "count": 197
+    },
+    "organism": {
+     "basis": "none",
+     "call": "UNKNOWN",
+     "counts": {
+      "lethal": 0,
+      "subviable": 0,
+      "viable": 0
+     },
+     "distant": false,
+     "infertile": false,
+     "mgi_id": null,
+     "mixed": false,
+     "ortholog": null,
+     "reduced_lifespan": false,
+     "references": [],
+     "rnai_only": false,
+     "sources": [],
+     "species": null,
+     "stage": null,
+     "stage_text": null,
+     "systems": [],
+     "text": "No measured knockout data for this gene"
+    },
+    "paralogs": null,
+    "sources": [
+     {
+      "id": "mgi",
+      "name": "Mouse Genome Informatics (MGI)",
+      "url": "https://www.informatics.jax.org/downloads/reports/"
+     },
+     {
+      "id": "impc",
+      "name": "International Mouse Phenotyping Consortium (IMPC)",
+      "url": "https://ftp.ebi.ac.uk/pub/databases/impc/all-data-releases/latest/results/"
+     },
+     {
+      "id": "depmap",
+      "name": "DepMap 24Q4 Public (Broad Institute)",
+      "url": "https://doi.org/10.6084/m9.figshare.27993248"
+     },
+     {
+      "id": "gnomad",
+      "name": "gnomAD v4.1 constraint",
+      "url": "https://gnomad.broadinstitute.org/downloads#v4-constraint"
+     },
+     {
+      "id": "gtex",
+      "name": "GTEx v8",
+      "url": "https://gtexportal.org/home/downloads/adult-gtex/bulk_tissue_expression"
+     }
+    ],
+    "symbol": "RPA3",
+    "taxid": "9606"
+   },
+   "literature_score": 0.5,
+   "literature_support": 0.5,
+   "phenotype_prediction": null,
+   "pleiotropy_score": 9.09,
+   "pubmed_count": 41,
+   "safety_recommendation": {
+    "alternative_recommendations": [
+     "Temporal Control (Tet-ON/OFF)",
+     "Conditional Knockout (Cre-Lox)",
+     "Alternative Model System"
+    ],
+    "concerns": [
+     "A complete knockout is expected to kill the cells",
+     "High pleiotropy may confound phenotype interpretation"
+    ],
+    "confidence_score": 0.9,
+    "evidence_basis": "measured",
+    "experimental_considerations": [
+     "Include a rescue construct to show that the phenotype comes from this gene",
+     "Optimize dCas9-KRAB expression levels",
+     "Verify knockdown efficiency at mRNA and protein levels",
+     "Include appropriate controls (wild-type and non-targeting controls)",
+     "Plan for phenotypic scoring at multiple developmental stages"
+    ],
+    "justification": [
+     "Essential in 100% of 1,178 human cancer cell lines; DepMap common essential",
+     "Very high pleiotropy score (9.1) indicates multiple biological functions"
+    ],
+    "mitigation_strategies": [
+     "Use an inducible knockout, a degron tag or CRISPRi so the cells survive until the gene is switched off",
+     "Check your own cell line in DepMap before starting",
+     "Use partial knockdown to study dose-dependent effects",
+     "Compare results with RNAi data if available",
+     "Phenotype Analysis of Stems cells & CRISPR-engineered (PASC) approach",
+     "Phenotype Suppression Screening to identify genetic interactors"
+    ],
+    "primary_recommendation": "CRISPR Interference (CRISPRi)",
+    "safety_level": "AVOID"
+   },
+   "specificity_score": 0.091,
+   "symbol": "RPA3"
   }
  ],
  "insufficient_data_genes": [],
@@ -1092,6 +1354,13 @@
      "name": "Ensembl Compara (via BioMart)",
      "url": "https://www.ensembl.org/biomart/",
      "what": "paralogs: genes of the same species descended from the same ancestor gene"
+    },
+    {
+     "id": "ncbi",
+     "license": "no restrictions (NCBI data usage policy)",
+     "name": "NCBI Gene (gene2pubmed)",
+     "url": "https://ftp.ncbi.nlm.nih.gov/gene/DATA/",
+     "what": "the PubMed articles linked to each gene"
     },
     {
      "id": "sgd",

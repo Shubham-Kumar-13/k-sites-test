@@ -21,11 +21,15 @@ What this means in practice:
 - **Measured knockout evidence** (`evidence-data/`) is what the verdicts rest on. The files are built by the
   workflow from public resources and refreshed monthly; the browser downloads only the file of the organism
   that is analysed (1 to 5 MB). `VALIDATION.md` shows how the data were checked against published knockouts.
-- **Phenotype prediction** is an experimental fallback for genes without a measured result. It downloads the
+- **Lethality estimate.** A gene with no knockout result gets an estimate of the chance that its knockout is lethal in mice,
+  computed at build time from the human ortholog's DepMap, gnomAD and GTEx data by a small model that is tested on
+  genes with known outcomes (cross-validated AUC 0.84, see `VALIDATION.md`). It is stored in the data files (field `pl`),
+  so nothing is computed in the browser.
+- **Phenotype prediction** is an experimental fallback for genes without a measured result or an estimate. It downloads the
   model on first use (about 90 MB, cached afterwards) and then runs on the visitor's computer. It is a
   literature keyword heuristic, not a trained predictor: on a random sample of 60 mouse genes it recognised
   7 of 30 lethal genes and wrongly flagged 4 of 30 viable ones (see `VALIDATION.md`). When every gene of a
-  run has a measured result, the model is never downloaded.
+  run has a measured result or an estimate, the model is never downloaded.
 - **An NCBI API key is optional** (field on the analysis form). Without it the browser stays under
   NCBI's 3 requests/second limit; with it, 10/second.
 - **KEGG pathway counts** come from data files built by the workflow (`kegg-data/`), refreshed monthly.

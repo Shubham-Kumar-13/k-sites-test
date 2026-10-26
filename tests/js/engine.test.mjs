@@ -11,7 +11,7 @@ import {
 import { combineBpTerms, combineEvidence, queryGeneFromAllDatabases } from '../../webapp/static/js/engine/multiDb.js';
 import {
     DATA_INSUFFICIENT, DATA_OK, calculateEvidenceQuality, calculatePleiotropyScore, calculateSpecificityScore,
-    mapLimit, rankGenesBySpecificity, scoreGenePleiotropy, validateAcrossSpecies,
+    literatureScoreFromCount, mapLimit, rankGenesBySpecificity, scoreGenePleiotropy, validateAcrossSpecies,
 } from '../../webapp/static/js/engine/scorer.js';
 import { enumText, getSafetyRecommendation } from '../../webapp/static/js/engine/safety.js';
 import { comprehensiveCsv, geneSummaryCsv, htmlReport, safetyClass, safetyLabel } from '../../webapp/static/js/engine/report.js';
@@ -385,6 +385,29 @@ test('ranking puts scored genes first, by composite score, and unscored genes la
     assert.equal(ranked[2].data_status, DATA_INSUFFICIENT);
     assert.equal(ranked[2].passes_threshold, false);
     assert.equal(ranked[0].passes_threshold, true);
+});
+
+test('where the evidence files know a gene, conservation and literature are read from them and nothing is searched', async () => {
+    const urls = [];
+    const world = fakeWorld(WORLD);
+    const { http } = scripted((url) => { urls.push(new URL(url).host); return world(url); });
+    const ctx = { http, keggProvider: keggFor({}) };
+    const known = { NARROW: { conservation: 0.8, literature_count: 100 }, BROAD: { conservation: null, literature_count: null } };
+
+    const ranked = await rankGenesBySpecificity(ctx, [{ symbol: 'NARROW' }], '9606', {
+        targetGoTerm: 'GO:1', includeLiterature: true, includeCrossSpecies: true, factsLookup: async (symbol) => known[symbol],
+    });
+
+    assert.equal(ranked[0].conservation_score, 0.8);
+    assert.equal(ranked[0].pubmed_count, 100);
+    assert.ok(Math.abs(ranked[0].literature_score - Math.log10(100) / 3) < 1e-12);
+    assert.ok(!urls.includes('eutils.ncbi.nlm.nih.gov'));            // no PubMed search
+});
+
+test('the literature score scale', () => {
+    assert.deepEqual([0, 1, 1000, 50000].map(literatureScoreFromCount), [0, 0, 1, 1]);
+    assert.ok(Math.abs(literatureScoreFromCount(100) - 2 / 3) < 1e-12);
+    assert.ok(Math.abs(literatureScoreFromCount(10) - 1 / 3) < 1e-12);
 });
 
 test('ranking reports progress for every gene', async () => {
