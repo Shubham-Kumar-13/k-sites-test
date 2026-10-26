@@ -8,7 +8,8 @@ independent gold standards:
      rated SAFE, an estimate is never rated AVOID, and every AVOID rests on a measurement;
   2. human, cultured cells: at least 90% of the 684 core-essential genes (CEGv2) are rated AVOID and at least 95% of the 927
      non-essential genes (NEGv1) are not;
-  3. mouse, whole animal: at least 85% of the core-essential genes are rated AVOID or HIGH_CONCERN.
+  3. mouse, whole animal: at least 85% of the core-essential genes are rated AVOID or HIGH_CONCERN;
+  4. yeast: the duplicated ribosomal genes (RPL1A/B, RPL2A/B, ...) carry a paralog warning.
 
 Usage: python tools/check_evidence_data.py --data site/evidence-data [--report report.md]
 Exit status 1 when a check fails.
@@ -118,6 +119,15 @@ def main():
         present = [s for s in core if s.upper() in mouse]
         summarise("Mouse, whole animal, core-essential genes", present, "10090", "organism",
                   {"AVOID", "HIGH_CONCERN"}, CORE_FLAGGED_MOUSE, "rated AVOID or HIGH_CONCERN")
+
+    if "559292" in index["organisms"]:
+        # duplicated yeast genes: deleting one copy is survivable, so the verdict must say that the other copy covers for it
+        pairs = ["RPL1A", "RPL1B", "RPL2A", "RPL2B", "RPS4A", "RPS4B", "RPS18A", "RPS18B"]      # RPL9A/B is missing from the Alliance file, which is a known gap of the source
+        missing = [name for name in pairs if not (assess_gene(provider, "559292", name, "organism").get("paralogs") or {}).get("close")]
+        lines.append(f"- Yeast, duplicated ribosomal genes with a paralog warning: {len(pairs) - len(missing)}/{len(pairs)}"
+                     + (f" (missing: {', '.join(missing)})" if missing else ""))
+        if missing:
+            failures.append(f"yeast duplicated genes without a paralog warning: {', '.join(missing)}")
 
     lines += ["", "## Result", "", "FAILED: " + "; ".join(failures) if failures else "All checks passed."]
     report = "\n".join(lines)

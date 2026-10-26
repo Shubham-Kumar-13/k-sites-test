@@ -1365,6 +1365,13 @@
      "what": "paralogs: genes of the same species descended from the same ancestor gene"
     },
     {
+     "id": "alliance_paralogy",
+     "license": "CC0 1.0 for most data, CC BY 4.0 for some",
+     "name": "Alliance of Genome Resources (paralogy)",
+     "url": "https://www.alliancegenome.org/downloads",
+     "what": "paralogs of yeast, zebrafish, fly and worm genes, with their sequence identity"
+    },
+    {
      "id": "ncbi",
      "license": "no restrictions (NCBI data usage policy)",
      "name": "NCBI Gene (gene2pubmed)",

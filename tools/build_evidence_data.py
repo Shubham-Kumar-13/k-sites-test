@@ -90,6 +90,7 @@ def latest_in_listing(index_url, pattern, key=None):
     return index_url + max(names, key=lambda n: (key or str)(names[n]))
 
 
+ALLIANCE_PARALOGY = "https://download.alliancegenome.org/6.0.0/PARALOGY/"
 NCBI_GENE = "https://ftp.ncbi.nlm.nih.gov/gene/DATA/"
 NCBI_GENE_INFO = {
     "9606": "Mammalia/Homo_sapiens", "10090": "Mammalia/Mus_musculus", "10116": "Mammalia/Rattus_norvegicus",
@@ -147,6 +148,14 @@ SOURCES = {
         "what": "paralogs: genes of the same species descended from the same ancestor gene",
         "license": "no restrictions on use (Ensembl disclaimer)",
         "files": {},          # downloaded per chromosome by download_paralogs()
+    },
+    "alliance_paralogy": {
+        "name": "Alliance of Genome Resources (paralogy)", "url": "https://www.alliancegenome.org/downloads",
+        "what": "paralogs of yeast, zebrafish, fly and worm genes, with their sequence identity",
+        "license": "CC0 1.0 for most data, CC BY 4.0 for some", "optional": True,
+        "files": {f"alliance_paralogy_{name}.json.gz": f"{ALLIANCE_PARALOGY}{path}.json.gz" for name, path in {
+            "sgd": "SGD/1.0.2.3_PARALOGY_SGD_6", "zfin": "ZFIN/1.0.2.3_PARALOGY_ZFIN_6",
+            "fb": "FB/1.0.2.3_PARALOGY_FB_15", "wb": "WB/1.0.2.3_PARALOGY_WB_6"}.items()},
     },
     "ncbi": {
         "name": "NCBI Gene (gene2pubmed)", "url": "https://ftp.ncbi.nlm.nih.gov/gene/DATA/",
@@ -1340,6 +1349,7 @@ PARALOG_SPECIES = {
 OLD_ANCESTORS = {"Opisthokonta", "Bilateria", "Chordata", ""}
 MIN_PARALOG_IDENTITY = 30.0
 PARALOGS_PER_GENE = 3
+TRUSTED_IDENTITY = 80.0          # Alliance paralogy pairs this identical count whatever their confidence label
 
 
 def keep_paralog_row(fields):
@@ -1422,6 +1432,53 @@ def parse_paralogs(lines, allowed_genes=None, allowed_paralogs=None):
                    sorted(candidates.items(), key=lambda item: (-item[1], item[0]))[:PARALOGS_PER_GENE]]
             for gene, candidates in found.items()}
 
+
+
+def alliance_gene_names(orthology_lines, taxid, prefix):
+    """{Alliance gene id 'SGD:S000001441': symbol} for the genes of one species, read from the orthology table."""
+    names = {}
+    tax = f"NCBITaxon:{taxid}"
+    for line in orthology_lines:
+        fields = line.rstrip("\r\n").split("\t")
+        if len(fields) < 13 or line.startswith("#"):
+            continue
+        for gene_id, symbol, species in ((fields[0], fields[1], fields[2]), (fields[4], fields[5], fields[6])):
+            if species == tax and gene_id.startswith(prefix + ":"):
+                names[gene_id] = symbol
+    return names
+
+
+def parse_alliance_paralogy(handle, prefix, names):
+    """
+    {SYMBOL: [[PARALOG, identity %], ...]} from an Alliance paralogy file (JSON, rows gene1/gene2/identity/confidence).
+    ``names`` maps the Alliance gene ids to symbols; rows whose genes are unknown are skipped. Only rows of high or moderate
+    confidence (or at least TRUSTED_IDENTITY % identity) and at least MIN_PARALOG_IDENTITY % identity count; each gene keeps its PARALOGS_PER_GENE closest paralogs.
+    """
+    found = collections.defaultdict(dict)
+    for row in json.load(handle).get("data", []):
+        identity = row.get("identity") or 0
+        # the identity is measured on the sequences, so a nearly identical pair counts even when few prediction methods agree
+        if identity < MIN_PARALOG_IDENTITY or (row.get("confidence") not in ("high", "moderate") and identity < TRUSTED_IDENTITY):
+            continue
+        one = names.get(f"{prefix}:{str(row['gene1']).split(':', 1)[-1]}")
+        two = names.get(f"{prefix}:{str(row['gene2']).split(':', 1)[-1]}")
+        if not one or not two or one == two:
+            continue
+        for gene, other in ((one, two), (two, one)):
+            found[gene.upper()][other.upper()] = max(found[gene.upper()].get(other.upper(), 0), row["identity"])
+    return {gene: [[paralog, identity] for paralog, identity in
+                   sorted(candidates.items(), key=lambda item: (-item[1], item[0]))[:PARALOGS_PER_GENE]]
+            for gene, candidates in found.items()}
+
+
+def yeast_gene_names(lines):
+    """{'SGD:S000001441': standard name or systematic name} from the SGD phenotype table."""
+    names = {}
+    for line in lines:
+        fields = line.rstrip("\r\n").split("\t")
+        if len(fields) > 3 and fields[3].startswith("S0"):
+            names[f"SGD:{fields[3]}"] = fields[2] or fields[0]
+    return names
 
 
 # --------------------------------------------------------------------------------------------------
@@ -1794,6 +1851,33 @@ def build_model_organisms(files, taxids):
     return result
 
 
+ALLIANCE_PARALOGY_FILES = {"559292": ("SGD", "alliance_paralogy_sgd.json.gz"), "7955": ("ZFIN", "alliance_paralogy_zfin.json.gz"),
+                           "7227": ("FB", "alliance_paralogy_fb.json.gz"), "6239": ("WB", "alliance_paralogy_wb.json.gz")}
+
+
+def add_alliance_paralogs(genes, files, taxid, spec, orthology_path):
+    """Put the close paralogs on the records of ``genes`` ({SYMBOL: record}); False when the file was not downloaded."""
+    prefix, name = spec
+    if name not in files:
+        print(f"  WARNING: no paralogy file for taxon {taxid}; its genes carry no paralog warning in this build", flush=True)
+        return False
+    with open_text(orthology_path) as handle:
+        names = alliance_gene_names(handle, taxid, prefix)
+    if taxid == "559292":
+        with open_text(files["sgd_phenotype.tab"]) as handle:
+            names.update(yeast_gene_names(handle))
+    with gzip.open(files[name], "rt", encoding="utf-8") as handle:
+        paralogs = parse_alliance_paralogy(handle, prefix, names)
+    given = 0
+    for symbol, found in paralogs.items():
+        record = genes.get(symbol)
+        if record is not None:
+            record["p"] = found
+            given += 1
+    print(f"  {given} genes of taxon {taxid} with a close paralog", flush=True)
+    return given > 0
+
+
 def build_all(out, cache, refresh=False, depmap_path=DEPMAP_SUMMARY, organisms=("mouse", "human", "rat", "yeast", "distant"),
               paralogs=True):
     out, downloader = Path(out), Downloader(cache, refresh)
@@ -1814,7 +1898,8 @@ def build_all(out, cache, refresh=False, depmap_path=DEPMAP_SUMMARY, organisms=(
                 build_warnings.append(f"{name} could not be downloaded ({type(error).__name__}: {str(error)[:200]}); {source['name']} is left out")
     wanted = {frozenset(("9606", "10090")), frozenset(("10116", "10090"))}
     wanted |= {frozenset((taxid, "10090")) for taxid in DISTANT}
-    pairs = parse_orthology(open_text(files["alliance_orthology.tsv.gz"]), wanted=wanted)
+    orthology_path = files["alliance_orthology.tsv.gz"]
+    pairs = parse_orthology(open_text(orthology_path), wanted=wanted)
 
     mouse_records, by_id, info = build_mouse(files)
     paralog_files = {}
@@ -1873,12 +1958,18 @@ def build_all(out, cache, refresh=False, depmap_path=DEPMAP_SUMMARY, organisms=(
                     genes.setdefault(symbol, {}).update(record)       # a measurement of its own beside the mouse hint
                 aliases = own[taxid][1]
                 layers = ["knockout", "ortholog-knockout"]
+            if taxid in ALLIANCE_PARALOGY_FILES and add_alliance_paralogs(genes, files, taxid, ALLIANCE_PARALOGY_FILES[taxid], orthology_path):
+                layers.append("paralogs")
             organism_files[taxid] = {"genes": genes, "aliases": aliases}
             index_organisms[taxid] = {"name": name, "layers": layers, "distant": True}
     if "yeast" in organisms:
         with open_text(files["sgd_phenotype.tab"]) as handle:
-            organism_files["559292"] = {"genes": build_yeast(handle), "aliases": {}}
-        index_organisms["559292"] = {"name": "Saccharomyces cerevisiae S288C", "layers": ["knockout"]}
+            yeast = build_yeast(handle)
+        layers = ["knockout"]
+        if add_alliance_paralogs(yeast, files, "559292", ALLIANCE_PARALOGY_FILES["559292"], orthology_path):
+            layers.append("paralogs")
+        organism_files["559292"] = {"genes": yeast, "aliases": {}}
+        index_organisms["559292"] = {"name": "Saccharomyces cerevisiae S288C", "layers": layers}
 
     if "mouse" in organisms and "human" in organisms:
         model = add_lethality_estimates(human, human_aliases, mouse_records, mouse_paralogs, pairs)

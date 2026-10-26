@@ -6,6 +6,7 @@ lethal / subviable / viable call, and how the other layers (orthologs, DepMap, g
 import gzip
 import importlib.util
 import io
+import json
 import sys
 from pathlib import Path
 
@@ -704,6 +705,44 @@ class TestParalogs:
         assert found == {}
 
 
+class TestAlliancePralogy:
+    """Paralogs of yeast, zebrafish, fly and worm genes come from the Alliance paralogy files."""
+
+    ORTHOLOGY_LINES = [
+        "Gene1ID\tGene1Symbol\tGene1SpeciesTaxonID\tGene1SpeciesName\tGene2ID\tGene2Symbol\tGene2SpeciesTaxonID\tGene2SpeciesName"
+        "\tAlgorithms\tAlgorithmsMatch\tOutOfAlgorithms\tIsBestScore\tIsBestRevScore",
+        "SGD:S1\tRPL1A\tNCBITaxon:559292\tSaccharomyces\tHGNC:1\tRPL10A\tNCBITaxon:9606\tHomo\tA\t5\t9\tYes\tYes",
+        "SGD:S2\tRPL1B\tNCBITaxon:559292\tSaccharomyces\tHGNC:1\tRPL10A\tNCBITaxon:9606\tHomo\tA\t5\t9\tYes\tYes",
+        "ZFIN:Z1\tabc\tNCBITaxon:7955\tDanio\tHGNC:2\tABC\tNCBITaxon:9606\tHomo\tA\t5\t9\tYes\tYes",
+    ]
+
+    def parse(self, rows):
+        names = bed.alliance_gene_names(self.ORTHOLOGY_LINES, "559292", "SGD")
+        return bed.parse_alliance_paralogy(io.StringIO(json.dumps({"data": rows})), "SGD", names)
+
+    def test_gene_names_are_read_for_one_species_only(self):
+        assert bed.alliance_gene_names(self.ORTHOLOGY_LINES, "559292", "SGD") == {"SGD:S1": "RPL1A", "SGD:S2": "RPL1B"}
+
+    def test_a_pair_is_listed_on_both_genes_with_its_identity(self):
+        found = self.parse([{"gene1": "DRSC:S1", "gene2": "DRSC:S2", "identity": 100, "confidence": "high"}])
+
+        assert found == {"RPL1A": [["RPL1B", 100]], "RPL1B": [["RPL1A", 100]]}
+
+    def test_low_confidence_and_distant_pairs_and_unknown_genes_are_left_out(self):
+        found = self.parse([
+            {"gene1": "DRSC:S1", "gene2": "DRSC:S2", "identity": 25, "confidence": "high"},        # too different
+            {"gene1": "DRSC:S1", "gene2": "DRSC:S2", "identity": 70, "confidence": "low"},         # not trusted
+            {"gene1": "DRSC:S1", "gene2": "DRSC:S9", "identity": 90, "confidence": "high"},        # a gene we do not know
+        ])
+
+        assert found == {}
+
+    def test_a_nearly_identical_pair_counts_whatever_its_confidence_label(self):
+        found = self.parse([{"gene1": "DRSC:S1", "gene2": "DRSC:S2", "identity": 100, "confidence": "low"}])
+
+        assert found == {"RPL1A": [["RPL1B", 100]], "RPL1B": [["RPL1A", 100]]}
+
+
 class TestOtherSpecies:
     FLY = ("Gene1ID\tGene1Symbol\tGene1SpeciesTaxonID\tGene1SpeciesName\tGene2ID\tGene2Symbol\tGene2SpeciesTaxonID\tGene2SpeciesName\t"
            "Algorithms\tAlgorithmsMatch\tOutOfAlgorithms\tIsBestScore\tIsBestRevScore\n"
@@ -978,4 +1017,4 @@ class TestOwnMeasurementsBesideTheMouseHint:
     def test_the_community_databases_are_optional_and_the_licences_are_recorded(self):
         for key in ("zfin", "flybase", "wormbase"):
             assert bed.SOURCES[key]["optional"] and bed.SOURCES[key]["license"]
-        assert not any(s.get("optional") for key, s in bed.SOURCES.items() if key not in ("zfin", "flybase", "wormbase", "ncbi"))     # the NCBI literature counts are optional too
+        assert not any(s.get("optional") for key, s in bed.SOURCES.items() if key not in ("zfin", "flybase", "wormbase", "ncbi", "alliance_paralogy"))     # the NCBI literature counts are optional too
