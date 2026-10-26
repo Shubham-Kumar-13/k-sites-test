@@ -66,6 +66,7 @@ export class LocalBackend {
     constructor(deps) {
         this.d = deps;
         this.running = new Set();
+        this.controllers = new Map();       // job id -> AbortController of the job running in this tab
         this.lastWrite = {};
         this._organisms = null;
     }
@@ -115,6 +116,9 @@ export class LocalBackend {
             if (route === '/api/analyze/start' && method === 'POST') return await this.start(body);
 
             if (route === '/api/jobs') return jsonResponse({ jobs: await this.listJobs() });
+
+            const cancelMatch = /^\/api\/jobs\/([^/]+)\/cancel$/.exec(route);
+            if (cancelMatch && method === 'POST') return await this.cancel(cancelMatch[1]);
 
             const match = /^\/api\/jobs\/([^/]+)\/(status|results|download)(?:\/([^/]+))?$/.exec(route);
             if (match) {
@@ -278,6 +282,17 @@ export class LocalBackend {
         });
     }
 
+    /** Stops a job for good. A cancelled job is marked failed, because a pending or running job resumes by itself when its page is opened. */
+    async cancel(jobId) {
+        const job = await this.d.store.getJob(jobId);
+        if (!job) return jsonResponse({ error: 'Job not found' }, 404);
+        if (job.status === 'completed') return jsonResponse({ error: 'The job has already finished' }, 409);
+        const controller = this.controllers.get(jobId);
+        if (controller) controller.abort();
+        await this._update(job, { status: 'failed', current_step: 'Cancelled', error_message: 'Cancelled by you.' }, true);
+        return jsonResponse(this._toDict(job));
+    }
+
     async status(jobId) {
         const job = await this.d.store.getJob(jobId);
         if (!job) return jsonResponse({ error: 'Job not found' }, 404);
@@ -354,6 +369,9 @@ export class LocalBackend {
         const job = await this.d.store.getJob(jobId);
         if (!job || job.status === 'completed' || job.status === 'failed') return;
 
+        const controller = new AbortController();
+        this.controllers.set(jobId, controller);
+        this.d.http.signal = controller.signal;
         try {
             await this._update(job, { status: 'running', current_step: 'Resolving organism', progress_percent: 5, error_message: null }, true);
 
@@ -388,7 +406,7 @@ export class LocalBackend {
             const ctx = {
                 http: this.d.http, keggProvider: this.d.keggProvider, ncbiApiKey: apiKey,
                 ncbiEmail: job.user_email || '', evidenceProvider, evidenceExpected: !!this.d.evidenceProvider,
-                getPhenotypePredictor: predictorLoader,
+                getPhenotypePredictor: predictorLoader, signal: controller.signal,
             };
             const onProgress = (stage, done, total) => {
                 const [base, span] = PROGRESS_RANGES[stage] || [30, 0];
@@ -429,10 +447,13 @@ export class LocalBackend {
         } catch (error) {
             const cancelled = error && error.name === 'AbortError';
             await this._update(job, {
-                status: cancelled ? 'pending' : 'failed',
+                status: 'failed',
                 current_step: cancelled ? 'Cancelled' : 'Failed',
-                error_message: cancelled ? null : String(error && error.message ? error.message : error),
+                error_message: cancelled ? 'Cancelled by you.' : String(error && error.message ? error.message : error),
             }, true);
+        } finally {
+            this.controllers.delete(jobId);
+            if (this.d.http.signal === controller.signal) this.d.http.signal = null;
         }
     }
 }

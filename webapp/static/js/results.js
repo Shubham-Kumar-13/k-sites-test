@@ -21,6 +21,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('jobId').dataset.jobId = jobId;
     fillJobFields({ id: jobId });
+    const cancelButton = document.getElementById('cancelJobButton');
+    if (cancelButton) cancelButton.addEventListener('click', () => cancelJob(jobId));
 
     // Check the job right away, then keep polling while it runs
     checkJobStatus(jobId).then(() => {
@@ -71,6 +73,16 @@ function stopStatusPolling() {
         clearInterval(statusCheckInterval);
         statusCheckInterval = null;
     }
+}
+
+async function cancelJob(jobId) {
+    if (!confirm('Stop this analysis? It cannot be resumed; you would start a new one.')) return;
+    try {
+        await ksFetch(`/api/jobs/${jobId}/cancel`, { method: 'POST' });
+    } catch (error) {
+        console.error('Error cancelling the job:', error);
+    }
+    window.location.reload();
 }
 
 async function checkJobStatus(jobId) {

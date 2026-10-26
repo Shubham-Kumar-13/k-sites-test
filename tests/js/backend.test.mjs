@@ -360,6 +360,35 @@ test('genes beyond the report size and genes above the cutoff are listed as not 
     assert.equal(strict.statistics.genes_above_pleiotropy_cutoff, cut.length);
 });
 
+test('a running job can be cancelled for good, and a cancelled job is not resumed when its page is opened again', async () => {
+    let started = null;
+    const predictions = [];
+    const slowPredictor = async () => ({ predict: async (symbol) => { predictions.push(symbol); started?.(); await new Promise((r) => setTimeout(r, 30)); return null; } });
+    const { backend } = makeBackend({ createPredictor: slowPredictor });
+    const job = (await post(backend, '/api/analyze/start', { ...JOB, predict_phenotypes: true })).body;
+    const firstPrediction = new Promise((resolve) => { started = resolve; });
+
+    call(backend, `/api/jobs/${job.job_id}/status`);          // opening the page starts the job
+    await firstPrediction;
+    const cancelled = await call(backend, `/api/jobs/${job.job_id}/cancel`, { method: 'POST' });
+
+    assert.equal(cancelled.status, 200);
+    const final = await waitFor(async () => {
+        const status = (await call(backend, `/api/jobs/${job.job_id}/status`)).body;
+        return backend.running.has(job.job_id) ? null : status;
+    });
+    assert.equal(final.status, 'failed');
+    assert.equal(final.error_message, 'Cancelled by you.');
+    assert.ok(predictions.length < SIX.size, 'the rating stopped before every gene was predicted');
+
+    // opening the page again does not start it again
+    const before = predictions.length;
+    await call(backend, `/api/jobs/${job.job_id}/status`);
+    await new Promise((r) => setTimeout(r, 100));
+    assert.equal(predictions.length, before);
+    assert.equal((await call(backend, `/api/jobs/${job.job_id}/status`)).body.status, 'failed');
+});
+
 test('the phenotype model is only loaded for genes without a measured result', async () => {
     let loaded = 0;
     const predictions = [];

@@ -161,6 +161,11 @@ export async function runKSitesPipeline(ctx, opts) {
         const { geneInfo, evidence, crossSpecies } = lookup;
         const symbol = geneInfo.symbol || 'unknown';
         rated += 1;
+        if (ctx.signal && ctx.signal.aborted) {
+            const stopped = new Error('Cancelled');
+            stopped.name = 'AbortError';
+            throw stopped;
+        }
         if (onProgress) onProgress('Rating genes', rated, lookups.length);
         if (lookup.failed) continue;
 
