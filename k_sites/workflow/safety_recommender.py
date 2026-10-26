@@ -473,12 +473,26 @@ class SafetyRecommender:
                 "mitigation": ["Use a conditional or inducible allele instead of a complete knockout"],
                 "considerations": [], "confidence": 0.6}
 
+    @staticmethod
+    def _unexpressed_and_unconstrained(evidence: Dict) -> bool:
+        expression, constraint = evidence.get("expression"), evidence.get("constraint")
+        return bool(expression and expression["label"] == "barely expressed"
+                    and constraint and constraint["label"] == "not constrained"
+                    and evidence["organism"]["call"] not in ("LETHAL", "SUBVIABLE"))
+
     def _cells_verdict(self, evidence: Dict, pleiotropy_score: float) -> Dict[str, Any]:
         cells, organism = evidence["cells"], evidence["organism"]
         call, percent = cells["call"], cells["percent"]
         justification = [cells["text"]]
         concerns, mitigation, considerations = [], [], []
-        if call == "ESSENTIAL":
+        if call == "ESSENTIAL" and self._unexpressed_and_unconstrained(evidence):
+            # a gene that no tissue expresses and that people lose without harm is very unlikely to keep cells alive; the screens
+            # most likely cut several near-identical copies at once (olfactory receptor clusters), and that damage looks like essentiality
+            level, primary, alternatives = SafetyLevel.MODERATE_CONCERN, RecommendationType.VALIDATED_KO, [RecommendationType.CRISPRI]
+            concerns.append("DepMap rates the gene essential, but it is not expressed in any tissue and loss-of-function variants are "
+                            "tolerated in people: the result is probably an artefact of guides that cut several similar gene copies")
+            mitigation.append("Use a guide that is specific to this gene and check that the cells survive before relying on the result")
+        elif call == "ESSENTIAL":
             level = SafetyLevel.AVOID
             primary = RecommendationType.CRISPRI
             alternatives = [RecommendationType.TEMPORAL_CONTROL, RecommendationType.CONDITIONAL_KO, RecommendationType.ALTERNATIVE_MODEL]

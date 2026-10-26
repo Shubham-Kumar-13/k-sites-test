@@ -318,7 +318,19 @@ function cellsVerdict(evidence, pleiotropy) {
     let level;
     let primary;
     let alternatives;
-    if (call === 'ESSENTIAL') {
+    const { expression, constraint } = evidence;
+    const unexpressed = !!(expression && expression.label === 'barely expressed' && constraint && constraint.label === 'not constrained'
+        && organism.call !== 'LETHAL' && organism.call !== 'SUBVIABLE');
+    if (call === 'ESSENTIAL' && unexpressed) {
+        // a gene that no tissue expresses and that people lose without harm is very unlikely to keep cells alive; the screens
+        // most likely cut several near-identical copies at once (olfactory receptor clusters), and that damage looks like essentiality
+        level = SafetyLevel.MODERATE_CONCERN;
+        primary = R.VALIDATED_KO;
+        alternatives = [R.CRISPRI];
+        concerns.push('DepMap rates the gene essential, but it is not expressed in any tissue and loss-of-function variants are '
+            + 'tolerated in people: the result is probably an artefact of guides that cut several similar gene copies');
+        mitigation.push('Use a guide that is specific to this gene and check that the cells survive before relying on the result');
+    } else if (call === 'ESSENTIAL') {
         level = SafetyLevel.AVOID;
         primary = R.CRISPRI;
         alternatives = [R.TEMPORAL_CONTROL, R.CONDITIONAL_KO, R.ALTERNATIVE_MODEL];

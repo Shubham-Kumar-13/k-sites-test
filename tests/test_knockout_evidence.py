@@ -295,6 +295,25 @@ class TestLethalMouseOrthologWithoutACellLineResult(TestCellsWithoutACellLineRes
         assert self.verdict_for({"o": ["Rps26", "1:1"], "m": {"v": "L", "n": [2, 0, 1], "s": "E", "x": 1}}).safety_level.value == "CAUTION"
 
 
+class TestEssentialButNeverExpressed(TestCellsWithoutACellLineResult):
+    """A DepMap 'essential' call for a gene no tissue expresses and people lose without harm is probably a multi-copy cutting artefact."""
+
+    def verdict_for(self, record, symbol="OR7A10"):
+        index = {"format": 1, "built": "2026-01-01", "stages": {}, "systems": [],
+                 "organisms": {"9606": {"name": "Homo sapiens", "file": "9606.json", "layers": []}}, "sources": []}
+        provider = EvidenceProvider(DictSource({"index.json": index, "9606.json": {"genes": {symbol: record}, "aliases": {}}}))
+        return get_safety_recommendation(symbol, 2.0, knockout_evidence=assess_gene(provider, "9606", symbol, "cells"))
+
+    def test_unexpressed_unconstrained_essential_gene_gets_moderate_concern(self):
+        recommendation = self.verdict_for({"c": ["C", 66.8, 1059], "l": 1.84, "t": [None, 0, []]})
+
+        assert recommendation.safety_level.value == "MODERATE_CONCERN"
+        assert any("artefact" in c for c in recommendation.concerns)
+
+    def test_an_expressed_or_constrained_essential_gene_stays_at_avoid(self):
+        assert self.verdict_for({"c": ["C", 99.0, 1059], "l": 0.1, "t": [None, 0, []]}).safety_level.value == "AVOID"
+
+
 class TestLethalityEstimate:
     """Genes without a knockout result get an estimate from their human ortholog; it is never a measurement."""
 

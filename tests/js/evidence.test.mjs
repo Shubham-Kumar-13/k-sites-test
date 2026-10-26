@@ -232,6 +232,22 @@ test('a lethal mouse ortholog without a cell-line result gives MODERATE_CONCERN;
     assert.equal((await level({ v: 'L', n: [2, 0, 1], s: 'E', x: 1 })).safety_level, 'CAUTION');
 });
 
+test('an essential call for a gene no tissue expresses and people lose without harm is MODERATE_CONCERN, not AVOID', async () => {
+    const level = async (record) => {
+        const files = {
+            'index.json': { format: 1, built: '2026-01-01', stages: {}, systems: [], organisms: { 9606: { name: 'Homo sapiens', file: '9606.json', layers: [] } }, sources: [] },
+            '9606.json': { genes: { OR7A10: record }, aliases: {} },
+        };
+        const evidence = await assessGene(new EvidenceProvider(async (name) => files[name]), '9606', 'OR7A10', 'cells');
+        return getSafetyRecommendation({ symbol: 'OR7A10', pleiotropyScore: 2.0, knockoutEvidence: evidence });
+    };
+
+    const artefact = await level({ c: ['C', 66.8, 1059], l: 1.84, t: [null, 0, []] });
+    assert.equal(artefact.safety_level, 'MODERATE_CONCERN');
+    assert.ok(artefact.concerns.some((c) => c.includes('artefact')));
+    assert.equal((await level({ c: ['C', 99.0, 1059], l: 0.1, t: [null, 0, []] })).safety_level, 'AVOID');
+});
+
 test('conservation counts the model species that carry the gene; literature is the number of linked articles', async () => {
     const files = {
         'index.json': { format: 1, built: '2026-01-01', organisms: { 9606: { name: 'Homo sapiens', file: '9606.json', layers: [] } }, sources: [] },
