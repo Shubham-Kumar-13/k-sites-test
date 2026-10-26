@@ -316,8 +316,16 @@
                                     </a>
                                 </label>
                                 <div class="form-text">
-                                    Guesses the knockout phenotype from abstracts, only for genes without a measured
-                                    knockout result (adds ~1 min per such gene; the first 25 such genes of a run only)
+                                    Guesses the knockout phenotype from PubMed abstracts, only for genes that have neither a measured
+                                    knockout result nor an estimate. It takes about 1 minute per such gene and is run for the first
+                                    25 of them only. A guess is weak evidence: it never makes a verdict better than CAUTION.
+                                    <div class="mt-2">
+                                        <strong>Turn it on</strong> when the list is short (a few dozen genes), the organism is well studied
+                                        and you can wait, and you want at least a literature hint for the genes that have no data.<br>
+                                        <strong>Leave it off</strong> (the default) for human and mouse, where measured results and estimates
+                                        already cover most genes; for zebrafish, Xenopus, fly, worm, rat or any organism where thousands of
+                                        genes have no data; for lists of more than about 100 genes; and whenever you want the result quickly.
+                                    </div>
                                 </div>
                             </div>
                         </div>
