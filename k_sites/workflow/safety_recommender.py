@@ -521,10 +521,15 @@ class SafetyRecommender:
             concerns.append("The gene is needed for the survival of the organism, so it may also be needed in cells")
             mitigation.append("Check the gene in DepMap or test a knockdown first")
         else:
-            level, primary, alternatives = SafetyLevel.SAFE, RecommendationType.STANDARD_KO, []
+            # a viable animal does not show that cultured cells can do without the gene (ribosomal and replication genes
+            # are essential in cells whatever the mouse does), so without a cell-line result this is never better than CAUTION
+            level, primary, alternatives = SafetyLevel.CAUTION, RecommendationType.VALIDATED_KO, [RecommendationType.STANDARD_KO]
+            concerns.append("The knockout organism is viable, but cells were not screened for this gene: check it in DepMap "
+                            "or test a knockdown before relying on a knockout")
+            if organism["basis"] == "ortholog" and organism["ortholog"]["relation"] != "1:1":
+                concerns.append("The mouse ortholog is not a one-to-one match, so its result may describe a related gene")
             if pleiotropy_score > 5:
-                level, primary, alternatives = SafetyLevel.CAUTION, RecommendationType.VALIDATED_KO, [RecommendationType.STANDARD_KO]
-                concerns.append("The knockout organism is viable, but the gene has many annotated roles, so expect broad phenotypes")
+                concerns.append("The gene also has many annotated roles, so expect broad phenotypes")
             paralog = self._paralog_concern(evidence)
             if paralog:
                 concerns.append(paralog)

@@ -200,6 +200,20 @@ test('no estimate is ever rated better than CAUTION, and the bands follow the pr
     assert.deepEqual([...seen].sort(), ['likely', 'possible', 'unlikely']);
 });
 
+test('without a cell-line result a viable mouse ortholog is never enough for SAFE in cells', async () => {
+    const files = {
+        'index.json': { format: 1, built: '2026-01-01', stages: {}, systems: [], organisms: { 9606: { name: 'Homo sapiens', file: '9606.json', layers: [] } }, sources: [] },
+        '9606.json': { genes: { RPS26: { o: ['Rps26', 'n:1'], m: { v: 'V', n: [0, 0, 2] } } }, aliases: {} },
+    };
+    const evidence = await assessGene(new EvidenceProvider(async (name) => files[name]), '9606', 'RPS26', 'cells');
+    const recommendation = getSafetyRecommendation({ symbol: 'RPS26', pleiotropyScore: 2.0, knockoutEvidence: evidence });
+
+    assert.equal(evidence.cells.call, 'UNKNOWN');
+    assert.equal(recommendation.safety_level, 'CAUTION');
+    assert.ok(recommendation.concerns.some((c) => c.includes('cells were not screened')));
+    assert.ok(recommendation.concerns.some((c) => c.includes('not a one-to-one match')));
+});
+
 test('conservation counts the model species that carry the gene; literature is the number of linked articles', async () => {
     const files = {
         'index.json': { format: 1, built: '2026-01-01', organisms: { 9606: { name: 'Homo sapiens', file: '9606.json', layers: [] } }, sources: [] },

@@ -258,6 +258,26 @@ class TestVerdicts:
 # paralogs, tissue-restricted expression and distant relatives, with a small hand-made data set
 
 
+class TestCellsWithoutACellLineResult:
+    """No DepMap result: a viable mouse ortholog does not show that cells can do without the gene."""
+
+    def provider(self, record):
+        index = {"format": 1, "built": "2026-01-01", "stages": {}, "systems": [],
+                 "organisms": {"9606": {"name": "Homo sapiens", "file": "9606.json", "layers": []}}, "sources": []}
+        return EvidenceProvider(DictSource({"index.json": index, "9606.json": {"genes": {"RPS26": record}, "aliases": {}}}))
+
+    def test_a_viable_mouse_ortholog_is_never_enough_for_safe_in_cells(self):
+        record = {"o": ["Rps26", "n:1"], "m": {"v": "V", "n": [0, 0, 2]}}
+        evidence = assess_gene(self.provider(record), "9606", "RPS26", "cells")
+
+        recommendation = get_safety_recommendation("RPS26", 2.0, knockout_evidence=evidence)
+
+        assert evidence["cells"]["call"] == "UNKNOWN" and evidence["organism"]["call"] == "VIABLE"
+        assert recommendation.safety_level.value == "CAUTION"
+        assert any("cells were not screened" in c for c in recommendation.concerns)
+        assert any("not a one-to-one match" in c for c in recommendation.concerns)
+
+
 class TestLethalityEstimate:
     """Genes without a knockout result get an estimate from their human ortholog; it is never a measurement."""
 

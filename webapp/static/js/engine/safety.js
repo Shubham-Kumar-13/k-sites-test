@@ -368,11 +368,15 @@ function cellsVerdictFromOrganism(evidence, pleiotropy) {
         concerns.push('The gene is needed for the survival of the organism, so it may also be needed in cells');
         mitigation.push('Check the gene in DepMap or test a knockdown first');
     } else {
-        level = SafetyLevel.SAFE; primary = R.STANDARD_KO; alternatives = [];
-        if (pleiotropy > 5) {
-            level = SafetyLevel.CAUTION; primary = R.VALIDATED_KO; alternatives = [R.STANDARD_KO];
-            concerns.push('The knockout organism is viable, but the gene has many annotated roles, so expect broad phenotypes');
+        // a viable animal does not show that cultured cells can do without the gene (ribosomal and replication genes
+        // are essential in cells whatever the mouse does), so without a cell-line result this is never better than CAUTION
+        level = SafetyLevel.CAUTION; primary = R.VALIDATED_KO; alternatives = [R.STANDARD_KO];
+        concerns.push('The knockout organism is viable, but cells were not screened for this gene: check it in DepMap '
+            + 'or test a knockdown before relying on a knockout');
+        if (organism.basis === 'ortholog' && organism.ortholog.relation !== '1:1') {
+            concerns.push('The mouse ortholog is not a one-to-one match, so its result may describe a related gene');
         }
+        if (pleiotropy > 5) concerns.push('The gene also has many annotated roles, so expect broad phenotypes');
         const paralog = paralogConcern(evidence);
         if (paralog) concerns.push(paralog);
     }
