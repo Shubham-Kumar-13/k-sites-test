@@ -141,6 +141,10 @@ def run_k_sites_pipeline(
         warnings = []
         if annotation_coverage.get("message"):
             warnings.append(annotation_coverage["message"])
+        if annotation_coverage.get("unnamed_records"):
+            warnings.append(
+                f"{annotation_coverage['unnamed_records']} protein records without a gene name (unreviewed UniProt entries "
+                "such as A8K1L8) were left out; they are not genes and cannot be scored.")
         if evidence_expected and provider is None:
             warnings.append(
                 "Measured knockout data could not be loaded, so every verdict rests on annotations and predictions "

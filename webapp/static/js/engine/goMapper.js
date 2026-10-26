@@ -8,7 +8,7 @@ import { EVIDENCE_PRIORITY, classifyEvidence, isNotAnnotation } from './evidence
 export const QUICKGO_URL = 'https://www.ebi.ac.uk/QuickGO/services/annotation/search';
 export const UNIPROT_URL = 'https://rest.uniprot.org/uniprotkb/search';
 export const QUICKGO_PAGE_SIZE = 200;           // QuickGO rejects larger pages with HTTP 400
-export const DEFAULT_MAX_ANNOTATIONS = 2000;    // safety limit; the user is warned when it stops the read
+export const DEFAULT_MAX_ANNOTATIONS = 6000;    // safety limit; the user is warned when it stops the read
 
 export class GoTermNotFoundError extends Error {
     constructor(message) { super(message); this.name = 'GoTermNotFoundError'; }
@@ -121,6 +121,7 @@ export function processAnnotations(allResults, evidenceFilter) {
         const symbol = result.symbol || result.geneProductSymbol || '';
         const productId = result.geneProductId || '';
         if (!symbol || !productId) continue;
+        if (isUnnamedRecord(symbol, productId)) continue;      // an unreviewed protein record without a gene name: it cannot be scored
 
         const key = symbol.toUpperCase();
         if (!accessions.has(key)) accessions.set(key, []);
@@ -150,6 +151,22 @@ export function processAnnotations(allResults, evidenceFilter) {
         gene.uniprot_accessions = accessions.get(key);
     }
     return [...genes.values()];
+}
+
+/** An unreviewed UniProt entry without a gene name: QuickGO then uses the accession (A8K1L8) as the symbol. */
+export function isUnnamedRecord(symbol, productId) {
+    const accession = String(productId || '').split(':').pop().split('-')[0];
+    return !!symbol && !!accession && String(symbol).toUpperCase() === accession.toUpperCase();
+}
+
+/** How many distinct protein records without a gene name the annotations contain (they are not genes and are left out). */
+export function countUnnamedRecords(results) {
+    const names = new Set();
+    for (const r of results) {
+        const symbol = r.symbol || r.geneProductSymbol || '';
+        if (isUnnamedRecord(symbol, r.geneProductId || '')) names.add(symbol);
+    }
+    return names.size;
 }
 
 /**
@@ -191,6 +208,7 @@ export async function getGenesForGoTermWithCoverage(http, goTerm, taxid, evidenc
     }
 
     const coverage = coverageInfo(first.total, all.length, maxAnnotations);
+    coverage.unnamed_records = countUnnamedRecords(all);
     const genes = processAnnotations(all, evidenceFilter);
 
     if (genes.length === 0 && evidenceFilter === 'experimental') {

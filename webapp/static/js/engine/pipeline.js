@@ -53,6 +53,10 @@ export async function runKSitesPipeline(ctx, opts) {
     const genes = geneLimit ? allGenes.slice(0, geneLimit) : allGenes;
     const warnings = [];
     if (coverage.message) warnings.push(coverage.message);
+    if (coverage.unnamed_records) {
+        warnings.push(`${coverage.unnamed_records} protein records without a gene name (unreviewed UniProt entries such as A8K1L8) `
+            + 'were left out; they are not genes and cannot be scored.');
+    }
     let organismCovered = false;
     if (provider) {
         try {

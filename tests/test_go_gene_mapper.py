@@ -19,6 +19,27 @@ from k_sites.data_retrieval.go_gene_mapper import (
 )
 
 
+class TestUnnamedProteinRecords:
+    """QuickGO uses the accession as the symbol of an unreviewed protein record that has no gene name; it is not a gene."""
+
+    RESULTS = [
+        {"symbol": "A8K1L8", "geneProductId": "UniProtKB:A8K1L8", "goEvidence": "IEA", "qualifier": "involved_in"},
+        {"symbol": "A8K1L8", "geneProductId": "UniProtKB:A8K1L8", "goEvidence": "IBA", "qualifier": "involved_in"},
+        {"symbol": "B3GAT1", "geneProductId": "UniProtKB:O43505", "goEvidence": "IDA", "qualifier": "involved_in"},   # looks like an accession, is a gene
+        {"symbol": "TRA2A", "geneProductId": "UniProtKB:Q13595-2", "goEvidence": "IDA", "qualifier": "involved_in"},
+        {"symbol": "Q9Y2X3", "geneProductId": "UniProtKB:Q9Y2X3-2", "goEvidence": "IEA", "qualifier": "involved_in"},   # an isoform of an unnamed record
+    ]
+
+    def test_unnamed_records_are_left_out_and_counted(self):
+        genes = go_gene_mapper._process_annotations(self.RESULTS, "all")
+
+        assert sorted(g["symbol"] for g in genes) == ["B3GAT1", "TRA2A"]
+        assert go_gene_mapper.count_unnamed_records(self.RESULTS) == 2
+
+    def test_the_read_limit_covers_a_large_term(self):
+        assert go_gene_mapper.DEFAULT_MAX_ANNOTATIONS >= 6000
+
+
 def annotation(symbol, product_id, evidence, reference="PMID:1", qualifier="involved_in"):
     """Build a QuickGO annotation record in the shape the mapper reads."""
     return {

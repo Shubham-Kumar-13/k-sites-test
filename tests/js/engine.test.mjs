@@ -7,6 +7,7 @@ import { HttpClient, MemoryCache } from '../../webapp/static/js/engine/http.js';
 import { classifyEvidence, isNotAnnotation, normalizeCode } from '../../webapp/static/js/engine/evidence.js';
 import {
     coverageInfo, getGenesForGoTermWithCoverage, pickName, processAnnotations, GoTermNotFoundError, GeneRetrievalError,
+    countUnnamedRecords, DEFAULT_MAX_ANNOTATIONS,
 } from '../../webapp/static/js/engine/goMapper.js';
 import { combineBpTerms, combineEvidence, queryGeneFromAllDatabases } from '../../webapp/static/js/engine/multiDb.js';
 import {
@@ -408,6 +409,20 @@ test('the literature score scale', () => {
     assert.deepEqual([0, 1, 1000, 50000].map(literatureScoreFromCount), [0, 0, 1, 1]);
     assert.ok(Math.abs(literatureScoreFromCount(100) - 2 / 3) < 1e-12);
     assert.ok(Math.abs(literatureScoreFromCount(10) - 1 / 3) < 1e-12);
+});
+
+test('protein records without a gene name are left out and counted, genes that look like accessions are kept', () => {
+    const results = [
+        { symbol: 'A8K1L8', geneProductId: 'UniProtKB:A8K1L8', goEvidence: 'IEA', qualifier: 'involved_in' },
+        { symbol: 'A8K1L8', geneProductId: 'UniProtKB:A8K1L8', goEvidence: 'IBA', qualifier: 'involved_in' },
+        { symbol: 'B3GAT1', geneProductId: 'UniProtKB:O43505', goEvidence: 'IDA', qualifier: 'involved_in' },
+        { symbol: 'TRA2A', geneProductId: 'UniProtKB:Q13595-2', goEvidence: 'IDA', qualifier: 'involved_in' },
+        { symbol: 'Q9Y2X3', geneProductId: 'UniProtKB:Q9Y2X3-2', goEvidence: 'IEA', qualifier: 'involved_in' },
+    ];
+
+    assert.deepEqual(processAnnotations(results, 'all').map((g) => g.symbol).sort(), ['B3GAT1', 'TRA2A']);
+    assert.equal(countUnnamedRecords(results), 2);
+    assert.ok(DEFAULT_MAX_ANNOTATIONS >= 6000);
 });
 
 test('ranking reports progress for every gene', async () => {

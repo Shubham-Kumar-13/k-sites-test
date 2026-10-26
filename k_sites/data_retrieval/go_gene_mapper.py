@@ -33,7 +33,7 @@ QUICKGO_PAGE_SIZE = 200
 
 # Safety limit on annotations read for one GO term (10 pages of 200). Very large GO terms
 # are cut off here and the user is warned how much was read.
-DEFAULT_MAX_ANNOTATIONS = 2000
+DEFAULT_MAX_ANNOTATIONS = 6000
 
 # Bump when the cached gene lists change shape, so old cache files are ignored
 CACHE_VERSION = 2
@@ -294,6 +294,7 @@ def get_genes_for_go_term_with_coverage(
                         progress_callback("Reading GO annotations", pages_done, total_pages)
 
         coverage = _coverage_info(total_hits, len(all_results), max_annotations)
+        coverage["unnamed_records"] = count_unnamed_records(all_results)
         logger.info(f"Fetched {len(all_results)} of {total_hits} annotations for {go_term}")
         if coverage["message"]:
             logger.warning(coverage["message"])
@@ -352,6 +353,17 @@ def _pick_name(names: List[str], fallback: str = "") -> str:
     return names[0] if names else fallback
 
 
+def _is_unnamed_record(symbol: str, product_id: str) -> bool:
+    """An unreviewed UniProt entry without a gene name: QuickGO then uses the accession (A8K1L8) as the symbol."""
+    accession = (product_id or "").split(":", 1)[-1].split("-", 1)[0]
+    return bool(symbol) and bool(accession) and symbol.upper() == accession.upper()
+
+
+def count_unnamed_records(all_results: List[Dict]) -> int:
+    """How many distinct protein records without a gene name the annotations contain (they are not genes and are left out)."""
+    return len({r.get("symbol", "") for r in all_results if _is_unnamed_record(r.get("symbol", ""), r.get("geneProductId", ""))})
+
+
 def _process_annotations(all_results: List[Dict], evidence_filter: str) -> List[Dict[str, str]]:
     """
     Process QuickGO annotations and extract gene information with evidence filtering.
@@ -398,6 +410,8 @@ def _process_annotations(all_results: List[Dict], evidence_filter: str) -> List[
 
         if not gene_symbol or not gene_product_id:
             continue
+        if _is_unnamed_record(gene_symbol, gene_product_id):
+            continue                       # an unreviewed protein record without a gene name: it cannot be scored
 
         key = gene_symbol.upper()
         if gene_product_id not in accessions[key]:
