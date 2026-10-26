@@ -386,7 +386,7 @@ class TestOrthologs:
         human = bed.orthologs_to_mouse(pairs, "9606")
 
         assert human["HGNC:1"] == ("MGI:10", "Tdg", "1:1", "TDG")
-        assert human["HGNC:2"][2] == "n:1" and human["HGNC:3"][2] == "n:1"      # two human genes share one mouse gene
+        assert human["HGNC:2"][2] == "1:1" and human["HGNC:3"][2] == "n:1"      # AAB is only a weaker match of the mouse gene AAA owns
         assert human["HGNC:4"] == ("MGI:30", "Ccc1", "best", "CCC")             # several candidates, one clear best pair
         assert "HGNC:5" not in human                                            # several candidates, no best pair
         assert bed.orthologs_to_mouse(pairs, "10116")["RGD:10"][0] == "MGI:10"

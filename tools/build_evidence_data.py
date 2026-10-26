@@ -723,7 +723,7 @@ def orthologs_to_mouse(pairs, tax):
     relation: '1:1', 'n:1' (several genes share one mouse ortholog) or 'best' (several candidates, one clear best pair).
     """
     candidates = collections.defaultdict(list)
-    reverse = collections.defaultdict(set)
+    partners = collections.defaultdict(set)      # per mouse gene: the genes of `tax` that are its best match both ways
     symbols = {}
     for p in pairs:
         if p["a_tax"] == tax and p["b_tax"] == "10090":
@@ -735,14 +735,15 @@ def orthologs_to_mouse(pairs, tax):
         else:
             continue
         candidates[gene].append((mouse, mouse_sym, best))
-        reverse[mouse].add(gene)
+        if best:
+            partners[mouse].add(gene)      # a pseudogene or retrocopy that is not the best match does not make the real gene "n:1"
         symbols[gene] = gene_sym
     result = {}
     for gene, options in candidates.items():
         unique = {m: (s, b) for m, s, b in options}
         if len(unique) == 1:
             mouse, (mouse_sym, _) = next(iter(unique.items()))
-            result[gene] = (mouse, mouse_sym, "1:1" if len(reverse[mouse]) == 1 else "n:1", symbols[gene])
+            result[gene] = (mouse, mouse_sym, "1:1" if partners[mouse] | {gene} == {gene} else "n:1", symbols[gene])
         else:
             best = [(m, s) for m, (s, b) in unique.items() if b]
             if len(best) == 1:
@@ -1574,13 +1575,13 @@ def train_lethality_model(human):
 def add_lethality_estimates(human, human_aliases, mouse_records, mouse_paralogs, pairs):
     """Give the genes without a mouse knockout result an estimate: record["pl"] = [probability, the other gene].
     On a human gene "the other gene" is its mouse ortholog; on a mouse gene (a new stub record) it is the human ortholog.
-    Only one-to-one orthologs get one. Returns the model, or None when there are too few genes to fit it."""
+    Only one-to-one orthologs (or a clear best pair) get one. Returns the model, or None when there are too few genes to fit it."""
     model = train_lethality_model(human)
     if model is None:
         return None
     given = 0
     for _, (_, mouse_symbol, relation, human_symbol) in sorted(orthologs_to_mouse(pairs, "9606").items(), key=lambda kv: kv[1][3]):
-        if relation != "1:1" or mouse_symbol.upper() in mouse_records:
+        if relation not in ("1:1", "best") or mouse_symbol.upper() in mouse_records:
             continue
         key = human_symbol.upper()
         record = human.get(key) or human.get(human_aliases.get(key, "").upper())
