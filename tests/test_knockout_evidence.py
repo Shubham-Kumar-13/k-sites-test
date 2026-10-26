@@ -278,6 +278,23 @@ class TestCellsWithoutACellLineResult:
         assert any("not a one-to-one match" in c for c in recommendation.concerns)
 
 
+class TestLethalMouseOrthologWithoutACellLineResult(TestCellsWithoutACellLineResult):
+    def verdict_for(self, record):
+        evidence = assess_gene(self.provider(record), "9606", "RPS26", "cells")
+        return get_safety_recommendation("RPS26", 2.0, knockout_evidence=evidence)
+
+    def test_a_lethal_mouse_ortholog_gives_moderate_concern(self):
+        recommendation = self.verdict_for({"o": ["Rps26", "1:1"], "m": {"v": "L", "n": [3, 0, 0], "s": "E"}})
+
+        assert recommendation.safety_level.value == "MODERATE_CONCERN"
+        assert recommendation.primary_recommendation.value == "CRISPR Interference (CRISPRi)"
+        assert any("about 30% of mouse-lethal genes" in c for c in recommendation.concerns)
+
+    def test_subviable_or_disagreeing_results_stay_at_caution(self):
+        assert self.verdict_for({"o": ["Rps26", "1:1"], "m": {"v": "S", "n": [0, 2, 0], "s": "W"}}).safety_level.value == "CAUTION"
+        assert self.verdict_for({"o": ["Rps26", "1:1"], "m": {"v": "L", "n": [2, 0, 1], "s": "E", "x": 1}}).safety_level.value == "CAUTION"
+
+
 class TestLethalityEstimate:
     """Genes without a knockout result get an estimate from their human ortholog; it is never a measurement."""
 

@@ -365,7 +365,13 @@ function cellsVerdictFromOrganism(evidence, pleiotropy) {
     let alternatives;
     if (['LETHAL', 'SUBVIABLE'].includes(organism.call) || organism.mixed) {
         level = SafetyLevel.CAUTION; primary = R.VALIDATED_KO; alternatives = [R.CRISPRI];
-        concerns.push('The gene is needed for the survival of the organism, so it may also be needed in cells');
+        if (organism.call === 'LETHAL' && !organism.mixed) {
+            // about 30% of the genes whose knockout is lethal in the mouse are also essential in cell lines (Validation
+            // page), the same share at which a "sometimes essential" gene is rated MODERATE_CONCERN
+            level = SafetyLevel.MODERATE_CONCERN; primary = R.CRISPRI; alternatives = [R.VALIDATED_KO];
+        }
+        concerns.push('The gene is needed for the survival of the organism, so it may also be needed in cells '
+            + '(about 30% of mouse-lethal genes are essential in cell lines)');
         mitigation.push('Check the gene in DepMap or test a knockdown first');
     } else {
         // a viable animal does not show that cultured cells can do without the gene (ribosomal and replication genes

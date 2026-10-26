@@ -214,6 +214,24 @@ test('without a cell-line result a viable mouse ortholog is never enough for SAF
     assert.ok(recommendation.concerns.some((c) => c.includes('not a one-to-one match')));
 });
 
+test('a lethal mouse ortholog without a cell-line result gives MODERATE_CONCERN; subviable or disagreeing results stay at CAUTION', async () => {
+    const level = async (m) => {
+        const files = {
+            'index.json': { format: 1, built: '2026-01-01', stages: {}, systems: [], organisms: { 9606: { name: 'Homo sapiens', file: '9606.json', layers: [] } }, sources: [] },
+            '9606.json': { genes: { RPS26: { o: ['Rps26', '1:1'], m } }, aliases: {} },
+        };
+        const evidence = await assessGene(new EvidenceProvider(async (name) => files[name]), '9606', 'RPS26', 'cells');
+        return getSafetyRecommendation({ symbol: 'RPS26', pleiotropyScore: 2.0, knockoutEvidence: evidence });
+    };
+
+    const lethal = await level({ v: 'L', n: [3, 0, 0], s: 'E' });
+    assert.equal(lethal.safety_level, 'MODERATE_CONCERN');
+    assert.equal(lethal.primary_recommendation, 'CRISPR Interference (CRISPRi)');
+    assert.ok(lethal.concerns.some((c) => c.includes('about 30% of mouse-lethal genes')));
+    assert.equal((await level({ v: 'S', n: [0, 2, 0], s: 'W' })).safety_level, 'CAUTION');
+    assert.equal((await level({ v: 'L', n: [2, 0, 1], s: 'E', x: 1 })).safety_level, 'CAUTION');
+});
+
 test('conservation counts the model species that carry the gene; literature is the number of linked articles', async () => {
     const files = {
         'index.json': { format: 1, built: '2026-01-01', organisms: { 9606: { name: 'Homo sapiens', file: '9606.json', layers: [] } }, sources: [] },

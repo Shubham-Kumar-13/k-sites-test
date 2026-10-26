@@ -518,7 +518,13 @@ class SafetyRecommender:
         concerns, mitigation = [], []
         if organism["call"] in ("LETHAL", "SUBVIABLE") or organism["mixed"]:
             level, primary, alternatives = SafetyLevel.CAUTION, RecommendationType.VALIDATED_KO, [RecommendationType.CRISPRI]
-            concerns.append("The gene is needed for the survival of the organism, so it may also be needed in cells")
+            if organism["call"] == "LETHAL" and not organism["mixed"]:
+                # about 30% of the genes whose knockout is lethal in the mouse are also essential in cell lines (Validation
+                # page), the same share at which a "sometimes essential" gene is rated MODERATE_CONCERN
+                level, alternatives = SafetyLevel.MODERATE_CONCERN, [RecommendationType.VALIDATED_KO]
+                primary = RecommendationType.CRISPRI
+            concerns.append("The gene is needed for the survival of the organism, so it may also be needed in cells "
+                            "(about 30% of mouse-lethal genes are essential in cell lines)")
             mitigation.append("Check the gene in DepMap or test a knockdown first")
         else:
             # a viable animal does not show that cultured cells can do without the gene (ribosomal and replication genes
