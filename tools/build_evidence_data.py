@@ -79,7 +79,7 @@ SOURCES = {
     "impc": {
         "name": "International Mouse Phenotyping Consortium (IMPC)",
         "url": "https://ftp.ebi.ac.uk/pub/databases/impc/all-data-releases/latest/results/",
-        "what": "systematic knockout viability and phenotyping screen",
+        "what": "systematic knockout viability and phenotyping screen", "license": "CC BY 4.0",
         "files": {
             "impc_viability.csv.gz": "https://ftp.ebi.ac.uk/pub/databases/impc/all-data-releases/latest/results/viability.csv.gz",
             "impc_g2p.csv.gz": "https://ftp.ebi.ac.uk/pub/databases/impc/all-data-releases/latest/results/genotype-phenotype-assertions-ALL.csv.gz",
@@ -88,6 +88,7 @@ SOURCES = {
     "alliance": {
         "name": "Alliance of Genome Resources", "url": "https://www.alliancegenome.org/downloads",
         "what": "orthologs between human, mouse, rat, zebrafish, fly, worm and yeast",
+        "license": "CC0 1.0 for most data, CC BY 4.0 for some",
         "files": {"alliance_orthology.tsv.gz": "https://fms.alliancegenome.org/download/ORTHOLOGY-ALLIANCE_COMBINED.tsv.gz"},
     },
     "hgnc": {
@@ -112,11 +113,12 @@ SOURCES = {
     "ensembl": {
         "name": "Ensembl Compara (via BioMart)", "url": "https://www.ensembl.org/biomart/",
         "what": "paralogs: genes of the same species descended from the same ancestor gene",
+        "license": "no restrictions on use (Ensembl disclaimer)",
         "files": {},          # downloaded per chromosome by download_paralogs()
     },
     "sgd": {
         "name": "Saccharomyces Genome Database (SGD)", "url": "https://www.yeastgenome.org/",
-        "what": "yeast deletion phenotypes (viable / inviable)",
+        "what": "yeast deletion phenotypes (viable / inviable)", "license": "CC BY 4.0",
         "files": {"sgd_phenotype.tab": "https://downloads.yeastgenome.org/curation/literature/phenotype_data.tab"},
     },
 }

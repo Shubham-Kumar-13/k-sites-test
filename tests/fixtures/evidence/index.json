@@ -1,5 +1,5 @@
 {
- "built": "2026-10-25",
+ "built": "2026-10-26",
  "format": 1,
  "organisms": {
   "10090": {
@@ -95,14 +95,14 @@
   },
   {
    "id": "impc",
-   "license": "",
+   "license": "CC BY 4.0",
    "name": "International Mouse Phenotyping Consortium (IMPC)",
    "url": "https://ftp.ebi.ac.uk/pub/databases/impc/all-data-releases/latest/results/",
    "what": "systematic knockout viability and phenotyping screen"
   },
   {
    "id": "alliance",
-   "license": "",
+   "license": "CC0 1.0 for most data, CC BY 4.0 for some",
    "name": "Alliance of Genome Resources",
    "url": "https://www.alliancegenome.org/downloads",
    "what": "orthologs between human, mouse, rat, zebrafish, fly, worm and yeast"
@@ -137,14 +137,14 @@
   },
   {
    "id": "ensembl",
-   "license": "",
+   "license": "no restrictions on use (Ensembl disclaimer)",
    "name": "Ensembl Compara (via BioMart)",
    "url": "https://www.ensembl.org/biomart/",
    "what": "paralogs: genes of the same species descended from the same ancestor gene"
   },
   {
    "id": "sgd",
-   "license": "",
+   "license": "CC BY 4.0",
    "name": "Saccharomyces Genome Database (SGD)",
    "url": "https://www.yeastgenome.org/",
    "what": "yeast deletion phenotypes (viable / inviable)"

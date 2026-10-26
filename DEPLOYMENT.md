@@ -44,9 +44,12 @@ The workflow rebuilds the site whenever the pages change and on the 1st of each 
 KEGG and knockout data). The first build downloads about 280 MB of source data and takes about 10 minutes (the paralog query alone about 5);
 the downloads are cached for the month.
 
-**Data licences.** Please keep the attribution that the site and every report show. MGI data are CC BY 4.0, DepMap
-24Q4 is CC BY 4.0, HGNC is CC0; for IMPC, the Alliance of Genome Resources, gnomAD, GTEx, SGD and Ensembl check the
-terms linked from the "Data sources" list before you redistribute the files outside this site.
+**Data licences.** Please keep the attribution that the site and every report show. Checked against the providers'
+own pages: MGI, IMPC, DepMap 24Q4 and SGD are CC BY 4.0; HGNC is CC0; the Alliance of Genome Resources is CC0 1.0 for
+most data and CC BY 4.0 for some (see its terms of use); Ensembl states that it puts no limits on the use of its data.
+Not yet confirmed, because the providers' licence pages could not be read automatically: gnomAD (a free public
+dataset; read the terms linked from https://gnomad.broadinstitute.org/downloads) and GTEx (read
+https://gtexportal.org/home/license). Please read both before you redistribute the files outside this site.
 
 ## Building it yourself
 
