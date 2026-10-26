@@ -145,7 +145,7 @@ export class LocalBackend {
             return {
                 taxid, available: true, covered: true, name: info.name, genes: info.genes ?? Object.keys(organism.genes).length,
                 measured: info.measured ?? null,
-                layers: info.layers || [], distant: !!info.distant, version: index.built ?? null,
+                layers: info.layers || [], distant: !!info.distant, reliability: info.reliability || null, version: index.built ?? null,
             };
         } catch (error) {
             return { taxid, available: false, covered: false };

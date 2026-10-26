@@ -213,6 +213,13 @@ async function showEvidenceCoverage(taxid) {
             if (data.distant) {
                 text += " Genes without a measurement of their own only have the mouse ortholog's knockout as a hint; verdicts for them are never better than CAUTION.";
             }
+            const check = data.reliability;
+            if (check) {
+                // an independent test (DEG essential genes): a source that calls nearly everything lethal cannot tell essential genes apart
+                text += ` Independent check: ${check.essential_called_lethal}% of ${check.essential_genes} known essential genes are called lethal here, `
+                    + `against ${check.all_called_lethal}% of all genes with a result`
+                    + (check.essential_called_lethal - check.all_called_lethal < 25 ? ', so a lethal call is only weak evidence.' : '.');
+            }
             if (community) {
                 // lethal results are reported far more often than viable ones in these databases (VALIDATION.md, section 8)
                 text += ` ${community} reports lethal mutants far more often than viable ones, so a lethal call is a strong hint to confirm, not proof, and most genes have no result at all.`;

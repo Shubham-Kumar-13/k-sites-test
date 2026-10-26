@@ -574,7 +574,8 @@ def evidence_coverage():
         return jsonify({'taxid': taxid, 'available': True, 'covered': True, 'name': info.get('name'),
                         'genes': info.get('genes', len(organism.genes)), 'measured': info.get('measured'),
                         'layers': info.get('layers', []),
-                        'distant': bool(info.get('distant')), 'version': provider.index.get('built')})
+                        'distant': bool(info.get('distant')), 'reliability': info.get('reliability'),
+                        'version': provider.index.get('built')})
     except Exception as error:   # the note is only a courtesy
         logger.warning(f"Could not read the knockout evidence coverage: {error}")
         return jsonify({'taxid': taxid, 'available': False, 'covered': False})
