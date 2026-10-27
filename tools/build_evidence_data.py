@@ -765,20 +765,31 @@ def orthologs_to_mouse(pairs, tax):
 # --------------------------------------------------------------------------------------------------
 
 def hgnc_aliases(path):
-    """{old name or alias: current symbol} for names that point to exactly one approved gene."""
-    owners = collections.defaultdict(set)
+    """
+    {old name or alias: current symbol} for names that point to exactly one approved gene. A name that is the previous official
+    symbol of one gene wins over the same name used as a loose alias of other genes (NBS1 is the old symbol of NBN, an alias of NLRP2).
+    """
+    previous = collections.defaultdict(set)
+    loose = collections.defaultdict(set)
     approved = set()
     with open_text(path) as handle:
         for row in csv.DictReader(handle, delimiter="\t"):
             if row.get("status") != "Approved":
                 continue
             approved.add(row["symbol"])
-            for column in ("prev_symbol", "alias_symbol"):
+            for column, owners in (("prev_symbol", previous), ("alias_symbol", loose)):
                 for name in (row.get(column) or "").split("|"):
                     name = name.strip().strip('"')
                     if name:
                         owners[name].add(row["symbol"])
-    return {name: next(iter(symbols)) for name, symbols in owners.items() if len(symbols) == 1 and name not in approved}
+    result = {}
+    for name in set(previous) | set(loose):
+        if name in approved:
+            continue
+        symbols = previous[name] if len(previous.get(name, ())) == 1 else previous.get(name, set()) | loose.get(name, set())
+        if len(symbols) == 1:
+            result[name] = next(iter(symbols))
+    return result
 
 
 def read_depmap(path):

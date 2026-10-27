@@ -663,9 +663,12 @@ class TestHumanLayers:
             "HGNC:1\tAARS1\tApproved\tAARS\t\n"
             "HGNC:2\tONE\tApproved\t\tSHARED|P53LIKE\n"
             "HGNC:3\tTWO\tApproved\t\tSHARED\n"
-            "HGNC:4\tGONE\tWithdrawn\tOLDNAME\t\n", encoding="utf-8")
+            "HGNC:4\tGONE\tWithdrawn\tOLDNAME\t\n"
+            "HGNC:5\tNBN\tApproved\tNBS1\t\n"
+            "HGNC:6\tNLRP2\tApproved\t\tNBS1\n", encoding="utf-8")
 
-        assert bed.hgnc_aliases(path) == {"AARS": "AARS1", "P53LIKE": "ONE"}
+        # NBS1 is the previous official symbol of NBN and only a loose alias of NLRP2: the official history wins
+        assert bed.hgnc_aliases(path) == {"AARS": "AARS1", "P53LIKE": "ONE", "NBS1": "NBN"}
 
 
 class TestParalogs:
