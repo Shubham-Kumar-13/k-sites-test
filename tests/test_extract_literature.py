@@ -102,6 +102,25 @@ class TestKimi:
         assert sent["body"]["response_format"] == {"type": "json_object"} and sent["body"]["model"] == "some-model"
         assert "secret-key-123" not in json.dumps(sent["body"]) and text == answer("not_reported")
 
+    def test_an_error_answer_names_the_servers_reason_and_never_the_key(self):
+        class Session:
+            def post(self, *args, **kwargs):
+                return FakeResponse(400, payload={"error": {"message": "invalid temperature: only 1 is allowed for this model"}})
+
+        llm = el.Kimi(Session(), environ={"KIMI_API_KEY": "secret-key-123", "KIMI_MODEL": "m1"})
+        with pytest.raises(el.requests.RequestException) as caught:
+            llm.ask("g", "o", "a")
+
+        assert "invalid temperature" in str(caught.value) and "m1" in str(caught.value) and "secret-key-123" not in str(caught.value)
+
+    def test_the_models_of_a_key_can_be_listed(self):
+        class Session:
+            def get(self, url, timeout, headers):
+                assert url.endswith("/models") and headers["Authorization"] == "Bearer k"
+                return FakeResponse(payload={"data": [{"id": "model-b"}, {"id": "model-a"}]})
+
+        assert el.Kimi(Session(), environ={"KIMI_API_KEY": "k"}).models() == ["model-a", "model-b"]
+
     def test_a_busy_server_is_retried(self, monkeypatch):
         monkeypatch.setattr(el.time, "sleep", lambda s: None)
         replies = [FakeResponse(429), FakeResponse(payload={"choices": [{"message": {"content": "ok"}}]})]

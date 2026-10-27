@@ -9,6 +9,9 @@ stops the model from inventing results.
 
 The API key is read from the environment (KIMI_API_KEY or MOONSHOT_API_KEY) and is never written to a file, a log or the website.
 
+    # 0. which model names does my key allow?  (then set KIMI_MODEL to one of them)
+    python tools/extract_literature.py models
+
     # 1. how accurate is it? Test on mouse genes whose outcome is already known from MGI/IMPC (needs the key, costs a little)
     python tools/extract_literature.py pilot --data .cache/evidence-out --genes 100
 
@@ -141,6 +144,14 @@ def check_answer(raw, abstract):
     return {"outcome": answer["outcome"], "stage": str(answer.get("stage") or "")[:80], "quote": quote}
 
 
+def error_text(response):
+    """The message of an API error answer (the server's own words; the key is never part of it)."""
+    try:
+        return str(response.json().get("error", {}).get("message") or response.text)[:400]
+    except (ValueError, AttributeError):
+        return str(getattr(response, "text", ""))[:400]
+
+
 class Kimi:
     """The chat API of Kimi (OpenAI style). The key comes from the environment only."""
 
@@ -155,7 +166,7 @@ class Kimi:
         self.calls = 0
 
     def ask(self, gene, organism, abstract):
-        body = {"model": self.model, "temperature": 0,
+        body = {"model": self.model,
                 "response_format": {"type": "json_object"},
                 "messages": [{"role": "system", "content": SYSTEM.format(gene=gene, organism=organism)},
                              {"role": "user", "content": abstract[:6000]}]}
@@ -165,10 +176,18 @@ class Kimi:
             if response.status_code in (429, 500, 502, 503):
                 time.sleep(5 * (attempt + 1))
                 continue
-            response.raise_for_status()
+            if response.status_code >= 400:
+                raise requests.RequestException(f"Kimi answered {response.status_code} for model {self.model}: {error_text(response)}")
             self.calls += 1
             return response.json()["choices"][0]["message"]["content"]
         raise requests.RequestException("the Kimi API did not answer")
+
+    def models(self):
+        """The model names this key may use."""
+        response = self.session.get(f"{self.base}/models", timeout=60, headers={"Authorization": f"Bearer {self.key}"})
+        if response.status_code >= 400:
+            raise requests.RequestException(f"Kimi answered {response.status_code}: {error_text(response)}")
+        return sorted(item["id"] for item in response.json().get("data", []))
 
 
 def read_gene(llm, pubmed, gene, organism, pmids, papers=PAPERS_PER_GENE):
@@ -258,6 +277,11 @@ def extract(args):
     print(f"{len(done)} genes in {out}, {useful} with a reported outcome. Calls to the model: {llm.calls}.")
 
 
+def list_models(args):
+    for name in Kimi().models():
+        print(name)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -267,6 +291,7 @@ def main():
         p.add_argument("--cache", default=str(CACHE), help="Where abstracts and results are kept")
         p.add_argument("--genes", type=int, default=100, help="How many genes to read")
         p.set_defaults(function=function)
+    sub.add_parser("models", help="List the model names this key may use").set_defaults(function=list_models)
     sub.choices["extract"].add_argument("--taxid", required=True)
     sub.choices["extract"].add_argument("--organism", help="Name given to the model, for example 'Mus musculus'")
     sub.choices["extract"].add_argument("--out", required=True)
