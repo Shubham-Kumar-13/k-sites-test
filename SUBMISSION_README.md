@@ -2,7 +2,7 @@
 
 **Target Journal:** Nature Methods (or similar high-impact methods journal)
 
-**Manuscript Title:** K-Sites: An Integrated AI-Powered Platform for Non-Pleiotropic CRISPR Guide RNA Design with Pathway-Aware Off-Target Filtering
+**Manuscript Title:** K-Sites: A Non-Pleiotropic Gene Selection Platform for Knockout Studies
 
 **Corresponding Author:** Kanaka K.K. (kanakakk@example.com)
 
@@ -50,18 +50,18 @@ Complete all items in `SUBMISSION_CHECKLIST.md`
 ## Manuscript Highlights
 
 ### Key Innovation
-K-Sites integrates biological context (pleiotropy, pathways) into CRISPR guide RNA design—addressing a critical gap that existing sequence-only tools cannot handle.
+K-Sites integrates biological context (pleiotropy, evidence quality, cross-species conservation) with measured knockout evidence to help researchers choose safe genes for knockout studies—addressing the gap between gene annotation databases and experimentally validated knockout phenotypes.
 
 ### Novel Algorithms
-1. **Exponential Decay Pleiotropy Scoring**: Quantifies gene specificity
-2. **Pathway-Aware Off-Target Filtering**: Uses Neo4j graph analytics
-3. **RAG-Based Phenotype Prediction**: Mines PubMed in real-time
+1. **Exponential Decay Pleiotropy Scoring**: Quantifies gene specificity from GO annotations
+2. **Evidence-Quality Weighting**: Distinguishes experimental from computational and predicted annotations
+3. **RAG-Based Phenotype Prediction**: Mines PubMed in real-time for genes without measured knockout data
 
 ### Technical Achievements
-- 50 unit tests with 91% code coverage
-- Support for 5 Cas nuclease types
-- Multi-database integration (GO, UniProt, KEGG, PubMed)
-- Cross-species validation (human, mouse, fly, worm)
+- Comprehensive pytest test suite
+- Multi-database integration (GO via QuickGO, UniProt, KEGG)
+- Measured knockout evidence integration (MGI, IMPC, SGD, ZFIN, FlyBase, WormBase, DepMap, gnomAD, GTEx, Ensembl)
+- Cross-species validation (human, mouse, rat, fly, worm)
 
 ### Validation
 - Mouse DNA repair pathway case study
@@ -83,16 +83,6 @@ Where λ=0.3, n=number of BP GO terms
 Composite = 0.40×Specificity + 0.25×Evidence + 0.20×Literature + 0.15×Conservation
 ```
 
-### Doench 2016 Scoring
-```
-Score = 0.5 + Σ(position weights) - GC_penalty - SelfComp_penalty + PAM_bonus
-```
-
-### CFD Off-Target
-```
-CFD = Π(1 - penalty_i) × PAM_Quality
-```
-
 ### Maximal Marginal Relevance
 ```
 MMR = λ×Relevance - (1-λ)×max_sim_to_selected
@@ -102,29 +92,20 @@ MMR = λ×Relevance - (1-λ)×max_sim_to_selected
 
 ## Target Journal Recommendations
 
-### Primary Recommendation: Nature Methods
+### Primary Recommendation: Nucleic Acids Research (Web Server issue)
 **Why:** 
-- Focus on novel methodological advances
-- High impact factor (48.0)
-- Broad readership in computational biology
-- Suitable for CRISPR technology innovations
+- Excellent venue for computational biology tools and web services
+- Strong bioinformatics focus
+- Open access option available
 
 ### Alternative Journals
-1. **Nature Biotechnology** (IF: 46.9)
-   - Strong in genome engineering
-   - High visibility for CRISPR work
+1. **Bioinformatics** (IF: 4.4)
+   - Fast turnaround
+   - Specialized computational audience
 
 2. **Genome Biology** (IF: 17.9)
    - Open access
-   - Strong bioinformatics focus
-
-3. **Nucleic Acids Research** (IF: 19.2)
-   - Web Server issue option
-   - Excellent for tool publications
-
-4. **Bioinformatics** (IF: 4.4)
-   - Fast turnaround
-   - Specialized computational audience
+   - Strong methods focus
 
 ---
 
@@ -146,7 +127,7 @@ MMR = λ×Relevance - (1-λ)×max_sim_to_selected
 ### Technical
 - [ ] Code is publicly available
 - [ ] Documentation is complete
-- [ ] Tests pass (50/50)
+- [ ] Tests pass
 - [ ] Example data is included
 
 ### Formatting
@@ -181,8 +162,8 @@ MMR = λ×Relevance - (1-λ)×max_sim_to_selected
 - Affiliation: Institute of Bioinformatics and Applied Biotechnology
 
 **Co-Authors:**
-- Sandip Garai (Neo4j/Graph Analytics)
-- Jeevan C. (CRISPR Design)
+- Sandip Garai (Data Integration)
+- Jeevan C. (Algorithm Development)
 - Tanzil Fatima (Web Interface)
 
 **Repository:** https://github.com/KanakaKK/K-sites
@@ -191,17 +172,17 @@ MMR = λ×Relevance - (1-λ)×max_sim_to_selected
 
 ## Response to Common Reviewer Comments
 
-### "How is this different from CRISPOR/CHOPCHOP?"
-**Response:** K-Sites is the first tool to integrate pathway-aware filtering and quantitative pleiotropy assessment. While existing tools focus solely on sequence-based predictions, K-Sites considers biological context.
+### "How is this different from existing gene-selection tools?"
+**Response:** K-Sites combines quantitative pleiotropy scoring with measured knockout evidence from multiple model organisms and cell-line screens, providing a safety recommendation grounded in experimental data rather than annotation alone.
 
 ### "Is the RAG system truly necessary?"
-**Response:** The RAG system provides unique value by mining real-time literature to predict knockout phenotypes. This capability doesn't exist in any current CRISPR design tool and helps researchers assess experimental risk before starting.
+**Response:** The RAG system provides unique value by mining real-time literature to predict knockout phenotypes for genes that lack measured evidence. It helps researchers assess experimental risk before starting.
 
 ### "What about validation?"
 **Response:** We provide comprehensive validation including:
-- 50 unit tests with 91% coverage
+- Full pytest test suite
 - Mouse DNA repair pathway case study
-- RAG prediction validation (94% AUC)
+- RAG prediction validation (see VALIDATION.md)
 - Comparison with gold standard databases (MGI, IMPC)
 
 ---
@@ -229,7 +210,7 @@ The authors thank:
 - The Gene Ontology Consortium for annotation resources
 - KEGG for pathway data
 - NCBI for Entrez E-Utilities and PubMed
-- The open-source community for Python, Neo4j, and ML libraries
+- The open-source community for Python and ML libraries
 
 ---
 

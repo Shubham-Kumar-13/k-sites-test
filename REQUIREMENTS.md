@@ -3,7 +3,7 @@
 ## System Goals
 
 ### Primary Objective
-Develop a CRISPR guide RNA design platform that takes a GO term and organism as input and produces high-confidence gRNAs targeting genes in that GO term, with pleiotropy scoring ≤3.
+Develop a non-pleiotropic gene-selection platform that takes a GO term and organism as input and ranks the genes involved in that process by functional specificity and knockout safety.
 
 ### Input Requirements
 - **GO Term**: GO identifier (e.g., "GO:0006281") representing a biological process, molecular function, or cellular component
@@ -11,13 +11,13 @@ Develop a CRISPR guide RNA design platform that takes a GO term and organism as 
 
 ### Output Requirements
 - **HTML Report**: Publication-ready report containing:
-  - List of high-confidence gRNAs
+  - Ranked list of genes (safest first)
   - Target gene information
-  - Pleiotropy scores
-  - Efficiency scores (Doench 2016 and CFD)
-  - Off-target analysis (≤4 mismatches)
+  - Pleiotropy and specificity scores
+  - Evidence quality and literature support
+  - Measured knockout evidence and safety recommendations
   - Relevant literature context
-- **CSV Export**: Machine-readable format with detailed metrics for each gRNA
+- **CSV Export**: Machine-readable format with detailed gene metrics and knockout evidence
 
 ### Functional Requirements
 
@@ -35,24 +35,17 @@ Develop a CRISPR guide RNA design platform that takes a GO term and organism as 
 - **Specificity Analysis**: Determine gene specificity to input GO term
 - **Validation**: Ensure pleiotropy scoring algorithm is accurate and efficient
 
-#### 3. CRISPR Design Module
-- **gRNA Design**: Design gRNAs following NGG PAM rules for SpCas9
-- **Efficiency Scoring**: Implement Doench 2016 algorithm for on-target efficiency prediction
-- **CFD Scoring**: Implement Cutting Frequency Determination scoring for additional efficiency assessment
-- **Off-target Prediction**: Identify potential off-targets with ≤4 mismatches
-- **gRNA Validation**: Ensure designed gRNAs meet quality criteria
-
-#### 4. RAG System Module
+#### 3. RAG System Module
 - **Literature Mining**: Integrate PubMed to retrieve relevant publications for each target gene
 - **UniProt Integration**: Retrieve protein function and domain information
 - **Context Extraction**: Extract relevant context from literature for each target
 
-#### 5. Workflow Module
+#### 4. Workflow Module
 - **Pipeline Orchestration**: Coordinate all modules in proper sequence
 - **Result Aggregation**: Combine results from all modules into unified output
 - **Report Generation**: Create HTML and CSV reports with consistent formatting
 
-#### 6. CLI Module
+#### 5. CLI Module
 - **Command Interface**: Provide clean command-line interface for users
 - **Argument Parsing**: Handle GO term and organism inputs properly
 - **Progress Reporting**: Provide feedback during long-running operations

@@ -2,7 +2,7 @@
 
 ## Overview
 
-I've developed a comprehensive web interface for the K-Sites CRISPR guide RNA design platform. The webapp provides an intuitive UI for running analyses with all the features you requested.
+I've developed a comprehensive web interface for the K-Sites non-pleiotropic gene-selection platform. The webapp provides an intuitive UI for running analyses with all the features you requested.
 
 ## 📁 Project Structure
 
@@ -48,7 +48,7 @@ I've developed a comprehensive web interface for the K-Sites CRISPR guide RNA de
 - **UniProt**: Protein knowledgebase
 - **NCBI Entrez**: Gene and literature database
 - **PubMed**: Literature support
-- **Neo4j Pathways**: KEGG pathway analysis (when available)
+- **KEGG**: Pathway annotations
 
 ### 4. Analysis Parameters
 - **Maximum genes**: Limit genes to analyze (1-50)
@@ -66,18 +66,18 @@ I've developed a comprehensive web interface for the K-Sites CRISPR guide RNA de
 - **Background execution**: Analysis runs in separate thread
 - **Progress tracking**: Real-time status updates
 - **Job persistence**: SQLite database tracks all jobs
-- **Result storage**: All outputs saved (HTML, JSON, CSV, FASTA)
+- **Result storage**: All outputs saved (HTML, JSON, CSV)
 
 ### 7. Results Visualization
 - **Summary dashboard**: Key statistics at a glance
 - **Gene-by-gene view**: Individual gene analysis
-- **gRNA tables**: Sortable, searchable list of all gRNAs
-- **Detailed modals**: Click any gRNA for full details
+- **Gene tables**: Sortable, searchable list of ranked genes
+- **Detailed modals**: Click any gene for full details
 - **Multiple downloads**: HTML report, JSON data, CSV tables
 
 ### 8. RAG Integration
 - **Literature mining**: PubMed integration for phenotype prediction
-- **Safety recommendations**: Based on off-target analysis
+- **Safety recommendations**: Based on measured knockout evidence
 - **Confidence scores**: Evidence quality metrics
 
 ## 🚀 How to Run
@@ -125,7 +125,7 @@ Navigate to: `http://localhost:5000`
 5. **Review gene count**: System shows available genes
 6. **Start analysis**: Click "Start Analysis" button
 7. **Wait for completion**: Watch progress log or leave and return later
-8. **View results**: Interactive dashboard with all gRNAs
+8. **View results**: Interactive dashboard with ranked genes and safety recommendations
 
 ### Handling Gene Limit Errors:
 - If you request 50 genes but only 20 available → Warning shown
@@ -191,7 +191,7 @@ Navigate to: `http://localhost:5000`
 1. **Rate Limiting**: Add API rate limits for production
 2. **Authentication**: Consider user accounts for tracking
 3. **Result Caching**: Cache GO term queries to reduce API calls
-4. **Neo4j Optional**: Made Neo4j truly optional with fallbacks
+4. **Result Caching**: Cache GO term queries to reduce API calls
 5. **Progress Streaming**: Use WebSockets for real-time updates
 6. **Gene Cart**: Allow users to select specific genes from list
 

@@ -120,7 +120,7 @@ k-sites --go-term-search "DNA repair" --organism "Homo sapiens" --output report.
 | `--species-validation` | TaxIDs for cross-species validation | pipeline default (human, mouse, rat, fly, worm) |
 | `--predict-phenotypes` | Predict knockout phenotype from PubMed, only for genes with no measured result (experimental) | off |
 | `--rag-report` | Per-gene literature reports (needs `--predict-phenotypes`) | off |
-| `--databases` | `quickgo`, `uniprot`, `ncbi`, `pubmed`, `kegg`, `all` | `all` |
+| `--databases` | `quickgo`, `uniprot`, `kegg`, `all` (accepted for metadata tracking; queries always use QuickGO + UniProt + KEGG) | `all` |
 | `--go-term-search` | Search GO terms by keyword | – |
 
 The measured knockout data are published with the K-Sites website and downloaded once a month into `~/.k_sites/evidence-data`. To use a local copy (or work offline) build the files and point to them:
@@ -222,8 +222,8 @@ python -m pytest tests/
 ## Developers
 
 - **Kanaka KK** – Lead Architect
-- **Sandip Garai** – Neo4j Graph Integration Specialist (earlier prototype, since retired)
-- **Jeevan C** – CRISPR Algorithm Developer
+- **Sandip Garai** – Data Integration (earlier prototype work)
+- **Jeevan C** – Algorithm Developer
 - **Tanzil Fatima** – Bioinformatics Analyst
 
 ## License

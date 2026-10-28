@@ -4,18 +4,16 @@
 
 **Package Name**: `k-sites`  
 **Current Version**: 1.1.0  
-**Description**: Universal K-Sites: AI-Powered CRISPR Guide RNA Design Platform with Pathway-Aware Off-Target Filtering
+**Description**: K-Sites: A Non-Pleiotropic Gene Selection Platform for Knockout Studies
 
 ## What's New in v1.1.0
 
 ### Major Features
 - **Non-Pleiotropic Gene Identification**: Multi-database integration (GO, UniProt, KEGG)
-- **Advanced CRISPR gRNA Design**: Doench 2016 and CFD scoring algorithms
 - **RAG-Based Phenotype Prediction**: Literature mining with semantic search
 - **Web Application**: Flask-based UI with hierarchical selection
-- **Neo4j Integration**: Pathway-aware off-target filtering
 - **Email Notifications**: Analysis completion alerts
-- **Multiple Export Formats**: CSV, Excel, GenBank, FASTA, HTML
+- **Multiple Export Formats**: CSV, Excel, HTML
 
 ### Installation Options
 
@@ -83,7 +81,7 @@ If you prefer to create the GitHub repository manually:
 
 1. Go to https://github.com/new
 2. Repository name: `k-sites`
-3. Description: `AI-Powered CRISPR Guide RNA Design Platform`
+3. Description: `Non-Pleiotropic Gene Selection Platform for Knockout Studies`
 4. Make it Public
 5. Click "Create repository"
 6. Follow the instructions to push an existing repository:
@@ -114,8 +112,8 @@ If you prefer to create the GitHub repository manually:
 ## Developers
 
 - Kanaka KK (Lead Architect)
-- Sandip Garai (Neo4j Graph Integration Specialist)
-- Jeevan C (CRISPR Algorithm Developer)
+- Sandip Garai (Data Integration)
+- Jeevan C (Algorithm Developer)
 - Tanzil Fatima (Bioinformatics Analyst)
 
 ## License

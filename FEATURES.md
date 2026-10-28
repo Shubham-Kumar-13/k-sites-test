@@ -47,8 +47,8 @@ IEA_CODE = {"IEA"}  # Inferred from Electronic Annotation (PREDICTION, not evide
 # Use all databases (default)
 k-sites --go-term GO:0006281 --organism 9606 --output report.html
 
-# Select specific databases
-k-sites --go-term GO:0006281 --organism 9606 --output report.html --databases quickgo uniprot
+# Note: --databases is accepted for metadata tracking but currently all queries use QuickGO, UniProt and KEGG
+k-sites --go-term GO:0006281 --organism 9606 --output report.html --databases quickgo
 ```
 
 ---
@@ -165,25 +165,13 @@ k-sites --go-term GO:0006281 --organism 9606 --output report.html \
         --predict-phenotypes --rag-report
 ```
 
-### 6. CRISPR gRNA Design
-
-Multi-Cas gRNA design with:
-- Doench 2016 on-target efficiency scoring
-- CFD off-target prediction
-- PAM site identification (NGG, NNGRRT, TTTV)
-- Pathway-aware off-target filtering
-
----
-
 ## Output Files
 
 | File | Description |
 |------|-------------|
 | `report.html` | Interactive HTML report with visualizations |
-| `report_comprehensive.csv` | All genes, gRNAs, and metrics |
+| `report_comprehensive.csv` | All genes and metrics |
 | `report_gene_summary.csv` | Gene-level summary statistics |
-| `report_grna_sequences.fasta` | gRNA sequences |
-| `report_sequences.gb` | GenBank format |
 | `rag_reports/*.html` | Per-gene literature analysis (with `--rag-report`) |
 
 ---
@@ -209,7 +197,7 @@ k-sites --go-term GO:0006281 --organism "Homo sapiens" --output report.html
 
 # Full analysis with all features
 k-sites --go-term GO:0006281 --organism 9606 --output report.html \
-        --use-graph --max-pleiotropy 5 \
+        --max-pleiotropy 5 \
         --evidence-filter experimental \
         --predict-phenotypes --rag-report
 ```
@@ -222,4 +210,4 @@ k-sites --go-term GO:0006281 --organism 9606 --output report.html \
 |---------|------|----------|
 | 1.0.0 | 2026-02-05 | Initial release |
 | 1.1.0 | 2026-02-13 | Web app, RAG system, enhanced reporting |
-| 1.2.0 | 2026-02-13 | Multi-database selection, RAG reports, improved CLI |
+| 1.2.0 | 2026-02-13 | RAG reports, improved CLI |

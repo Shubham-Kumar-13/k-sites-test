@@ -1,6 +1,6 @@
 # Manuscript Submission Checklist
 
-**Manuscript:** K-Sites: An Integrated AI-Powered Platform for Non-Pleiotropic CRISPR Guide RNA Design
+**Manuscript:** K-Sites: A Non-Pleiotropic Gene Selection Platform for Knockout Studies
 
 **Target Journal:** Nature Methods
 
@@ -51,39 +51,22 @@
   - [ ] All codes verified correct
   - [ ] Formatting consistent
   
-- [ ] **Table 2:** Cas nuclease comparison
-  - [ ] PAM patterns verified
-  - [ ] All Cas types functional
-  
-- [ ] **Table 3:** CFD mismatch penalties
-  - [ ] Values match Hsu et al. 2013
-  - [ ] Position numbers correct (1-indexed)
-  
-- [ ] **Table 4:** Test coverage summary
+- [ ] **Table 2:** Test coverage summary
   - [ ] All tests currently passing
   - [ ] Coverage percentages accurate
-  
-- [ ] **Table 5:** Tool comparison
-  - [ ] All comparisons verified accurate
-  - [ ] No misrepresentation of competitors
 
 ### Supplementary Figures
 - [ ] Figure S1: Pleiotropy distribution (PDF)
 - [ ] Figure S2: Lambda optimization (PDF)
 - [ ] Figure S3: Runtime benchmarks (PDF)
 - [ ] Figure S4: RAG ROC curves (PDF)
-- [ ] Figure S5: Quality metrics (PDF)
-- [ ] Figure S6: Pathway network (PDF)
 
 ### Supplementary Tables
 - [ ] Table S1: Complete evidence codes
-- [ ] Table S2: Doench 2016 weights
-- [ ] Table S3: CFD penalty matrix
-- [ ] Table S4: CFD comparison
-- [ ] Table S5: Coverage report
-- [ ] Table S6: RAG validation
-- [ ] Table S7: Cross-species validation
-- [ ] Table S8: Performance benchmarks
+- [ ] Table S2: Coverage report
+- [ ] Table S3: RAG validation
+- [ ] Table S4: Cross-species validation
+- [ ] Table S5: Performance benchmarks
 
 ---
 
@@ -104,7 +87,7 @@
 - [ ] Troubleshooting guide included
 
 ### Test Suite
-- [ ] All 50 tests passing
+- [ ] All tests passing
 ```bash
 cd /home/iiab/Documents/K-sites
 python -m pytest tests/ -v
@@ -114,7 +97,7 @@ python -m pytest tests/ -v
 
 ### Example Data
 - [ ] Mouse analysis results included
-- [ ] All file formats work (HTML, CSV, JSON, FASTA, GenBank)
+- [ ] All file formats work (HTML, CSV, JSON)
 - [ ] Data is anonymized (no personal information)
 
 ---
@@ -127,9 +110,7 @@ python -m pytest tests/ -v
 - [ ] All supplementary tables have titles
 - [ ] Supplementary references are complete
 - [ ] File S1 (JSON results) is provided
-- [ ] File S2 (FASTA sequences) is provided
-- [ ] File S3 (CSV metrics) is provided
-- [ ] File S4 (GenBank) is provided
+- [ ] File S2 (CSV metrics) is provided
 
 ### Organization
 - [ ] Supplementary sections are numbered
@@ -150,11 +131,11 @@ python -m pytest tests/ -v
 - [ ] Conflicts of interest declared
 
 ### Suggested Reviewers
-- [ ] Dr. John Doench (Broad Institute)
-- [ ] Dr. Neville Sanjana (NYU)
-- [ ] Dr. Jennifer Doudna (UC Berkeley)
-- [ ] Dr. Feng Zhang (Broad Institute)
 - [ ] Dr. Magda Bienko (Karolinska Institutet)
+- [ ] Dr. Paul Flicek (EMBL-EBI)
+- [ ] Dr. Helen Parkinson (University of Oxford)
+- [ ] Dr. Judith Blake (The Jackson Laboratory)
+- [ ] Dr. Suzanna Lewis (Lawrence Berkeley National Laboratory)
 
 ### Reviewers to Exclude (if any)
 - [ ] None declared
@@ -176,7 +157,6 @@ python -m pytest tests/ -v
 
 ### External Dependencies
 - [ ] All APIs functional (NCBI, QuickGO, UniProt)
-- [ ] Neo4j integration optional
 - [ ] RAG dependencies optional
 
 ---

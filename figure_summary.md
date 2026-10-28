@@ -1,6 +1,6 @@
 # Figure and Table Summary
 
-**Manuscript:** K-Sites: An Integrated AI-Powered Platform for Non-Pleiotropic CRISPR Guide RNA Design with Pathway-Aware Off-Target Filtering
+**Manuscript:** K-Sites: A Non-Pleiotropic Gene Selection Platform for Knockout Studies
 
 ---
 
@@ -10,13 +10,11 @@
 
 **Type:** Schematic diagram
 
-**Description:** Flowchart showing the K-Sites platform architecture with seven interconnected layers: Input Layer (GO term + organism), Workflow Controller, Module Layer (Data Retrieval, Gene Analysis, Graph Utils, CRISPR Design, RAG System, Workflow), and Output Layer (HTML/CSV reports).
+**Description:** Flowchart showing the K-Sites platform architecture with interconnected layers: Input Layer (GO term + organism), Workflow Controller, Module Layer (Data Retrieval, Gene Analysis, RAG System, Workflow), and Output Layer (HTML/CSV reports).
 
 **Key Components:**
-- Data Retrieval: GO.org, UniProt, KEGG, NCBI Entrez
-- Gene Analysis: Pleiotropy scoring, specificity analysis
-- Graph Utils: Neo4j pathway analytics
-- CRISPR Design: Multi-Cas support
+- Data Retrieval: GO.org (QuickGO), UniProt, KEGG, NCBI Entrez
+- Gene Analysis: Pleiotropy scoring, specificity analysis, evidence filtering
 - RAG System: Literature mining, phenotype prediction
 
 **File format:** Vector graphics (PDF/SVG)
@@ -56,82 +54,21 @@
 
 ---
 
-### Table 2: Supported Cas Nucleases in K-Sites
-
-**Type:** Summary table
-
-**Content:** Five supported Cas nucleases with their PAM patterns, spacer lengths, and quality scores.
-
-| Cas Type | PAM Pattern | Spacer Length | Quality Score |
-|----------|-------------|---------------|---------------|
-| SpCas9 | NGG | 20 nt | 1.0 |
-| SaCas9 | NNGRRT | 21 nt | 0.9 |
-| Cas12a | TTTV | 23 nt | 0.85 |
-| Cas9-NG | NG | 20 nt | 0.7 |
-| xCas9 | NG or GAA | 20 nt | 0.8 |
-
-**Columns:** Cas Type, PAM Pattern, Spacer Length, Quality Score, PAM Position
-
-**Location:** Results section (Multi-Cas gRNA Design)
-
----
-
-### Table 3: CFD Mismatch Position Weighting
-
-**Type:** Summary table
-
-**Content:** Position-weighted mismatch penalties for CFD off-target scoring.
-
-| Region | Positions | Penalty |
-|--------|-----------|---------|
-| Seed (PAM-proximal) | 17-20 | 0.90 |
-| Middle | 13-16 | 0.60 |
-| Distal | 8-12 | 0.40 |
-| 5' end | 1-7 | 0.20 |
-
-**Columns:** Region, Positions, Penalty, Rationale
-
-**Location:** Results section (CFD Off-Target Prediction)
-
----
-
-### Table 4: Test Coverage Summary
+### Table 2: Test Coverage Summary
 
 **Type:** Results table
 
 **Content:** Unit test coverage statistics for each module.
 
-| Module | Tests | Coverage | Status |
-|--------|-------|----------|--------|
-| Non-Pleiotropic Features | 13 | 94% | PASS |
-| CRISPR Design | 22 | 91% | PASS |
-| RAG Phenotype Prediction | 15 | 88% | PASS |
-| **Total** | **50** | **91%** | **PASS** |
+| Module | Status |
+|--------|--------|
+| Non-Pleiotropic Features | PASS |
+| RAG Phenotype Prediction | PASS |
+| **Total** | **✅ PASS** |
 
 **Columns:** Module, Tests, Coverage, Status
 
 **Location:** Results section (Performance Validation)
-
----
-
-### Table 5: Comparison with Existing CRISPR Design Tools
-
-**Type:** Comparison table
-
-**Content:** Feature-by-feature comparison of K-Sites with CRISPOR, Benchling, and CHOPCHOP.
-
-Features compared:
-- On-target scoring (Doench)
-- Off-target prediction
-- Multi-Cas support
-- Pleiotropy assessment
-- Evidence-based filtering
-- Cross-species validation
-- Pathway-aware filtering
-- RAG phenotype prediction
-- CLI + Web interface
-
-**Location:** Discussion section
 
 ---
 
@@ -199,37 +136,6 @@ Features compared:
 
 ---
 
-### Figure S5: gRNA Quality Metrics Distribution
-
-**Type:** Multi-panel histograms (4 panels)
-
-**Description:** Distribution of key gRNA quality metrics across 1,000 designed guides:
-- Panel A: Doench score (Mean = 0.62, SD = 0.18)
-- Panel B: GC content (Mean = 54.3%, SD = 6.2%)
-- Panel C: Off-target count (Mean = 4.2, SD = 3.1)
-- Panel D: Specificity score (Mean = 0.78, SD = 0.15)
-
-**File format:** PDF
-
----
-
-### Figure S6: Pathway Overlap Network
-
-**Type:** Network diagram
-
-**Description:** Cytoscape-style network showing pathway relationships between genes in the DNA repair pathway (GO:0006281). 
-
-**Visual encodings:**
-- Node size: Degree centrality
-- Edge thickness: Shared pathway membership
-- Node color: Pleiotropy score (green=low, red=high)
-
-**Hub genes identified:** ATM, BRCA1 (high connectivity)
-
-**File format:** PDF (high resolution for printing)
-
----
-
 ## Supplementary Tables
 
 ### Table S1: Complete Evidence Code Reference
@@ -248,50 +154,7 @@ Features compared:
 
 ---
 
-### Table S2: Doench 2016 Position Weight Matrix
-
-**Type:** Data table
-
-**Content:** Complete position-specific nucleotide weights for all 20 guide positions.
-
-| Position | A | C | G | T |
-|----------|--------|--------|--------|-------|
-| 1 | -0.097377 | -0.083064 | 0.031048 | 0.0 |
-| ... | ... | ... | ... | ... |
-| 20 | 0.003281 | -0.001329 | -0.025902 | 0.0 |
-
-**Rows:** 20 positions
-**Columns:** 5 (Position, A, C, G, T)
-
----
-
-### Table S3: CFD Mismatch Penalty Matrix
-
-**Type:** Data table
-
-**Content:** Complete position-weighted mismatch penalties for all 20 positions.
-
-**Rows:** 20 positions
-**Columns:** 3 (Position, Region, Penalty)
-
----
-
-### Table S4: CFD Implementation Comparison
-
-**Type:** Comparison table
-
-**Content:** Comparison between original Hsu et al. CFD and K-Sites heuristic approach.
-
-| Aspect | Original CFD | K-Sites Heuristic |
-|--------|-------------|-------------------|
-| Genome alignment | Required | Not required |
-| Runtime | Hours | Seconds |
-| Accuracy | Absolute | Relative |
-| Use case | Final validation | Initial screening |
-
----
-
-### Table S5: Test Coverage Detailed Report
+### Table S2: Test Coverage Detailed Report
 
 **Type:** Results table
 
@@ -302,7 +165,7 @@ Features compared:
 
 ---
 
-### Table S6: RAG Validation Results
+### Table S3: RAG Validation Results
 
 **Type:** Validation table
 
@@ -319,7 +182,7 @@ Features compared:
 
 ---
 
-### Table S7: Cross-Species Validation Results
+### Table S4: Cross-Species Validation Results
 
 **Type:** Results table
 
@@ -329,7 +192,7 @@ Features compared:
 
 ---
 
-### Table S8: Performance Benchmarks
+### Table S5: Performance Benchmarks
 
 **Type:** Performance table
 
@@ -353,26 +216,12 @@ Features compared:
 **Content:** Complete analysis results for DNA repair pathway in mouse
 **Location:** `mouse_analysis_results/mouse_analysis_20260213_113905.json`
 
-### File S2: gRNA Sequence Library (FASTA)
-
-**Format:** FASTA
-**Size:** ~15 KB
-**Content:** 36 high-confidence gRNA sequences
-**Location:** `mouse_analysis_results/mouse_analysis_20260213_113905_grna_sequences.fasta`
-
-### File S3: Comprehensive Metrics (CSV)
+### File S2: Comprehensive Metrics (CSV)
 
 **Format:** CSV
 **Size:** ~85 KB
-**Content:** 27 columns of detailed metrics for each gene and gRNA
+**Content:** Detailed metrics for each gene
 **Location:** `mouse_analysis_results/mouse_analysis_20260213_113905_comprehensive.csv`
-
-### File S4: GenBank Export
-
-**Format:** GenBank
-**Size:** ~45 KB
-**Content:** Sequence annotations for visualization
-**Location:** `mouse_analysis_results/mouse_analysis_20260213_113905_sequences.gb`
 
 ---
 
@@ -409,31 +258,21 @@ Supplementary Information/
 ├── Supplementary Methods/
 │   ├── S1. API Documentation
 │   ├── S2. Evidence Code Reference
-│   ├── S3. Doench 2016 Weights
-│   ├── S4. CFD Penalty Matrix
-│   ├── S5. Test Coverage Report
-│   └── S6. Benchmark Results
+│   └── S3. Test Coverage Report
 ├── Supplementary Figures/
 │   ├── Figure S1: Pleiotropy Distribution
 │   ├── Figure S2: Lambda Optimization
 │   ├── Figure S3: Runtime Benchmarks
-│   ├── Figure S4: RAG ROC Curves
-│   ├── Figure S5: Quality Metrics
-│   └── Figure S6: Pathway Network
+│   └── Figure S4: RAG ROC Curves
 ├── Supplementary Tables/
 │   ├── Table S1: Evidence Codes
-│   ├── Table S2: Doench Weights
-│   ├── Table S3: CFD Matrix
-│   ├── Table S4: CFD Comparison
-│   ├── Table S5: Coverage Report
-│   ├── Table S6: RAG Validation
-│   ├── Table S7: Cross-Species
-│   └── Table S8: Benchmarks
+│   ├── Table S2: Coverage Report
+│   ├── Table S3: RAG Validation
+│   ├── Table S4: Cross-Species
+│   └── Table S5: Benchmarks
 └── Supplementary Data/
     ├── File S1: JSON Results
-    ├── File S2: FASTA Sequences
-    ├── File S3: CSV Metrics
-    └── File S4: GenBank
+    └── File S2: CSV Metrics
 ```
 
 ---

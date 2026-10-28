@@ -7,21 +7,11 @@ This document summarizes all the improvements made to the K-Sites web applicatio
 
 ## ✅ Implemented Features
 
-### 1. **Neo4j Pathway Analysis Integration**
-- **File**: `app.py`, `requirements.txt`
-- **Changes**:
-  - Added `neo4j==5.15.0` to requirements
-  - Check Neo4j availability on startup
-  - Show Neo4j warning if not available
-  - Enable pathway-aware off-target filtering when Neo4j is connected
-  - Added setup guide in Help page
-
-### 2. **Python Package Updates**
+### 1. **Python Package Updates**
 - **File**: `requirements.txt`
 - **Added packages**:
   - `Flask-Mail==0.9.1` - Email notifications
   - `Celery==5.3.4` & `Redis==5.0.1` - Task queue (prepared for future)
-  - `neo4j==5.15.0` - Graph database
   - `email-validator==2.1.0` - Email validation
 
 ### 3. **Hierarchical Organism Selection**
@@ -52,16 +42,11 @@ This document summarizes all the improvements made to the K-Sites web applicatio
     - Specificity Score
     - Composite Score
     - Evidence Quality
-    - Doench Score (On-target efficiency)
-    - CFD Off-target Score
     - Safety Level
-    - Pathway Conflict
     - RAG Phenotype Prediction
-    - GC Content
     - Cross-Species Conservation
   - Complete methodology walkthrough (8 steps)
   - FAQ section with 8 common questions
-  - Neo4j setup guide
   - Sticky navigation sidebar
 
 ### 6. **Enhanced Progress Tracking**
@@ -180,7 +165,6 @@ export MAIL_PASSWORD="your-app-password"
 ### 5. Access Help Documentation
 - Click "Help" in navigation bar
 - Learn about pleiotropy scores
-- Understand Doench scores
 - Read methodology explanation
 - View FAQ
 
@@ -230,11 +214,6 @@ export MAIL_SERVER="smtp.gmail.com"
 export MAIL_PORT=587
 export MAIL_USERNAME="your-email@gmail.com"
 export MAIL_PASSWORD="your-app-password"
-
-# Optional: Neo4j
-export K_SITES_NEO4J_URI="bolt://localhost:7687"
-export K_SITES_NEO4J_USER="neo4j"
-export K_SITES_NEO4J_PASSWORD="password"
 ```
 
 ---
@@ -248,7 +227,6 @@ export K_SITES_NEO4J_PASSWORD="password"
 | Progress Tracking | Status only | Steps + Progress bar + ETA |
 | Notifications | None | Email on submit/complete/fail |
 | Documentation | None | Comprehensive help page |
-| Neo4j Integration | Limited | Full pathway analysis |
 | Tagline | None | "Suite for Knock-out/down Studies" |
 
 ---
@@ -270,7 +248,6 @@ export K_SITES_NEO4J_PASSWORD="password"
 
 - All changes are backward compatible
 - Email is completely optional
-- Neo4j enhances but is not required
 - Tool works without any external services (just NCBI email)
 - Help content is easily extensible
 - Hierarchical data is easily extendable for new organisms/GO terms

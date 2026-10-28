@@ -1,7 +1,7 @@
 # K-Sites Feature Implementation Summary
 
 ## Overview
-The K-Sites CRISPR guide RNA design platform has been enhanced with comprehensive Non-Pleiotropic Gene Identification capabilities and advanced CRISPR gRNA design features.
+K-Sites is a non-pleiotropic gene-selection platform that helps scientists choose safe genes for knockout studies.
 
 ---
 
@@ -79,102 +79,8 @@ The K-Sites CRISPR guide RNA design platform has been enhanced with comprehensiv
 - **Files Generated**:
   - `*_comprehensive.csv` - All metrics
   - `*_gene_summary.csv` - Focused summary
-  - `*_grna_sequences.fasta` - Sequences
 
 ---
-
-## Module 2: CRISPR Guide RNA (gRNA) Design
-
-### A. PAM Site Identification
-
-#### Multi-Cas Support
-- **Cas Types Implemented**:
-  | Cas Type | PAM Pattern | Spacer Length |
-  |----------|-------------|---------------|
-  | SpCas9 | NGG | 20nt |
-  | SaCas9 | NNGRRT | 21nt |
-  | Cas12a | TTTV | 23nt |
-  | Cas9-NG | NG | 20nt |
-  | xCas9 | NG or GAA | 20nt |
-
-- **Module**: `k_sites/crispr_design/guide_designer.py`
-- **Class**: `CRISPRDesigner`
-- **Configuration**: `PAM_CONFIGS` dictionary
-
-#### Strand Scanning
-- Both forward (+) and reverse (-) strands analyzed
-- Reverse complement PAM detection
-- Proper guide extraction for each strand
-
-#### Quality Filtering
-- **GC Content**: 40-70% range, optimal 55%
-- **Poly-T Avoidance**: Detects 4+ T runs (premature termination)
-- **Repeat Detection**: Counts max repeat length
-- **Exon Annotation**: Maps guides to specific exons
-
-### B. On-Target Efficiency Scoring (Doench 2016)
-
-#### Position-Specific Nucleotide Preferences
-- **20 position-dependent weights** defined in `DOENCH_POSITION_WEIGHTS`
-- Each position has weights for A, T, G, C
-- Based on Doench et al. 2016, Nature Biotechnology
-
-#### GC Content Optimization
-- Optimal: 55% GC content
-- Penalty for deviation: `|GC - 0.55| * 0.5`
-- Enforced within 40-70% range
-
-#### Secondary Structure Prediction
-- Self-complementarity detection
-- Hairpin potential scoring
-- Penalty for potential secondary structures
-
-#### Composite Scoring
-- Score range: 0-1 (higher = better efficiency)
-- Minimum threshold: 0.3 (configurable)
-
-### C. Off-Target Prediction (CFD Algorithm)
-
-#### Position-Weighted Mismatch Scoring
-| Region | Positions | Penalty |
-|--------|-----------|---------|
-| Seed (PAM-proximal) | 17-20 | 90% |
-| Middle | 13-16 | 60% |
-| Distal | 8-12 | 40% |
-| 5' end | 1-7 | 20% |
-
-- **Higher penalty = less tolerance for mismatches**
-- Formula: `CFD_score = Π(1 - penalty_i)` for each mismatch
-
-#### PAM Quality Assessment
-| PAM | Quality |
-|-----|---------|
-| NGG | 1.0 (best) |
-| NGCG | 0.8 |
-| GAA | 0.7 |
-| NAG | 0.3 |
-| Unknown | 0.1 |
-
-#### Genomic Annotation
-- Chromosome location tracking
-- Gene name identification
-- Exon location mapping
-
-#### Severity Classification
-| CFD Score | Mismatches | Severity |
-|-----------|------------|----------|
-| >0.5 | ≤2 | CRITICAL |
-| >0.3 | ≤2 | HIGH |
-| >0.1 | ≤3 | MEDIUM |
-| <0.1 | >3 | LOW |
-
-#### Specificity Scoring
-- **Range**: 0-1 (higher = more specific)
-- Factors:
-  - Number of off-targets
-  - Off-target severity
-  - PAM quality bonus
-- Formula: `1.0 - count_penalty - severity_penalty + pam_bonus`
 
 ---
 
@@ -189,9 +95,6 @@ k_sites/
 │   └── go_gene_mapper.py         (Gene mapping)
 ├── gene_analysis/
 │   └── pleiotropy_scorer.py      (Scoring algorithms)
-├── crispr_design/
-│   ├── __init__.py               (Exports)
-│   └── guide_designer.py         (gRNA design - NEW)
 ├── reporting/
 │   ├── report_generator.py       (HTML reports)
 │   └── csv_export.py             (CSV export)
@@ -202,8 +105,7 @@ k_sites/
 | Module | Tests | Status |
 |--------|-------|--------|
 | Non-Pleiotropic | 13 | ✅ PASS |
-| CRISPR Design | 22 | ✅ PASS |
-| **Total** | **35** | **✅ ALL PASS** |
+| **Total** | **13** | **✅ ALL PASS** |
 
 ---
 
@@ -221,35 +123,9 @@ k-sites --go-term GO:0006281 --organism 9606 --predict-phenotypes
 k-sites --go-term-search "DNA repair" --organism "Homo sapiens"
 ```
 
-### CRISPR gRNA Design (Programmatic)
-```python
-from k_sites.crispr_design import CRISPRDesigner, CasType
-
-# Design with SpCas9
-designer = CRISPRDesigner(CasType.SPCAS9)
-guides = designer.design_guides(
-    gene_symbol="BRCA1",
-    taxid="9606",
-    gc_min=0.40,
-    gc_max=0.70,
-    avoid_poly_t=True
-)
-
-# Multi-Cas design
-from k_sites.crispr_design import design_guides_multi_cas
-
-all_guides = design_guides_multi_cas(
-    gene_symbol="BRCA1",
-    taxid="9606",
-    cas_types=[CasType.SPCAS9, CasType.SACAS9]
-)
-```
-
 ---
 
----
-
-## Module 3: RAG-Based Phenotype Prediction (ENHANCED)
+## Module 2: RAG-Based Phenotype Prediction (ENHANCED)
 
 ### A. Literature Mining
 
@@ -268,7 +144,6 @@ all_guides = design_guides_multi_cas(
 | `knockout` | Knockout, deletion, gene knockout studies |
 | `phenotype` | Phenotype reports, morphological changes |
 | `viability` | Viability, lethal, lethality, survival |
-| `crispr` | CRISPR, guide RNA, gene editing |
 | `compensatory` | Compensatory mechanisms, redundancy, paralogs |
 | `comprehensive` | All phenotype-related terms combined |
 
@@ -383,9 +258,6 @@ k_sites/
 │   └── go_gene_mapper.py         (Gene mapping)
 ├── gene_analysis/
 │   └── pleiotropy_scorer.py      (Scoring algorithms)
-├── crispr_design/
-│   ├── __init__.py               (Exports)
-│   └── guide_designer.py         (gRNA design)
 ├── rag_system/                   (NEW - RAG Phenotype Prediction)
 │   ├── __init__.py               (Exports)
 │   └── literature_context.py     (Full RAG implementation)
@@ -396,12 +268,11 @@ k_sites/
 ```
 
 ### Test Coverage
-| Module | Tests | Status |
-|--------|-------|--------|
-| Non-Pleiotropic | 13 | ✅ PASS |
-| CRISPR Design | 22 | ✅ PASS |
-| RAG Phenotype | 15 | ✅ PASS |
-| **Total** | **50** | **✅ ALL PASS** |
+| Module | Status |
+|--------|--------|
+| Non-Pleiotropic | ✅ PASS |
+| RAG Phenotype | ✅ PASS |
+| **Total** | **✅ ALL PASS** |
 
 ---
 
@@ -488,23 +359,9 @@ for gene, pubs in batch_results.items():
 - ✅ HTML visual indicators
 - ✅ CSV/Excel export
 
-### CRISPR gRNA Design
-- ✅ Multi-Cas support (5 types)
-- ✅ Strand scanning (both strands)
-- ✅ GC content optimization (40-70%, optimal 55%)
-- ✅ Poly-T avoidance
-- ✅ Repeat detection
-- ✅ Exon annotation
-- ✅ Doench 2016 (20 position weights)
-- ✅ CFD off-target (position-weighted)
-- ✅ PAM quality (NGG=1.0, NAG=0.3)
-- ✅ Genomic annotation
-- ✅ Severity (CRITICAL/HIGH/MEDIUM/LOW)
-- ✅ Specificity scoring (0-1)
-
 ### RAG-Based Phenotype Prediction
 - ✅ Real-time PubMed integration (NCBI Entrez)
-- ✅ Targeted searches (knockout, phenotype, viability, CRISPR, compensatory)
+- ✅ Targeted searches (knockout, phenotype, viability, compensatory)
 - ✅ Smart query construction (multiple strategies per gene)
 - ✅ Abstract retrieval (PubMed efetch)
 - ✅ Full-text retrieval (PMC Open Access)
@@ -530,12 +387,11 @@ for gene, pubs in batch_results.items():
 | Requirement | Status |
 |-------------|--------|
 | All Non-Pleiotropic features | ✅ COMPLETE |
-| All CRISPR Design features | ✅ COMPLETE |
 | All RAG Phenotype features | ✅ COMPLETE |
 | Literature Mining (A.1-A.5) | ✅ COMPLETE |
 | RAG System (B.1-B.6) | ✅ COMPLETE |
 | Phenotype Extraction (C.1-C.6) | ✅ COMPLETE |
-| Test coverage | ✅ 50/50 PASS |
+| Test coverage | ✅ PASS |
 | Documentation | ✅ UPDATED |
 | Pipeline Integration | ✅ ENABLED |
 

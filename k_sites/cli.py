@@ -244,19 +244,14 @@ Examples:
   # With RAG phenotype prediction and literature reports
   %(prog)s --go-term GO:0006281 --organism 9606 --output report.html --predict-phenotypes --rag-report
   
-  # Select specific databases
-  %(prog)s --go-term GO:0006281 --organism 9606 --output report.html --databases quickgo uniprot
-  
   # Search for GO terms
   %(prog)s --go-term-search "DNA repair" --organism "Homo sapiens" --output report.html
 
 Database Options (--databases):
   - quickgo:   Gene Ontology annotations (always used for GO term mapping)
   - uniprot:   Protein knowledgebase (protein function, domains)
-  - ncbi:      NCBI Entrez gene database (gene summaries)
-  - pubmed:    Literature support (PubMed citation counts)
   - kegg:      KEGG pathway database (pathway annotations)
-  - all:       Use all available databases (default)
+  - all:       Use all available databases (default; currently equivalent to quickgo uniprot kegg)
 
 Note:
   - Organism can be NCBI TaxID (e.g., 9606) or scientific name (e.g., "Homo sapiens")
@@ -350,9 +345,10 @@ Note:
     parser.add_argument(
         '--databases',
         nargs='+',
-        choices=['quickgo', 'uniprot', 'ncbi', 'pubmed', 'kegg', 'all'],
+        choices=['quickgo', 'uniprot', 'kegg', 'all'],
         default=['all'],
-        help='Select databases to query (default: all). Options: quickgo, uniprot, ncbi, pubmed, kegg, all'
+        help='Track which databases were intended for the query (default: all). Options: quickgo, uniprot, kegg, all. '
+             'Currently all runs use QuickGO, UniProt and KEGG regardless of this setting; it is recorded for metadata only.'
     )
     
     parser.add_argument(
