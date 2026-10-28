@@ -18,8 +18,6 @@ const KNOCKOUT_CONTEXTS = ['auto', 'cells', 'organism'];
 const DATABASES = [
     { id: 'quickgo', name: 'QuickGO', description: 'Gene Ontology annotations from EBI (always used)', enabled: true, required: true },
     { id: 'uniprot', name: 'UniProt', description: 'Protein knowledgebase with functional annotation', enabled: true, required: false },
-    { id: 'ncbi', name: 'NCBI Entrez', description: 'Gene and genome database', enabled: true, required: false },
-    { id: 'pubmed', name: 'PubMed', description: 'Literature mining for phenotype evidence', enabled: true, required: false },
     { id: 'kegg', name: 'KEGG', description: 'Pathway annotations (pathway count per gene)', enabled: true, required: false },
 ];
 

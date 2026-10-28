@@ -79,7 +79,7 @@ test('health, databases and the pickers answer like the Flask app', async () => 
     const { backend } = makeBackend();
 
     assert.equal((await call(backend, '/api/health')).body.mode, 'browser');
-    assert.deepEqual((await call(backend, '/api/databases')).body.databases.map((d) => d.id), ['quickgo', 'uniprot', 'ncbi', 'pubmed', 'kegg']);
+    assert.deepEqual((await call(backend, '/api/databases')).body.databases.map((d) => d.id), ['quickgo', 'uniprot', 'kegg']);
     assert.equal((await call(backend, '/api/organisms/kingdoms')).body.kingdoms.length, 5);
     assert.equal((await call(backend, '/api/go-terms/categories')).body.categories.length, 3);
 

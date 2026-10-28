@@ -601,20 +601,6 @@ def get_databases():
             'required': False
         },
         {
-            'id': 'ncbi',
-            'name': 'NCBI Entrez',
-            'description': 'Gene and genome database',
-            'enabled': True,
-            'required': False
-        },
-        {
-            'id': 'pubmed',
-            'name': 'PubMed',
-            'description': 'Literature mining for phenotype evidence',
-            'enabled': True,
-            'required': False
-        },
-        {
             'id': 'kegg',
             'name': 'KEGG',
             'description': 'Pathway annotations (pathway count per gene)',

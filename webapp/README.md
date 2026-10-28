@@ -24,7 +24,7 @@ A web interface for K-Sites, a tool that helps scientists pick a safe gene for k
 3. **Direct Entry**: Option to enter GO:XXXXXXX ID directly
 
 ### 📊 Advanced Analysis Features
-- **Multi-Database Evidence**: GO, UniProt, KEGG and PubMed data per gene
+- **Multi-Database Evidence**: GO (QuickGO), UniProt and KEGG data per gene; PubMed is used only when RAG phenotype prediction is enabled
 - **RAG Phenotype Prediction**: AI-powered literature-based phenotype prediction
 - **Smart Gene Limiting**: Real-time gene count validation with suggestions
 - **Email Notifications**: Get notified when analysis starts and completes
@@ -88,7 +88,7 @@ export MAIL_PORT=587
    - Click category (e.g., "Biological Process")
    - Filter to find term (e.g., "DNA repair")
    - Or enter GO:0006281 directly
-4. **Choose Databases**: QuickGO is always used; add UniProt, NCBI, PubMed, KEGG as needed
+4. **Choose Databases**: QuickGO is always used; add UniProt and KEGG as needed
 5. **Set Parameters**:
    - Max genes: 10-50 (lower = faster)
    - Max pleiotropy: 0-10 cutoff on the pleiotropy score (lower = only more specific genes)
