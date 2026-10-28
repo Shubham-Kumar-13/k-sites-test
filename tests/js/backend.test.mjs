@@ -411,6 +411,64 @@ test('the phenotype model is only loaded for genes without a measured result', a
     assert.ok(allMeasured.genes.length > 0);
 });
 
+/** Adds an uncharacterized gene to the GO:0006284 annotation list and mocks its database lookups. */
+function fetchWithUncharacterized(baseFetch) {
+    return async (url) => {
+        const u = new URL(url);
+        if (u.host === 'www.ebi.ac.uk' && u.pathname.includes('/annotation/search') && u.searchParams.get('goId') === 'GO:0006284') {
+            const baseResp = await baseFetch(url);
+            const base = JSON.parse(await baseResp.text());
+            base.results.push({
+                symbol: 'UNCHARDUMMY',
+                geneProductId: 'UniProtKB:Q00000',
+                goEvidence: 'IDA',
+                qualifier: 'involved_in',
+                name: 'Uncharacterized protein UNCHARDUMMY',
+            });
+            base.numberOfHits = base.results.length;
+            return { status: 200, text: async () => JSON.stringify(base), headers: { get: () => null } };
+        }
+        if (u.host === 'rest.uniprot.org' && u.searchParams.get('query')?.includes('gene:UNCHARDUMMY')) {
+            return { status: 200, text: async () => JSON.stringify({ results: [{ primaryAccession: 'Q00000' }] }), headers: { get: () => null } };
+        }
+        if (u.host === 'www.ebi.ac.uk' && u.searchParams.get('geneProductId') === 'Q00000') {
+            return { status: 200, text: async () => JSON.stringify({ numberOfHits: 1, results: [{
+                goId: 'GO:0006284', goEvidence: 'IDA', goAspect: 'biological_process', goName: 'base-excision repair', qualifier: 'involved_in',
+            }] }), headers: { get: () => null } };
+        }
+        return baseFetch(url);
+    };
+}
+
+test('an uncharacterized gene with no measured data and no literature is moved to insufficient data', async () => {
+    const baseProvider = evidenceProvider();
+    const provider = new EvidenceProvider(async (name) => {
+        const data = await baseProvider.readJson(name);
+        if (name === '9606.json') {
+            data.genes = { ...data.genes, UNCHARDUMMY: { lc: 0, cv: 0 } };
+        }
+        return data;
+    });
+    const { backend } = makeBackend({
+        evidenceProvider: provider,
+        http: offlineClient(fetchWithUncharacterized(fetchForSixGenes([])), { cache: null }),
+    });
+
+    const started = (await post(backend, '/api/analyze/start', JOB)).body;
+    const finished = await waitFor(async () => {
+        const status = (await call(backend, `/api/jobs/${started.job_id}/status`)).body;
+        return ['completed', 'failed'].includes(status.status) ? status : null;
+    });
+    assert.equal(finished.status, 'completed', finished.error_message);
+    const results = (await call(backend, `/api/jobs/${started.job_id}/results`)).body.results;
+
+    const unchar = results.insufficient_data_genes.find((g) => g.symbol === 'UNCHARDUMMY');
+    const scored = results.genes.find((g) => g.symbol === 'UNCHARDUMMY');
+    assert.ok(unchar, 'UNCHARDUMMY should be in insufficient data');
+    assert.ok(unchar.reasons.some((r) => /No measured knockout data, no literature, and no functional description/.test(r)));
+    assert.ok(!scored, 'UNCHARDUMMY should not be scored');
+});
+
 test('if the evidence files cannot be read the job still runs, says so, and rates nothing better than CAUTION', async () => {
     const broken = new EvidenceProvider(async () => { throw new Error('HTTP 404'); });
     const { backend } = makeBackend({ evidenceProvider: broken });

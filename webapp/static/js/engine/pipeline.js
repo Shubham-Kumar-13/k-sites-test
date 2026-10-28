@@ -19,6 +19,13 @@ export const DEFAULT_SPECIES_VALIDATION = ['9606', '10090', '10116', '7227', '62
 /** Genes are listed safest first. */
 export const SAFETY_TIER = { SAFE: 0, CAUTION: 1, MODERATE_CONCERN: 2, HIGH_CONCERN: 3, AVOID: 4 };
 
+/** A gene with no functional description is not a useful recommendation target. */
+function hasNoFunctionalDescription(description) {
+    if (!description || !description.trim()) return true;
+    const lower = description.toLowerCase();
+    return lower.includes('uncharacterized') || lower.includes('hypothetical') || lower.includes('unknown function');
+}
+
 /**
  * @param ctx   { http, keggProvider, ncbiApiKey, ncbiEmail,
  *                evidenceProvider?  (measured knockout data; none = verdicts rest on annotations alone),
@@ -182,6 +189,21 @@ export async function runKSitesPipeline(ctx, opts) {
                     pleiotropy_score: pleiotropy,
                     composite_score: geneInfo.composite_score ?? null,
                     knockout_evidence: evidence,
+                });
+                continue;
+            }
+
+            // Genes with no measured data, no literature, and no functional description are not scored.
+            // They would otherwise be reported as CAUTION with no real evidence, which is misleading.
+            const noMeasuredData = !evidence || !evidence.has_measured;
+            const noLiterature = !geneInfo.pubmed_count || geneInfo.pubmed_count === 0;
+            if (noMeasuredData && noLiterature && hasNoFunctionalDescription(geneInfo.description)) {
+                log(`Moving ${symbol} to insufficient data (uncharacterized)`);
+                insufficient.push({
+                    symbol,
+                    description: geneInfo.description || '',
+                    data_issues: ['No measured knockout data, no literature, and no functional description'],
+                    lookup_failed: false,
                 });
                 continue;
             }
