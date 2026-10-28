@@ -3,8 +3,11 @@
 Build the static K-Sites website for GitHub Pages.
 
 The pages are rendered from the same Flask templates the local app uses, so there is one
-source for the interface. The result talks to the K-Sites backend (hosted elsewhere, for
-example a Hugging Face Space) through the address given with --api-base.
+source for the interface.
+
+By default the analysis runs in each visitor's browser, so no separate backend is required.
+Use --api-base only when you want the pages to call a remote Flask backend (for example a
+lab server or a hosted Hugging Face Space).
 
     python tools/build_static_site.py --out site                                  # analysis in the browser
     python tools/build_static_site.py --api-base https://your-space.hf.space --out site   # separate backend
