@@ -498,27 +498,28 @@ function initializeEventListeners() {
         });
     });
 
-    // Show the optional LLM key fields only when phenotype prediction is enabled
-    const llmProviderSelect = document.getElementById('llm_provider');
+    // RAG phenotype prediction: slide-out card, brain icon highlight, provider flow
+    const llmProviderInput = document.getElementById('llm_provider');
     const llmApiKeyInput = document.getElementById('llm_api_key');
-    if (llmProviderSelect) {
-        const savedProvider = localStorage.getItem('ksites.llmProvider');
-        if (savedProvider) llmProviderSelect.value = savedProvider;
-        llmProviderSelect.addEventListener('change', function () {
-            localStorage.setItem('ksites.llmProvider', this.value);
-            updateLlmKeyPlaceholder(this.value);
-        });
-    }
-    if (llmApiKeyInput) {
-        llmApiKeyInput.addEventListener('change', function () {
-            // We intentionally do not persist the key across sessions.
-            updateLlmKeyPlaceholder(llmProviderSelect?.value || 'kimi');
-        });
+    const brainIcon = document.getElementById('ragBrainIcon');
+    const llmKeySection = document.getElementById('llmKeySection');
+    const savedProvider = localStorage.getItem('ksites.llmProvider');
+    if (savedProvider && llmProviderInput) {
+        llmProviderInput.value = savedProvider;
+        selectLlmProvider(savedProvider, false);
     }
     document.getElementById('predict_phenotypes')?.addEventListener('change', function () {
+        if (brainIcon) brainIcon.classList.toggle('active', this.checked);
         const section = document.getElementById('llmKeySection');
-        if (section) section.classList.toggle('d-none', !this.checked);
-        if (this.checked) updateLlmKeyPlaceholder(llmProviderSelect?.value || 'kimi');
+        if (section) {
+            if (this.checked) {
+                const bsCollapse = bootstrap.Collapse.getOrCreateInstance(section, { toggle: false });
+                bsCollapse.show();
+            } else {
+                const bsCollapse = bootstrap.Collapse.getInstance(section);
+                if (bsCollapse) bsCollapse.hide();
+            }
+        }
     });
     
     // Show every gene of the GO term in the report (the limit is 500)
@@ -662,6 +663,15 @@ async function handleFormSubmit(e) {
     }
 }
 
+const LLM_PROVIDER_NAMES = {
+    kimi: 'Kimi (Moonshot)',
+    openai: 'OpenAI',
+    anthropic: 'Anthropic',
+    qwen: 'Qwen (Alibaba)',
+    deepseek: 'DeepSeek',
+    grok: 'Grok (xAI)',
+};
+
 function updateLlmKeyPlaceholder(provider) {
     const input = document.getElementById('llm_api_key');
     if (!input) return;
@@ -674,6 +684,39 @@ function updateLlmKeyPlaceholder(provider) {
         grok: 'xai-...',
     };
     input.placeholder = placeholders[provider] || 'Paste your provider API key here';
+}
+
+function toggleLlmProviderPanel() {
+    const options = document.getElementById('llmProviderOptions');
+    const trigger = document.getElementById('llmProviderTrigger');
+    if (!options || !trigger) return;
+    const isOpen = !options.classList.contains('d-none');
+    options.classList.toggle('d-none', isOpen);
+    trigger.classList.toggle('open', !isOpen);
+}
+
+function selectLlmProvider(provider, save = true) {
+    const input = document.getElementById('llm_provider');
+    const triggerText = document.getElementById('llmProviderTriggerText');
+    const apiKeyWrapper = document.getElementById('llmApiKeyWrapper');
+    const selectedName = document.getElementById('llmSelectedProviderName');
+    if (input) input.value = provider;
+    if (triggerText) triggerText.textContent = LLM_PROVIDER_NAMES[provider] || 'Select API key';
+    if (selectedName) selectedName.textContent = LLM_PROVIDER_NAMES[provider] || provider;
+
+    document.querySelectorAll('.provider-option').forEach((card) => {
+        card.classList.toggle('selected', card.dataset.provider === provider);
+    });
+
+    // Hide the provider grid and show the API key field
+    const options = document.getElementById('llmProviderOptions');
+    const trigger = document.getElementById('llmProviderTrigger');
+    if (options) options.classList.add('d-none');
+    if (trigger) trigger.classList.remove('open');
+    if (apiKeyWrapper) apiKeyWrapper.classList.remove('d-none');
+
+    updateLlmKeyPlaceholder(provider);
+    if (save) localStorage.setItem('ksites.llmProvider', provider);
 }
 
 function collectFormData() {
