@@ -506,7 +506,7 @@ function initializeEventListeners() {
     // Start with no provider selected; the user must explicitly choose one to reveal the key field.
     if (llmProviderInput) llmProviderInput.value = 'kimi';
     const triggerText = document.getElementById('llmProviderTriggerText');
-    if (triggerText) triggerText.textContent = 'Select API key';
+    if (triggerText) triggerText.textContent = 'Pick a model to read abstracts';
     document.getElementById('predict_phenotypes')?.addEventListener('change', function () {
         if (brainIcon) {
             brainIcon.classList.toggle('active', this.checked);
