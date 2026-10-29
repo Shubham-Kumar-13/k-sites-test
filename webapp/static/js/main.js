@@ -47,7 +47,7 @@ function renderKingdoms(kingdoms) {
     const container = document.getElementById('kingdomContainer');
     
     container.innerHTML = kingdoms.map(k => `
-        <div class="col-md-4 col-lg-3">
+        <div class="col-6 col-md-4 col-lg">
             <div class="card kingdom-card h-100 cursor-pointer" 
                  data-kingdom="${k.name}" 
                  onclick="selectKingdom('${k.name}')"
