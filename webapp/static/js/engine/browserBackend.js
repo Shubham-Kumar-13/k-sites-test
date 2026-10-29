@@ -5,6 +5,7 @@
 
 import { HttpClient } from './http.js';
 import { createEvidenceProvider } from './knockoutEvidence.js';
+import { HybridPhenotypePredictor } from './hybridPredictor.js';
 import { LocalBackend } from './localApi.js';
 import { RagPhenotypePredictor, createTransformersEmbedder } from './rag.js';
 import { openStore } from './store.js';
@@ -51,13 +52,23 @@ export async function createBrowserBackend({ siteBase, keggBase, evidenceBase })
             if (!response.ok) throw new Error(`organisms.json: HTTP ${response.status}`);
             return response.json();
         },
-        async createPredictor(onStatus) {
-            const embedder = await createTransformersEmbedder(() => import(TRANSFORMERS_URL), { onStatus });
-            return new RagPhenotypePredictor({
+        async createPredictor({ onStatus, kimiApiKey }) {
+            const miniLmFactory = async () => {
+                const embedder = await createTransformersEmbedder(() => import(TRANSFORMERS_URL), { onStatus });
+                return new RagPhenotypePredictor({
+                    http,
+                    embedder,
+                    parseXml: (text) => new DOMParser().parseFromString(text, 'text/xml'),
+                    ncbiApiKey: localStorage.getItem('ksites.ncbiApiKey') || '',
+                });
+            };
+            return new HybridPhenotypePredictor({
+                miniLmFactory,
                 http,
-                embedder,
                 parseXml: (text) => new DOMParser().parseFromString(text, 'text/xml'),
                 ncbiApiKey: localStorage.getItem('ksites.ncbiApiKey') || '',
+                kimiApiKey,
+                onStatus,
             });
         },
         getNcbiApiKey: () => { try { return localStorage.getItem('ksites.ncbiApiKey') || ''; } catch (e) { return ''; } },

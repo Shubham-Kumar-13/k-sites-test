@@ -497,6 +497,12 @@ function initializeEventListeners() {
             geneCountCheckTimeout = setTimeout(checkGeneCount, 500);
         });
     });
+
+    // Show the optional Kimi key field only when phenotype prediction is enabled
+    document.getElementById('predict_phenotypes')?.addEventListener('change', function () {
+        const section = document.getElementById('kimiKeySection');
+        if (section) section.classList.toggle('d-none', !this.checked);
+    });
     
     // Show every gene of the GO term in the report (the limit is 500)
     document.getElementById('showAllGenes')?.addEventListener('click', () => {
@@ -655,6 +661,7 @@ function collectFormData() {
         evidence_filter: document.getElementById('evidence_filter').value,
         knockout_context: document.getElementById('knockout_context')?.value || 'auto',
         predict_phenotypes: document.getElementById('predict_phenotypes').checked,
+        kimi_api_key: document.getElementById('kimi_api_key')?.value?.trim() || '',
         databases: selectedDatabases
     };
 }
