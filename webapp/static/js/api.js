@@ -191,15 +191,6 @@
         // the user-information step is gone, so the steps are numbered from 1 again
         document.querySelectorAll('.step-number').forEach(function (el, i) { el.textContent = String(i + 1); });
 
-        const row = document.getElementById('ncbiKeyRow');
-        const input = document.getElementById('ncbi_api_key');
-        if (row && input) {
-            row.style.display = '';
-            try { input.value = localStorage.getItem('ksites.ncbiApiKey') || ''; } catch (e) { /* not available */ }
-            input.addEventListener('change', function () {
-                try { localStorage.setItem('ksites.ncbiApiKey', input.value.trim()); } catch (e) { /* not available */ }
-            });
-        }
         const notes = document.querySelectorAll('[data-hosted-note]');
         notes.forEach(function (note) { note.style.display = ''; });
     }

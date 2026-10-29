@@ -59,20 +59,20 @@ export async function createBrowserBackend({ siteBase, keggBase, evidenceBase })
                     http,
                     embedder,
                     parseXml: (text) => new DOMParser().parseFromString(text, 'text/xml'),
-                    ncbiApiKey: localStorage.getItem('ksites.ncbiApiKey') || '',
+                    ncbiApiKey: '',
                 });
             };
             return new HybridPhenotypePredictor({
                 miniLmFactory,
                 http,
                 parseXml: (text) => new DOMParser().parseFromString(text, 'text/xml'),
-                ncbiApiKey: localStorage.getItem('ksites.ncbiApiKey') || '',
+                ncbiApiKey: '',
                 llmProvider,
                 llmApiKey,
                 onStatus,
             });
         },
-        getNcbiApiKey: () => { try { return localStorage.getItem('ksites.ncbiApiKey') || ''; } catch (e) { return ''; } },
+        getNcbiApiKey: () => '',
         locks: typeof navigator !== 'undefined' ? navigator.locks || null : null,
         now: () => Date.now(),
         newId: () => (globalThis.crypto && crypto.randomUUID ? crypto.randomUUID() : `job-${Date.now()}-${Math.random().toString(16).slice(2)}`),
