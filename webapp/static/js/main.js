@@ -698,10 +698,13 @@ function updateLlmKeyPlaceholder(provider) {
 function toggleLlmProviderPanel() {
     const options = document.getElementById('llmProviderOptions');
     const trigger = document.getElementById('llmProviderTrigger');
+    const apiKeyWrapper = document.getElementById('llmApiKeyWrapper');
     if (!options || !trigger) return;
     const isOpen = !options.classList.contains('d-none');
     options.classList.toggle('d-none', isOpen);
     trigger.classList.toggle('open', !isOpen);
+    // Hide the key field while the user is choosing a provider; it reappears after selection.
+    if (!isOpen && apiKeyWrapper) apiKeyWrapper.classList.add('d-none');
 }
 
 function selectLlmProvider(provider, save = true) {

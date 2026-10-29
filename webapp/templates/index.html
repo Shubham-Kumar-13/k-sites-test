@@ -327,111 +327,105 @@
 
                     <div class="row">
                         <div class="col-12 mb-3">
-                            <div class="row g-3 align-items-start">
-                                <div class="col-lg-6">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="predict_phenotypes" name="predict_phenotypes">
-                                        <label class="form-check-label" for="predict_phenotypes">
-                                            <i class="fas fa-brain me-2" id="ragBrainIcon"></i>Enable RAG Phenotype Prediction
-                                            <span class="badge bg-secondary ms-2 fw-normal">Optional</span>
-                                            <a href="/help#phenotype_prediction" class="text-decoration-none" target="_blank"
-                                               title="When to use, limitations, and the optional API key">
-                                                <i class="fas fa-question-circle text-muted"></i>
-                                            </a>
-                                        </label>
-                                    </div>
-                                    <div class="form-text">
-                                        Guess phenotypes from PubMed abstracts for unmeasured genes only. Each unmeasured gene takes about 1 minute to read and is capped at 25 genes per run to keep the analysis manageable. Literature-derived predictions are advisory only and do not elevate the overall recommendation above CAUTION.
-                                    </div>
-                                </div>
-                                <div class="col-lg-6">
-                                    <div id="llmKeySection" class="collapse">
-                                        <div class="card llm-key-card">
-                                            <div class="card-body">
-                                                <h6 class="card-title mb-3">
-                                                    <i class="fas fa-key me-2"></i>Enhance with a hosted AI model
-                                                </h6>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="predict_phenotypes" name="predict_phenotypes">
+                                <label class="form-check-label" for="predict_phenotypes">
+                                    <i class="fas fa-brain me-2" id="ragBrainIcon"></i>Enable RAG Phenotype Prediction
+                                    <span class="badge bg-secondary ms-2 fw-normal">Optional</span>
+                                    <a href="/help#phenotype_prediction" class="text-decoration-none" target="_blank"
+                                       title="When to use, limitations, and the optional API key">
+                                        <i class="fas fa-question-circle text-muted"></i>
+                                    </a>
+                                </label>
+                            </div>
+                            <div class="form-text">
+                                Guess phenotypes from PubMed abstracts for unmeasured genes only. Each unmeasured gene takes about 1 minute to read and is capped at 25 genes per run to keep the analysis manageable. Literature-derived predictions are advisory only and do not elevate the overall recommendation above CAUTION.
+                            </div>
+                            <div id="llmKeySection" class="collapse mt-3">
+                                <div class="card llm-key-card">
+                                    <div class="card-body">
+                                        <h6 class="card-title mb-3">
+                                            <i class="fas fa-key me-2"></i>Enhance with a hosted AI model
+                                        </h6>
 
-                                                <input type="hidden" id="llm_provider" name="llm_provider" value="kimi">
+                                        <input type="hidden" id="llm_provider" name="llm_provider" value="kimi">
 
-                                                <!-- Step 1: open the provider list -->
-                                                <div id="llmProviderTrigger" class="llm-provider-trigger"
-                                                     onclick="toggleLlmProviderPanel()">
-                                                    <span id="llmProviderTriggerText">Select API key</span>
-                                                    <i class="fas fa-chevron-down" id="llmProviderTriggerIcon"></i>
-                                                </div>
+                                        <!-- Step 1: open the provider list -->
+                                        <div id="llmProviderTrigger" class="llm-provider-trigger"
+                                             onclick="toggleLlmProviderPanel()">
+                                            <span id="llmProviderTriggerText">Select API key</span>
+                                            <i class="fas fa-chevron-down" id="llmProviderTriggerIcon"></i>
+                                        </div>
 
-                                                <!-- Step 2: choose a provider -->
-                                                <div id="llmProviderOptions" class="d-none mt-2">
-                                                    <div class="row g-2">
-                                                        <div class="col-6 col-md-4 col-lg-6">
-                                                            <div class="card provider-option h-100" data-provider="kimi" onclick="selectLlmProvider('kimi')">
-                                                                <div class="card-body text-center py-2">
-                                                                    <strong>Kimi</strong>
-                                                                    <div class="small text-muted">Moonshot</div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-6 col-md-4 col-lg-6">
-                                                            <div class="card provider-option h-100" data-provider="openai" onclick="selectLlmProvider('openai')">
-                                                                <div class="card-body text-center py-2">
-                                                                    <strong>OpenAI</strong>
-                                                                    <div class="small text-muted">GPT</div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-6 col-md-4 col-lg-6">
-                                                            <div class="card provider-option h-100" data-provider="anthropic" onclick="selectLlmProvider('anthropic')">
-                                                                <div class="card-body text-center py-2">
-                                                                    <strong>Anthropic</strong>
-                                                                    <div class="small text-muted">Claude</div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-6 col-md-4 col-lg-6">
-                                                            <div class="card provider-option h-100" data-provider="qwen" onclick="selectLlmProvider('qwen')">
-                                                                <div class="card-body text-center py-2">
-                                                                    <strong>Qwen</strong>
-                                                                    <div class="small text-muted">Alibaba</div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-6 col-md-4 col-lg-6">
-                                                            <div class="card provider-option h-100" data-provider="deepseek" onclick="selectLlmProvider('deepseek')">
-                                                                <div class="card-body text-center py-2">
-                                                                    <strong>DeepSeek</strong>
-                                                                    <div class="small text-muted">Chat</div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-6 col-md-4 col-lg-6">
-                                                            <div class="card provider-option h-100" data-provider="grok" onclick="selectLlmProvider('grok')">
-                                                                <div class="card-body text-center py-2">
-                                                                    <strong>Grok</strong>
-                                                                    <div class="small text-muted">xAI</div>
-                                                                </div>
-                                                            </div>
+                                        <!-- Step 2: choose a provider -->
+                                        <div id="llmProviderOptions" class="d-none mt-2">
+                                            <div class="row g-2">
+                                                <div class="col-6 col-md-4">
+                                                    <div class="card provider-option h-100" data-provider="kimi" onclick="selectLlmProvider('kimi')">
+                                                        <div class="card-body text-center py-2">
+                                                            <strong>Kimi</strong>
+                                                            <div class="small text-muted">Moonshot</div>
                                                         </div>
                                                     </div>
                                                 </div>
-
-                                                <!-- Step 3: paste the key -->
-                                                <div id="llmApiKeyWrapper" class="mt-3 d-none">
-                                                    <label for="llm_api_key" class="form-label small text-muted mb-1">
-                                                        API key for <span id="llmSelectedProviderName">Kimi (Moonshot)</span>
-                                                    </label>
-                                                    <input type="password" class="form-control" id="llm_api_key" name="llm_api_key"
-                                                           placeholder="sk-..." autocomplete="off">
+                                                <div class="col-6 col-md-4">
+                                                    <div class="card provider-option h-100" data-provider="openai" onclick="selectLlmProvider('openai')">
+                                                        <div class="card-body text-center py-2">
+                                                            <strong>OpenAI</strong>
+                                                            <div class="small text-muted">GPT</div>
+                                                        </div>
+                                                    </div>
                                                 </div>
-
-                                                <div class="form-text mt-2">
-                                                    Paste your own API key for the selected provider to let a larger language model read the abstracts.
-                                                    This improves accuracy (better negation handling, context understanding, and conflict resolution) compared with the default free browser model.
-                                                    If the field is left blank, or if the API fails, K-Sites automatically uses the default browser-based model instead.
-                                                    The key is used only in this browser and is never sent to our server.
-                                                    <a href="/help#phenotype_prediction" target="_blank">How to get an API key</a>.
+                                                <div class="col-6 col-md-4">
+                                                    <div class="card provider-option h-100" data-provider="anthropic" onclick="selectLlmProvider('anthropic')">
+                                                        <div class="card-body text-center py-2">
+                                                            <strong>Anthropic</strong>
+                                                            <div class="small text-muted">Claude</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6 col-md-4">
+                                                    <div class="card provider-option h-100" data-provider="qwen" onclick="selectLlmProvider('qwen')">
+                                                        <div class="card-body text-center py-2">
+                                                            <strong>Qwen</strong>
+                                                            <div class="small text-muted">Alibaba</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6 col-md-4">
+                                                    <div class="card provider-option h-100" data-provider="deepseek" onclick="selectLlmProvider('deepseek')">
+                                                        <div class="card-body text-center py-2">
+                                                            <strong>DeepSeek</strong>
+                                                            <div class="small text-muted">Chat</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6 col-md-4">
+                                                    <div class="card provider-option h-100" data-provider="grok" onclick="selectLlmProvider('grok')">
+                                                        <div class="card-body text-center py-2">
+                                                            <strong>Grok</strong>
+                                                            <div class="small text-muted">xAI</div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
+                                        </div>
+
+                                        <!-- Step 3: paste the key (appears only after a provider is selected) -->
+                                        <div id="llmApiKeyWrapper" class="mt-3 d-none">
+                                            <label for="llm_api_key" class="form-label small text-muted mb-1">
+                                                API key for <span id="llmSelectedProviderName">Kimi (Moonshot)</span>
+                                            </label>
+                                            <input type="password" class="form-control" id="llm_api_key" name="llm_api_key"
+                                                   placeholder="sk-..." autocomplete="off">
+                                        </div>
+
+                                        <div class="form-text mt-2">
+                                            Paste your own API key for the selected provider to let a larger language model read the abstracts.
+                                            This improves accuracy (better negation handling, context understanding, and conflict resolution) compared with the default free browser model.
+                                            If the field is left blank, or if the API fails, K-Sites automatically uses the default browser-based model instead.
+                                            The key is used only in this browser and is never sent to our server.
+                                            <a href="/help#phenotype_prediction" target="_blank">How to get an API key</a>.
                                         </div>
                                     </div>
                                 </div>
