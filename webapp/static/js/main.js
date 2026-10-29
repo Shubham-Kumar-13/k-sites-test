@@ -46,20 +46,24 @@ async function loadKingdoms() {
 function renderKingdoms(kingdoms) {
     const container = document.getElementById('kingdomContainer');
     
-    container.innerHTML = kingdoms.map(k => `
+    container.innerHTML = kingdoms.map(k => {
+        const icon = k.svg
+            ? `<svg viewBox="0 0 512 512" class="mb-2 text-primary" style="width:2em;height:2em;fill:currentColor;">${k.svg}</svg>`
+            : `<i class="fas ${k.icon} fa-2x mb-2 text-primary"></i>`;
+        return `
         <div class="col-6 col-md-4 col-lg">
             <div class="card kingdom-card h-100 cursor-pointer" 
                  data-kingdom="${k.name}" 
                  onclick="selectKingdom('${k.name}')"
                  style="cursor: pointer; transition: all 0.2s;">
                 <div class="card-body text-center">
-                    <i class="fas ${k.icon} fa-2x mb-2 text-primary"></i>
+                    ${icon}
                     <h6 class="card-title mb-1">${k.name}</h6>
                     <p class="card-text small text-muted mb-0">${k.description}</p>
                 </div>
             </div>
         </div>
-    `).join('');
+    `}).join('');
 }
 
 async function selectKingdom(kingdom) {

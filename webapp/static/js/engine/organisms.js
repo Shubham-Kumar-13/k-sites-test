@@ -8,7 +8,7 @@ export const KINGDOMS = [
     { name: 'Animals', icon: 'fa-paw', description: 'Metazoans - multicellular animals' },
     { name: 'Plants', icon: 'fa-leaf', description: 'Viridiplantae - green plants' },
     { name: 'Microbes', icon: 'fa-bacterium', description: 'Bacteria, Archaea, and single-celled Eukaryotes' },
-    { name: 'Fungi', icon: 'fa-mushroom', description: 'Fungi - yeasts, molds, mushrooms' },
+    { name: 'Fungi', icon: 'fa-mushroom', description: 'Fungi - yeasts, molds, mushrooms', svg: '<path d="M256 48c-90 0-160 62-160 144 0 26 10 50 26 68h268c16-18 26-42 26-68 0-82-70-144-160-144zm-80 224v160c0 26 21 48 48 48h64c26 0 48-21 48-48V272H176z"/>' },
     { name: 'Other Eukaryotes', icon: 'fa-dna', description: 'Protists and other eukaryotic organisms' },
 ];
 
