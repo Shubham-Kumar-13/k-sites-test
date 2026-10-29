@@ -509,7 +509,16 @@ function initializeEventListeners() {
         selectLlmProvider(savedProvider, false);
     }
     document.getElementById('predict_phenotypes')?.addEventListener('change', function () {
-        if (brainIcon) brainIcon.classList.toggle('active', this.checked);
+        if (brainIcon) {
+            brainIcon.classList.toggle('active', this.checked);
+            if (this.checked) {
+                brainIcon.classList.remove('pop');
+                // force reflow so the animation can be re-triggered
+                void brainIcon.offsetWidth;
+                brainIcon.classList.add('pop');
+                setTimeout(() => brainIcon.classList.remove('pop'), 350);
+            }
+        }
         const section = document.getElementById('llmKeySection');
         if (section) {
             if (this.checked) {
