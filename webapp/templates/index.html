@@ -304,8 +304,10 @@
                                 <strong>Computational:</strong> only predicted roles.<br>
                                 <strong>All:</strong> every known role (most cautious about pleiotropy).
                             </div>
+                        </div>
 
-                            <label for="knockout_context" class="form-label mt-3">
+                        <div class="col-md-6 mb-3">
+                            <label for="knockout_context" class="form-label">
                                 <i class="fas fa-flask me-2"></i>What will you knock out?
                                 <a href="/help#knockout_context" class="text-decoration-none" target="_blank">
                                     <i class="fas fa-question-circle text-muted"></i>
@@ -321,9 +323,11 @@
                                 knockout survival (MGI, IMPC, SGD, ZFIN, FlyBase, WormBase). Both are shown for every gene.
                             </div>
                         </div>
+                    </div>
 
-                        <div class="col-md-6 mb-3">
-                            <div class="form-check form-switch mt-2">
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="predict_phenotypes" name="predict_phenotypes">
                                 <label class="form-check-label" for="predict_phenotypes">
                                     <i class="fas fa-brain me-2"></i>Enable RAG Phenotype Prediction
