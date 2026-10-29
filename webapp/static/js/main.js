@@ -498,10 +498,27 @@ function initializeEventListeners() {
         });
     });
 
-    // Show the optional Kimi key field only when phenotype prediction is enabled
+    // Show the optional LLM key fields only when phenotype prediction is enabled
+    const llmProviderSelect = document.getElementById('llm_provider');
+    const llmApiKeyInput = document.getElementById('llm_api_key');
+    if (llmProviderSelect) {
+        const savedProvider = localStorage.getItem('ksites.llmProvider');
+        if (savedProvider) llmProviderSelect.value = savedProvider;
+        llmProviderSelect.addEventListener('change', function () {
+            localStorage.setItem('ksites.llmProvider', this.value);
+            updateLlmKeyPlaceholder(this.value);
+        });
+    }
+    if (llmApiKeyInput) {
+        llmApiKeyInput.addEventListener('change', function () {
+            // We intentionally do not persist the key across sessions.
+            updateLlmKeyPlaceholder(llmProviderSelect?.value || 'kimi');
+        });
+    }
     document.getElementById('predict_phenotypes')?.addEventListener('change', function () {
-        const section = document.getElementById('kimiKeySection');
+        const section = document.getElementById('llmKeySection');
         if (section) section.classList.toggle('d-none', !this.checked);
+        if (this.checked) updateLlmKeyPlaceholder(llmProviderSelect?.value || 'kimi');
     });
     
     // Show every gene of the GO term in the report (the limit is 500)
@@ -645,6 +662,20 @@ async function handleFormSubmit(e) {
     }
 }
 
+function updateLlmKeyPlaceholder(provider) {
+    const input = document.getElementById('llm_api_key');
+    if (!input) return;
+    const placeholders = {
+        openai: 'sk-proj-...',
+        anthropic: 'sk-ant-...',
+        kimi: 'sk-...',
+        qwen: 'sk-...',
+        deepseek: 'sk-...',
+        grok: 'xai-...',
+    };
+    input.placeholder = placeholders[provider] || 'Paste your provider API key here';
+}
+
 function collectFormData() {
     const selectedDatabases = Array.from(
         document.querySelectorAll('.database-checkbox:checked')
@@ -661,7 +692,8 @@ function collectFormData() {
         evidence_filter: document.getElementById('evidence_filter').value,
         knockout_context: document.getElementById('knockout_context')?.value || 'auto',
         predict_phenotypes: document.getElementById('predict_phenotypes').checked,
-        kimi_api_key: document.getElementById('kimi_api_key')?.value?.trim() || '',
+        llm_provider: document.getElementById('llm_provider')?.value || 'kimi',
+        llm_api_key: document.getElementById('llm_api_key')?.value?.trim() || '',
         databases: selectedDatabases
     };
 }

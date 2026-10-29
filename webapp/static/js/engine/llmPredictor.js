@@ -1,15 +1,13 @@
 /**
- * Phenotype prediction using the Kimi (Moonshot) LLM API.
+ * Phenotype prediction using one of several hosted LLM APIs.
  *
  * This is an optional, user-key-powered predictor. When a key is supplied the browser
- * sends PubMed abstracts to Kimi and asks it to classify the knockout phenotype.
- * The key never leaves the user's browser; the request goes directly to Moonshot's API.
+ * sends PubMed abstracts to the chosen provider and asks it to classify the knockout phenotype.
+ * The key never leaves the user's browser; the request goes directly to the provider's API.
  */
 
 import { LiteratureMiner, RISK, SEVERITY } from './rag.js';
 
-const KIMI_API_URL = 'https://api.moonshot.ai/v1/chat/completions';
-const DEFAULT_MODEL = 'kimi-k2-0905-preview';
 const MAX_PAPERS = 6;
 const MAX_ABSTRACT_LENGTH = 2500;
 const MAX_TOKENS = 1024;
@@ -23,6 +21,109 @@ const RISK_FOR_SEVERITY = {
     [SEVERITY.MILD]: RISK.LOW,
     [SEVERITY.UNKNOWN]: RISK.UNKNOWN,
 };
+
+export const LLM_PROVIDERS = {
+    openai: {
+        name: 'OpenAI',
+        apiUrl: 'https://api.openai.com/v1/chat/completions',
+        defaultModel: 'gpt-4o-mini',
+        supportsJsonMode: true,
+        headers: (apiKey) => ({ 'Authorization': `Bearer ${apiKey}` }),
+        buildBody: (model, messages) => ({
+            model,
+            messages,
+            temperature: 0.1,
+            max_tokens: MAX_TOKENS,
+            response_format: { type: 'json_object' },
+        }),
+        extractContent: (data) => data.choices?.[0]?.message?.content,
+    },
+    anthropic: {
+        name: 'Anthropic',
+        apiUrl: 'https://api.anthropic.com/v1/messages',
+        defaultModel: 'claude-3-5-sonnet-20241022',
+        supportsJsonMode: false,
+        headers: (apiKey) => ({
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+        }),
+        buildBody: (model, messages) => {
+            const system = messages.find((m) => m.role === 'system')?.content || '';
+            return {
+                model,
+                system,
+                messages: messages.filter((m) => m.role !== 'system').map((m) => ({ role: m.role, content: m.content })),
+                temperature: 0.1,
+                max_tokens: MAX_TOKENS,
+            };
+        },
+        extractContent: (data) => data.content?.[0]?.text,
+    },
+    kimi: {
+        name: 'Kimi (Moonshot)',
+        apiUrl: 'https://api.moonshot.ai/v1/chat/completions',
+        defaultModel: 'kimi-k2-0905-preview',
+        supportsJsonMode: true,
+        headers: (apiKey) => ({ 'Authorization': `Bearer ${apiKey}` }),
+        buildBody: (model, messages) => ({
+            model,
+            messages,
+            temperature: 0.1,
+            max_tokens: MAX_TOKENS,
+            response_format: { type: 'json_object' },
+        }),
+        extractContent: (data) => data.choices?.[0]?.message?.content,
+    },
+    qwen: {
+        name: 'Qwen (Alibaba)',
+        apiUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+        defaultModel: 'qwen-plus',
+        supportsJsonMode: true,
+        headers: (apiKey) => ({ 'Authorization': `Bearer ${apiKey}` }),
+        buildBody: (model, messages) => ({
+            model,
+            messages,
+            temperature: 0.1,
+            max_tokens: MAX_TOKENS,
+            response_format: { type: 'json_object' },
+        }),
+        extractContent: (data) => data.choices?.[0]?.message?.content,
+    },
+    deepseek: {
+        name: 'DeepSeek',
+        apiUrl: 'https://api.deepseek.com/v1/chat/completions',
+        defaultModel: 'deepseek-chat',
+        supportsJsonMode: true,
+        headers: (apiKey) => ({ 'Authorization': `Bearer ${apiKey}` }),
+        buildBody: (model, messages) => ({
+            model,
+            messages,
+            temperature: 0.1,
+            max_tokens: MAX_TOKENS,
+            response_format: { type: 'json_object' },
+        }),
+        extractContent: (data) => data.choices?.[0]?.message?.content,
+    },
+    grok: {
+        name: 'Grok (xAI)',
+        apiUrl: 'https://api.x.ai/v1/chat/completions',
+        defaultModel: 'grok-2-latest',
+        supportsJsonMode: true,
+        headers: (apiKey) => ({ 'Authorization': `Bearer ${apiKey}` }),
+        buildBody: (model, messages) => ({
+            model,
+            messages,
+            temperature: 0.1,
+            max_tokens: MAX_TOKENS,
+            response_format: { type: 'json_object' },
+        }),
+        extractContent: (data) => data.choices?.[0]?.message?.content,
+    },
+};
+
+export function supportedLlmProviders() {
+    return Object.entries(LLM_PROVIDERS).map(([id, cfg]) => ({ id, name: cfg.name, defaultModel: cfg.defaultModel }));
+}
 
 function unknownPrediction(reason) {
     return {
@@ -48,7 +149,7 @@ function normalizePrediction(raw) {
         supporting_evidence: Array.isArray(raw.supporting_evidence) ? raw.supporting_evidence : [],
         lethality_stage: raw.lethality_stage || null,
         compensatory_mechanisms: Array.isArray(raw.compensatory_mechanisms) ? raw.compensatory_mechanisms : [],
-        confidence_reasoning: raw.reasoning || 'Phenotype inferred by Kimi from PubMed abstracts',
+        confidence_reasoning: raw.reasoning || 'Phenotype inferred from PubMed abstracts by a hosted language model',
     };
 }
 
@@ -89,53 +190,54 @@ Abstracts:
 ${abstractList}`;
 }
 
-async function callKimi(prompt, apiKey, model, fetchImpl = globalThis.fetch.bind(globalThis)) {
-    const response = await fetchImpl(KIMI_API_URL, {
+async function callLlm(providerId, prompt, apiKey, model, fetchImpl = globalThis.fetch.bind(globalThis)) {
+    const provider = LLM_PROVIDERS[providerId];
+    if (!provider) throw new Error(`Unknown LLM provider: ${providerId}`);
+
+    const messages = [
+        { role: 'system', content: 'You return only valid JSON.' },
+        { role: 'user', content: prompt },
+    ];
+
+    const response = await fetchImpl(provider.apiUrl, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
+            ...provider.headers(apiKey),
         },
-        body: JSON.stringify({
-            model,
-            messages: [
-                { role: 'system', content: 'You return only valid JSON.' },
-                { role: 'user', content: prompt },
-            ],
-            temperature: 0.1,
-            max_tokens: MAX_TOKENS,
-            response_format: { type: 'json_object' },
-        }),
+        body: JSON.stringify(provider.buildBody(model || provider.defaultModel, messages)),
     });
 
     const text = await response.text().catch(() => '');
     const ok = response.status >= 200 && response.status < 300;
     if (!ok) {
-        throw new Error(`Kimi API returned HTTP ${response.status}: ${text.slice(0, 200)}`);
+        throw new Error(`${provider.name} API returned HTTP ${response.status}: ${text.slice(0, 200)}`);
     }
 
     const data = JSON.parse(text);
-    const content = data.choices?.[0]?.message?.content || '';
-    if (!content.trim()) throw new Error('Kimi response had no content');
+    const content = provider.extractContent(data);
+    if (!content || !content.trim()) throw new Error(`${provider.name} response had no content`);
 
     // The model may wrap JSON in markdown; try to extract the first JSON object.
     const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('Kimi response did not contain a JSON object');
+    if (!jsonMatch) throw new Error(`${provider.name} response did not contain a JSON object`);
     return JSON.parse(jsonMatch[0]);
 }
 
-export class KimiPhenotypePredictor {
+export class LlmPhenotypePredictor {
     /**
      * @param {object} deps
-     *   http: HttpClient (used for PubMed calls; its fetchImpl is used for Kimi if available)
+     *   http: HttpClient (used for PubMed calls; its fetchImpl is used for the LLM if available)
      *   parseXml(text) -> Document
-     *   apiKey: the user's Kimi API key
+     *   provider: one of the keys in LLM_PROVIDERS
+     *   apiKey: the user's API key for that provider
      *   ncbiApiKey?: NCBI API key for PubMed rate limits
-     *   model?: Kimi model name
+     *   model?: provider-specific model name
      */
-    constructor({ http, parseXml, apiKey, ncbiApiKey = '', model = DEFAULT_MODEL }) {
+    constructor({ http, parseXml, provider, apiKey, ncbiApiKey = '', model = '' }) {
         this.http = http;
         this.parseXml = parseXml;
+        this.provider = provider;
         this.apiKey = apiKey;
         this.ncbiApiKey = ncbiApiKey;
         this.model = model;
@@ -171,7 +273,7 @@ export class KimiPhenotypePredictor {
 
         const selected = publications.slice(0, MAX_PAPERS);
         const prompt = buildPrompt(symbol, taxid, aliases, selected);
-        const raw = await callKimi(prompt, this.apiKey, this.model, this.fetchImpl);
+        const raw = await callLlm(this.provider, prompt, this.apiKey, this.model, this.fetchImpl);
         const prediction = normalizePrediction(raw);
 
         // Attach lightweight supporting evidence from the papers we sent.

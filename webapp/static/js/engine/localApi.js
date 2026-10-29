@@ -67,7 +67,7 @@ export class LocalBackend {
         this.controllers = new Map();       // job id -> AbortController of the job running in this tab
         this.lastWrite = {};
         this._organisms = null;
-        this.kimiKeys = new Map();          // job id -> API key, kept in memory only
+        this.llmKeys = new Map();          // job id -> { provider, apiKey }, kept in memory only
     }
 
     // ------------------------------------------------------------ routing
@@ -250,7 +250,10 @@ export class LocalBackend {
             selected_databases: data.databases || ['quickgo'],
             user_email: data.user_email || null,
         };
-        this.kimiKeys.set(job.id, String(data.kimi_api_key || '').trim());
+        this.llmKeys.set(job.id, {
+            provider: String(data.llm_provider || 'kimi').trim(),
+            apiKey: String(data.llm_api_key || '').trim(),
+        });
         await this.d.store.putJob(job);
         // The job runs when its results page opens (a page change would stop it if it ran here).
         return jsonResponse({ success: true, job_id: job.id, status: 'pending', estimated_completion: job.estimated_completion,
@@ -394,12 +397,13 @@ export class LocalBackend {
             // The phenotype model (about 90 MB) is only loaded when a gene has no measured knockout result
             let predictorLoader = null;
             if (job.predict_phenotypes) {
-                const kimiApiKey = this.kimiKeys.get(jobId) || '';
+                const llmCreds = this.llmKeys.get(jobId) || { provider: 'kimi', apiKey: '' };
                 predictorLoader = async () => {
                     await this._update(job, { current_step: 'Loading the phenotype model (about 90 MB, downloaded once)' }, true);
                     return this.d.createPredictor({
                         onStatus: (message) => this._update(job, { current_step: message }, true),
-                        kimiApiKey,
+                        llmProvider: llmCreds.provider,
+                        llmApiKey: llmCreds.apiKey,
                     });
                 };
             }

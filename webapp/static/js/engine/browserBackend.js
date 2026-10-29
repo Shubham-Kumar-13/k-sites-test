@@ -52,7 +52,7 @@ export async function createBrowserBackend({ siteBase, keggBase, evidenceBase })
             if (!response.ok) throw new Error(`organisms.json: HTTP ${response.status}`);
             return response.json();
         },
-        async createPredictor({ onStatus, kimiApiKey }) {
+        async createPredictor({ onStatus, llmProvider, llmApiKey }) {
             const miniLmFactory = async () => {
                 const embedder = await createTransformersEmbedder(() => import(TRANSFORMERS_URL), { onStatus });
                 return new RagPhenotypePredictor({
@@ -67,7 +67,8 @@ export async function createBrowserBackend({ siteBase, keggBase, evidenceBase })
                 http,
                 parseXml: (text) => new DOMParser().parseFromString(text, 'text/xml'),
                 ncbiApiKey: localStorage.getItem('ksites.ncbiApiKey') || '',
-                kimiApiKey,
+                llmProvider,
+                llmApiKey,
                 onStatus,
             });
         },

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { DOMParser } from 'linkedom';
 
 import { HttpClient, MemoryCache } from '../../webapp/static/js/engine/http.js';
-import { KimiPhenotypePredictor } from '../../webapp/static/js/engine/kimiPredictor.js';
+import { LlmPhenotypePredictor, LLM_PROVIDERS, supportedLlmProviders } from '../../webapp/static/js/engine/llmPredictor.js';
 import { RISK, SEVERITY } from '../../webapp/static/js/engine/rag.js';
 import { HybridPhenotypePredictor } from '../../webapp/static/js/engine/hybridPredictor.js';
 
@@ -26,7 +26,7 @@ function pubmedXml(pmids) {
     return `<?xml version="1.0"?><PubmedArticleSet>${articles}</PubmedArticleSet>`;
 }
 
-function makeHttp(kimiResponse, { kimStatus = 200 } = {}) {
+function makeHttp(responseFactory, { status = 200 } = {}) {
     const cache = new MemoryCache();
     const fetchImpl = async (url, options) => {
         if (url.includes('eutils.ncbi.nlm.nih.gov')) {
@@ -37,19 +37,17 @@ function makeHttp(kimiResponse, { kimStatus = 200 } = {}) {
                 return { status: 200, text: async () => pubmedXml(['12345', '12346']), headers: { get: () => null } };
             }
         }
-        if (url.includes('api.moonshot.ai')) {
-            return {
-                status: kimStatus,
-                text: async () => typeof kimiResponse === 'string' ? kimiResponse : JSON.stringify(kimiResponse),
-                headers: { get: () => null },
-            };
-        }
-        return { status: 599, text: async () => 'not mocked', headers: { get: () => null } };
+        const response = typeof responseFactory === 'function' ? responseFactory(url, options) : responseFactory;
+        return {
+            status,
+            text: async () => typeof response === 'string' ? response : JSON.stringify(response),
+            headers: { get: () => null },
+        };
     };
     return new HttpClient({ fetchImpl, sleep: async () => {}, rateLimits: {}, retries: 0, cache });
 }
 
-function kimiJson(payload) {
+function openAiJson(payload) {
     return {
         choices: [{
             message: {
@@ -59,8 +57,16 @@ function kimiJson(payload) {
     };
 }
 
-test('Kimi predictor parses a lethal JSON response', async () => {
-    const http = makeHttp(kimiJson({
+function anthropicJson(payload) {
+    return {
+        content: [{
+            text: JSON.stringify(payload),
+        }],
+    };
+}
+
+test('OpenAI predictor parses a lethal JSON response', async () => {
+    const http = makeHttp(openAiJson({
         severity: 'LETHAL',
         risk_level: 'CRITICAL',
         confidence_score: 0.85,
@@ -69,7 +75,7 @@ test('Kimi predictor parses a lethal JSON response', async () => {
         compensatory_mechanisms: [],
         reasoning: 'Abstracts describe embryonic lethality.',
     }));
-    const predictor = new KimiPhenotypePredictor({ http, parseXml, apiKey: 'sk-test' });
+    const predictor = new LlmPhenotypePredictor({ http, parseXml, provider: 'openai', apiKey: 'sk-test' });
 
     const result = await predictor.predict('TEST1', '10090');
 
@@ -78,6 +84,35 @@ test('Kimi predictor parses a lethal JSON response', async () => {
     assert.ok(result.confidence_score > 0.8);
     assert.equal(result.lethality_stage, 'Embryonic');
     assert.ok(result.supporting_evidence.length > 0);
+});
+
+test('Anthropic predictor uses the Messages API format', async () => {
+    let capturedUrl = null;
+    let capturedBody = null;
+    const http = makeHttp((url, options) => {
+        capturedUrl = url;
+        capturedBody = JSON.parse(options.body);
+        return anthropicJson({
+            severity: 'MILD',
+            risk_level: 'LOW',
+            confidence_score: 0.6,
+            predicted_phenotypes: ['viable'],
+            lethality_stage: null,
+            compensatory_mechanisms: [],
+            reasoning: 'No severe phenotype reported.',
+        });
+    });
+    const predictor = new LlmPhenotypePredictor({ http, parseXml, provider: 'anthropic', apiKey: 'sk-ant-test' });
+
+    const result = await predictor.predict('TEST1', '10090');
+
+    assert.equal(capturedUrl, LLM_PROVIDERS.anthropic.apiUrl);
+    assert.equal(capturedBody.model, LLM_PROVIDERS.anthropic.defaultModel);
+    assert.equal(capturedBody.system, 'You return only valid JSON.');
+    assert.equal(capturedBody.messages.length, 1);
+    assert.equal(capturedBody.messages[0].role, 'user');
+    assert.equal(result.severity, SEVERITY.MILD);
+    assert.equal(result.risk_level, RISK.LOW);
 });
 
 test('Kimi predictor extracts JSON wrapped in markdown', async () => {
@@ -96,7 +131,7 @@ test('Kimi predictor extracts JSON wrapped in markdown', async () => {
             },
         }],
     });
-    const predictor = new KimiPhenotypePredictor({ http, parseXml, apiKey: 'sk-test' });
+    const predictor = new LlmPhenotypePredictor({ http, parseXml, provider: 'kimi', apiKey: 'sk-test' });
 
     const result = await predictor.predict('TEST1', '10090');
 
@@ -104,9 +139,9 @@ test('Kimi predictor extracts JSON wrapped in markdown', async () => {
     assert.equal(result.risk_level, RISK.LOW);
 });
 
-test('Kimi predictor throws when the API fails', async () => {
-    const http = makeHttp('unauthorized', { kimStatus: 401 });
-    const predictor = new KimiPhenotypePredictor({ http, parseXml, apiKey: 'sk-bad' });
+test('LLM predictor throws when the API fails', async () => {
+    const http = makeHttp('unauthorized', { status: 401 });
+    const predictor = new LlmPhenotypePredictor({ http, parseXml, provider: 'kimi', apiKey: 'sk-bad' });
 
     await assert.rejects(
         () => predictor.predict('TEST1', '10090'),
@@ -114,7 +149,7 @@ test('Kimi predictor throws when the API fails', async () => {
     );
 });
 
-test('Kimi predictor returns UNKNOWN when no papers are found', async () => {
+test('LLM predictor returns UNKNOWN when no papers are found', async () => {
     const cache = new MemoryCache();
     const fetchImpl = async (url) => {
         if (url.includes('esearch.fcgi')) {
@@ -123,7 +158,7 @@ test('Kimi predictor returns UNKNOWN when no papers are found', async () => {
         return { status: 599, text: async () => 'not mocked', headers: { get: () => null } };
     };
     const http = new HttpClient({ fetchImpl, sleep: async () => {}, rateLimits: {}, retries: 0, cache });
-    const predictor = new KimiPhenotypePredictor({ http, parseXml, apiKey: 'sk-test' });
+    const predictor = new LlmPhenotypePredictor({ http, parseXml, provider: 'openai', apiKey: 'sk-test' });
 
     const result = await predictor.predict('NOPAPERS', '10090');
 
@@ -131,8 +166,8 @@ test('Kimi predictor returns UNKNOWN when no papers are found', async () => {
     assert.ok(result.confidence_reasoning.includes('No PubMed papers'));
 });
 
-test('Hybrid predictor falls back to MiniLM when Kimi fails', async () => {
-    const http = makeHttp('unauthorized', { kimStatus: 401 });
+test('Hybrid predictor falls back to MiniLM when the LLM fails', async () => {
+    const http = makeHttp('unauthorized', { status: 401 });
 
     const miniLmPrediction = {
         severity: SEVERITY.MILD,
@@ -151,13 +186,20 @@ test('Hybrid predictor falls back to MiniLM when Kimi fails', async () => {
         http,
         parseXml,
         ncbiApiKey: '',
-        kimiApiKey: 'sk-bad',
+        llmProvider: 'openai',
+        llmApiKey: 'sk-bad',
         onStatus: () => {},
     });
 
     const result = await hybrid.predict('TEST1', '10090');
 
     assert.equal(result.severity, SEVERITY.MILD);
-    assert.ok(result.confidence_reasoning.includes('Kimi API failed'));
+    assert.ok(result.confidence_reasoning.includes('LLM API failed'));
     assert.ok(result.confidence_reasoning.includes('MiniLM fallback result'));
+});
+
+test('supportedLlmProviders lists all six providers', () => {
+    const providers = supportedLlmProviders();
+    const ids = providers.map((p) => p.id);
+    assert.deepEqual(ids.sort(), ['anthropic', 'deepseek', 'grok', 'kimi', 'openai', 'qwen']);
 });

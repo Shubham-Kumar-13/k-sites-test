@@ -284,34 +284,55 @@ ANALYTICAL_TERMS = {
                     for lists above ~100 genes, and when you want the result quickly.</li>
             </ul>
 
-            <h6>Optional Kimi (Moonshot) API key:</h6>
-            <p>You can paste your own <a href="https://platform.moonshot.ai" target="_blank">Kimi API key</a>
-            for a more accurate, large-model reading of the abstracts. The key is used only in your browser and
-            is never sent to the K-Sites server. If the key is blank or the Kimi API fails, the analysis falls
-            back automatically to the free browser model (MiniLM + keyword patterns).</p>
+            <h6>Optional hosted language-model API key:</h6>
+            <p>You can paste an API key for one of the supported providers to let a larger language model read the
+            abstracts. The key is used only in your browser and is never sent to the K-Sites server. If the key is
+            blank or the API fails, the analysis falls back automatically to the free browser model
+            (MiniLM + keyword patterns).</p>
+
+            <p><strong>Supported providers:</strong></p>
+            <ul>
+                <li><strong>Kimi (Moonshot)</strong> — default; strong context understanding.</li>
+                <li><strong>OpenAI</strong> — <code>gpt-4o-mini</code> or other chat models.</li>
+                <li><strong>Anthropic</strong> — Claude 3.5 Sonnet via the Messages API.</li>
+                <li><strong>Qwen (Alibaba)</strong> — DashScope compatible endpoint.</li>
+                <li><strong>DeepSeek</strong> — <code>deepseek-chat</code>.</li>
+                <li><strong>Grok (xAI)</strong> — <code>grok-2-latest</code>.</li>
+            </ul>
 
             <p><strong>Why it helps:</strong> The default browser model matches keywords and counts how often words
             like “lethal” or “viable” appear. It works for clear cases but can be misled by negation
             (for example, “the knockout was <em>not</em> lethal”), by sentences about a different gene in the same
-            paper, or by conflicting reports. Kimi reads the abstracts as a whole, understands context, resolves
-            contradictions, and usually returns a more reliable severity call.</p>
+            paper, or by conflicting reports. A hosted language model reads the abstracts as a whole, understands
+            context, resolves contradictions, and usually returns a more reliable severity call.</p>
 
             <p><strong>How to get a key:</strong></p>
             <ol>
-                <li>Go to <a href="https://platform.moonshot.ai" target="_blank">platform.moonshot.ai</a> and
-                    create a free Moonshot account (you may need to verify a phone number).</li>
-                <li>Open the API section of your account dashboard.</li>
-                <li>Create a new API key. Copy the key (it starts with <code>sk-</code>).</li>
-                <li>Return to K-Sites, enable “RAG Phenotype Prediction”, and paste the key into the
-                    “Kimi API key (optional)” field.</li>
+                <li>Choose a provider in the “Language model provider” drop-down on the analysis page.</li>
+                <li>Create an account with that provider and generate an API key:
+                    <ul>
+                        <li><strong>Kimi:</strong> <a href="https://platform.moonshot.ai" target="_blank">platform.moonshot.ai</a>
+                            → API keys (starts with <code>sk-</code>).</li>
+                        <li><strong>OpenAI:</strong> <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a>
+                            (starts with <code>sk-proj-</code> or <code>sk-</code>).</li>
+                        <li><strong>Anthropic:</strong> <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com/settings/keys</a>
+                            (starts with <code>sk-ant-</code>).</li>
+                        <li><strong>Qwen:</strong> <a href="https://dashscope.console.aliyun.com/apiKey" target="_blank">dashscope.console.aliyun.com/apiKey</a>
+                            (starts with <code>sk-</code>).</li>
+                        <li><strong>DeepSeek:</strong> <a href="https://platform.deepseek.com/api_keys" target="_blank">platform.deepseek.com/api_keys</a>
+                            (starts with <code>sk-</code>).</li>
+                        <li><strong>Grok:</strong> <a href="https://console.x.ai" target="_blank">console.x.ai</a>
+                            → API keys (starts with <code>xai-</code>).</li>
+                    </ul>
+                </li>
+                <li>Copy the key and paste it into the “API key (optional)” field after enabling “RAG Phenotype Prediction”.</li>
                 <li>The key is stored only in your browser for that analysis; you will need to paste it again
                     on a different device or after clearing browser data.</li>
             </ol>
 
-            <p><strong>Cost:</strong> Moonshot bills you directly for the tokens used. A typical K-Sites run with
-            ~25 unmeasured genes costs roughly a few cents (USD), but this depends on the model and abstract lengths.
-            Check the <a href="https://platform.moonshot.ai/docs/pricing/chat" target="_blank">Moonshot pricing page</a>
-            for current rates.</p>
+            <p><strong>Cost:</strong> The provider bills you directly for the tokens used. A typical K-Sites run with
+            ~25 unmeasured genes usually costs a few cents (USD), but this depends on the model, provider rates and
+            abstract lengths. Check the provider's pricing page for current rates.</p>
 
             <h6>Severity Categories:</h6>
             <div class="table-responsive">
@@ -331,7 +352,7 @@ ANALYTICAL_TERMS = {
             genes lethal, and gave no answer for two thirds (see the <a href="/validation">Validation page</a>).
             Treat any prediction as a hint to read the papers, not as a result.</p>
         """,
-        "reference": "RAG-based NLP pipeline using PubMed; optional Kimi (Moonshot) LLM fallback"
+        "reference": "RAG-based NLP pipeline using PubMed; optional hosted LLM fallback (Kimi, OpenAI, Anthropic, Qwen, DeepSeek, Grok)"
     },
     
     "conservation_score": {
