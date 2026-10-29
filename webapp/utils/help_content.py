@@ -290,6 +290,29 @@ ANALYTICAL_TERMS = {
             is never sent to the K-Sites server. If the key is blank or the Kimi API fails, the analysis falls
             back automatically to the free browser model (MiniLM + keyword patterns).</p>
 
+            <p><strong>Why it helps:</strong> The default browser model matches keywords and counts how often words
+            like “lethal” or “viable” appear. It works for clear cases but can be misled by negation
+            (for example, “the knockout was <em>not</em> lethal”), by sentences about a different gene in the same
+            paper, or by conflicting reports. Kimi reads the abstracts as a whole, understands context, resolves
+            contradictions, and usually returns a more reliable severity call.</p>
+
+            <p><strong>How to get a key:</strong></p>
+            <ol>
+                <li>Go to <a href="https://platform.moonshot.ai" target="_blank">platform.moonshot.ai</a> and
+                    create a free Moonshot account (you may need to verify a phone number).</li>
+                <li>Open the API section of your account dashboard.</li>
+                <li>Create a new API key. Copy the key (it starts with <code>sk-</code>).</li>
+                <li>Return to K-Sites, enable “RAG Phenotype Prediction”, and paste the key into the
+                    “Kimi API key (optional)” field.</li>
+                <li>The key is stored only in your browser for that analysis; you will need to paste it again
+                    on a different device or after clearing browser data.</li>
+            </ol>
+
+            <p><strong>Cost:</strong> Moonshot bills you directly for the tokens used. A typical K-Sites run with
+            ~25 unmeasured genes costs roughly a few cents (USD), but this depends on the model and abstract lengths.
+            Check the <a href="https://platform.moonshot.ai/docs/pricing/chat" target="_blank">Moonshot pricing page</a>
+            for current rates.</p>
+
             <h6>Severity Categories:</h6>
             <div class="table-responsive">
                 <table class="table table-sm">
