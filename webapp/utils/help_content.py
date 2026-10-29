@@ -268,19 +268,28 @@ ANALYTICAL_TERMS = {
     "phenotype_prediction": {
         "title": "RAG Phenotype Prediction (experimental)",
         "icon": "fa-brain",
-        "short_description": "A keyword model that guesses the phenotype from abstracts, only where nothing is measured",
+        "short_description": "A literature-based guess for genes with no measured knockout data",
         "detailed_explanation": """
-            <p><strong>Retrieval-Augmented Generation (RAG)</strong> phenotype prediction uses AI to 
-            analyze scientific literature and predict the likely phenotypic consequences of gene knockout.</p>
-            
-            <h6>How it works:</h6>
-            <ol>
-                <li>Queries PubMed for papers about the target gene</li>
-                <li>Retrieves relevant abstracts and metadata</li>
-                <li>Uses language models to extract phenotype information</li>
-                <li>Classifies severity: LETHAL, SEVERE, MODERATE, MILD, or UNKNOWN</li>
-            </ol>
-            
+            <p><strong>Retrieval-Augmented Generation (RAG)</strong> phenotype prediction reads PubMed abstracts
+            and guesses the likely knockout phenotype for genes that have no measured result and no cross-species
+            estimate. It is switched off by default.</p>
+
+            <h6>When to use it:</h6>
+            <ul>
+                <li><strong>Turn it on</strong> for short lists (a few dozen genes), well-studied organisms,
+                    and when you can wait a few minutes. It gives at least a literature hint for genes that
+                    otherwise have no data.</li>
+                <li><strong>Leave it off</strong> for human and mouse (measured data already cover most genes),
+                    for organisms like zebrafish, Xenopus, fly, worm or rat where thousands of genes have no data,
+                    for lists above ~100 genes, and when you want the result quickly.</li>
+            </ul>
+
+            <h6>Optional Kimi (Moonshot) API key:</h6>
+            <p>You can paste your own <a href="https://platform.moonshot.ai" target="_blank">Kimi API key</a>
+            for a more accurate, large-model reading of the abstracts. The key is used only in your browser and
+            is never sent to the K-Sites server. If the key is blank or the Kimi API fails, the analysis falls
+            back automatically to the free browser model (MiniLM + keyword patterns).</p>
+
             <h6>Severity Categories:</h6>
             <div class="table-responsive">
                 <table class="table table-sm">
@@ -291,14 +300,15 @@ ANALYTICAL_TERMS = {
                     <tr class="table-secondary"><td><strong>UNKNOWN</strong></td><td>Insufficient data for prediction</td></tr>
                 </table>
             </div>
-            
-            <h6>Limitations (measured, not assumed):</h6>
+
+            <h6>Limitations:</h6>
             <p>It is only used for genes without a <a href="#knockout_evidence">measured knockout result</a> and
-            without an estimate, and it is switched off by default. We tested it on a random sample of 60 mouse genes whose knockout outcome is known:
-            it recognised 7 of the 30 lethal genes, wrongly called 4 of the 30 viable genes lethal, and gave no answer for
-            two thirds of the genes (see the <a href="/validation">Validation page</a>). Treat a prediction as a hint to read the papers, not as a result.</p>
+            without an estimate, and it is capped at 25 genes per job. We tested the free model on a random sample
+            of 60 mouse genes with known outcomes: it recognised 7 of 30 lethal genes, wrongly called 4 of 30 viable
+            genes lethal, and gave no answer for two thirds (see the <a href="/validation">Validation page</a>).
+            Treat any prediction as a hint to read the papers, not as a result.</p>
         """,
-        "reference": "RAG-based NLP pipeline using PubMed and SentenceTransformers"
+        "reference": "RAG-based NLP pipeline using PubMed; optional Kimi (Moonshot) LLM fallback"
     },
     
     "conservation_score": {
