@@ -16,7 +16,7 @@ const EVIDENCE_FILTERS = ['experimental', 'computational', 'all'];
 const KNOCKOUT_CONTEXTS = ['auto', 'cells', 'organism'];
 
 const DATABASES = [
-    { id: 'quickgo', name: 'QuickGO', description: 'Gene Ontology annotations from EBI (always used)', enabled: true, required: true },
+    { id: 'quickgo', name: 'QuickGO', description: 'Gene Ontology annotations from EBI', enabled: true, required: true },
     { id: 'uniprot', name: 'UniProt', description: 'Protein knowledgebase with functional annotation', enabled: true, required: false },
     { id: 'kegg', name: 'KEGG', description: 'Pathway annotations (pathway count per gene)', enabled: true, required: false },
 ];

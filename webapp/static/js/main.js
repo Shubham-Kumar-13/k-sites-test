@@ -421,12 +421,12 @@ async function loadDatabases() {
         
         container.innerHTML = data.databases.map(db => `
             <div class="col-md-6 col-lg-4">
-                <div class="card database-card ${db.required ? 'selected' : ''} ${!db.enabled ? 'disabled opacity-50' : ''}"
+                <div class="card database-card h-100 ${db.required ? 'selected' : ''} ${!db.enabled ? 'disabled opacity-50' : ''}"
                      data-id="${db.id}"
                      ${!db.enabled ? 'onclick="return false;" style="cursor: not-allowed;"' : 'onclick="toggleDatabase(this)" style="cursor: pointer;"'}>
-                    <div class="card-body">
+                    <div class="card-body d-flex flex-column">
                         <div class="d-flex align-items-center mb-2">
-                            <input type="checkbox" 
+                            <input type="checkbox"
                                    class="form-check-input me-2 database-checkbox"
                                    value="${db.id}"
                                    ${db.required ? 'checked disabled' : ''}
@@ -435,8 +435,8 @@ async function loadDatabases() {
                             <h6 class="card-title mb-0">${db.name}</h6>
                         </div>
                         <p class="card-text small text-muted">${db.description}</p>
-                        ${db.required ? '<span class="badge bg-primary">Required</span>' : ''}
-                        ${!db.enabled ? '<span class="badge bg-secondary">Not Available</span>' : ''}
+                        ${db.required ? '<span class="badge bg-primary mt-auto">Required</span>' : ''}
+                        ${!db.enabled ? '<span class="badge bg-secondary mt-auto">Not Available</span>' : ''}
                     </div>
                 </div>
             </div>
