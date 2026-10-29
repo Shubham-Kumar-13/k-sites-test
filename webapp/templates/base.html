@@ -328,23 +328,19 @@
         {% block content %}{% endblock %}
     </main>
     
-    <footer class="bg-white py-4 mt-5 border-top">
+    <footer class="bg-white py-3 mt-5 border-top">
         <div class="container">
             <div class="row">
-                <div class="col-md-6">
-                    <h6 class="fw-bold">K-Sites</h6>
-                    <p class="text-muted small mb-0">Suite for Knock-out/down Studies<br>
-                    Safe Gene Selection for Knockout Studies</p>
+                <div class="col-md-6 text-muted small mb-2 mb-md-0">
+                    {% if browser_build %}
+                        <i class="fas fa-laptop me-1"></i>Runs in your browser; nothing is sent to a K-Sites server
+                    {% else %}
+                        <i class="fas fa-envelope me-1"></i>Email notifications supported
+                    {% endif %}
                 </div>
-                <div class="col-md-6 text-md-end">
-                    <p class="text-muted small mb-0">
-                        {% if browser_build %}<i class="fas fa-laptop me-1"></i>Runs in your browser; nothing is sent to a K-Sites server{% else %}<i class="fas fa-envelope me-1"></i>Email notifications supported{% endif %}
-                    </p>
+                <div class="col-md-6 text-md-end text-muted small">
+                    K-Sites: Safe Gene Selection for Knockout Studies &copy; 2024
                 </div>
-            </div>
-            <hr class="my-3">
-            <div class="text-center text-muted small">
-                <p class="mb-0">K-Sites: Safe Gene Selection for Knockout Studies &copy; 2024</p>
             </div>
         </div>
     </footer>
