@@ -301,6 +301,7 @@ async function selectGoCategory(category) {
     // Update UI
     document.getElementById('selectedCategoryName').textContent = category;
     document.getElementById('goCategoryContainer').style.display = 'none';
+    document.getElementById('goDirectInputSection').style.display = 'none';
     document.getElementById('goTermsSection').style.display = 'block';
     
     // Reset cards state
@@ -325,6 +326,7 @@ function resetCategorySelection() {
     selectedCategory = null;
     selectedGoTerm = null;
     document.getElementById('goCategoryContainer').style.display = 'flex';
+    document.getElementById('goDirectInputSection').style.display = 'block';
     document.getElementById('goTermsSection').style.display = 'none';
     document.getElementById('selectedGoTermDisplay').style.display = 'none';
     document.getElementById('go_term').value = '';
