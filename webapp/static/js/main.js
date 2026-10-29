@@ -433,10 +433,10 @@ async function loadDatabases() {
                                    ${!db.enabled ? 'disabled' : ''}
                                    onchange="updateDatabaseCard(this)">
                             <h6 class="card-title mb-0">${db.name}</h6>
+                            ${db.required ? '<span class="badge bg-primary ms-2" style="font-size: 0.65rem;">Required</span>' : ''}
                         </div>
                         <p class="card-text small text-muted">${db.description}</p>
-                        ${db.required ? '<span class="badge bg-primary mt-auto">Required</span>' : ''}
-                        ${!db.enabled ? '<span class="badge bg-secondary mt-auto">Not Available</span>' : ''}
+                        ${!db.enabled ? '<span class="badge bg-secondary mt-auto" style="font-size: 0.65rem;">Not Available</span>' : ''}
                     </div>
                 </div>
             </div>
@@ -503,11 +503,10 @@ function initializeEventListeners() {
     const llmApiKeyInput = document.getElementById('llm_api_key');
     const brainIcon = document.getElementById('ragBrainIcon');
     const llmKeySection = document.getElementById('llmKeySection');
-    const savedProvider = localStorage.getItem('ksites.llmProvider');
-    if (savedProvider && llmProviderInput) {
-        llmProviderInput.value = savedProvider;
-        selectLlmProvider(savedProvider, false);
-    }
+    // Start with no provider selected; the user must explicitly choose one to reveal the key field.
+    if (llmProviderInput) llmProviderInput.value = 'kimi';
+    const triggerText = document.getElementById('llmProviderTriggerText');
+    if (triggerText) triggerText.textContent = 'Select API key';
     document.getElementById('predict_phenotypes')?.addEventListener('change', function () {
         if (brainIcon) {
             brainIcon.classList.toggle('active', this.checked);
@@ -704,7 +703,10 @@ function toggleLlmProviderPanel() {
     options.classList.toggle('d-none', isOpen);
     trigger.classList.toggle('open', !isOpen);
     // Hide the key field while the user is choosing a provider; it reappears after selection.
-    if (!isOpen && apiKeyWrapper) apiKeyWrapper.classList.add('d-none');
+    if (!isOpen && apiKeyWrapper) {
+        const bsKey = bootstrap.Collapse.getInstance(apiKeyWrapper);
+        if (bsKey) bsKey.hide();
+    }
 }
 
 function selectLlmProvider(provider, save = true) {
@@ -720,12 +722,15 @@ function selectLlmProvider(provider, save = true) {
         card.classList.toggle('selected', card.dataset.provider === provider);
     });
 
-    // Hide the provider grid and show the API key field
+    // Hide the provider grid and slide out the API key field
     const options = document.getElementById('llmProviderOptions');
     const trigger = document.getElementById('llmProviderTrigger');
     if (options) options.classList.add('d-none');
     if (trigger) trigger.classList.remove('open');
-    if (apiKeyWrapper) apiKeyWrapper.classList.remove('d-none');
+    if (apiKeyWrapper) {
+        const bsKey = bootstrap.Collapse.getOrCreateInstance(apiKeyWrapper, { toggle: false });
+        bsKey.show();
+    }
 
     updateLlmKeyPlaceholder(provider);
     if (save) localStorage.setItem('ksites.llmProvider', provider);
