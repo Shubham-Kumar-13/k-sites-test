@@ -44,19 +44,23 @@ def calculate_pleiotropy_score(
 ) -> float:
     """
     Calculate pleiotropy score using exponential decay formula.
-    
-    Formula: score = min(10, bp_term_count) if bp_term_count <= 10
-             OR exponential decay: 10 * (1 - exp(-λ * (n-1))) for n > 1
-    
+
+    other_bp_terms = bp_term_count - 1
+
+    Formula:
+    - 0.0 if bp_term_count <= 1
+    - 10.0 if other_bp_terms >= max_terms
+    - 10 * (1 - exp(-λ * other_bp_terms)) otherwise
+
     The score represents how pleiotropic a gene is:
     - 0 = highly specific (1 BP term)
     - 10 = highly pleiotropic (10+ BP terms)
-    
+
     Args:
         bp_term_count: Number of Biological Process GO terms
         max_terms: Maximum threshold (default 10)
         lambda_decay: Decay rate for exponential formula
-        
+
     Returns:
         Pleiotropy score on 0-10 scale
     """

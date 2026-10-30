@@ -14,7 +14,7 @@ ANALYTICAL_TERMS = {
             <h6>How it's calculated:</h6>
             <ul>
                 <li>Counts the Biological Process GO terms of the gene (with the evidence type you chose).</li>
-                <li>Score = 10 &times; (1 &minus; e<sup>&minus;0.3 &times; (n &minus; 1)</sup>), where n is the number of terms:
+                <li>Score = 10 &times; (1 &minus; e<sup>&minus;0.3 &times; (n &minus; 1)</sup>), where n is the total number of BP terms found for the gene (the <em>n &minus; 1</em> excludes the target GO term itself):
                     1 term gives 0, 2 terms 2.6, 3 terms 4.5, 5 terms 7.0, 8 terms 8.8, and 11 or more terms give 10.</li>
                 <li>The number of KEGG pathways is shown next to the score but is not part of it.</li>
             </ul>
