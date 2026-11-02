@@ -486,15 +486,24 @@ function initializeEventListeners() {
     }, 300));
     
     // Direct GO term input
-    document.getElementById('go_term_direct')?.addEventListener('input', function() {
+    document.getElementById('go_term_direct')?.addEventListener('input', debounce(async function() {
         const value = this.value.trim().toUpperCase();
         if (/^GO:\d{7}$/.test(value)) {
-            selectGoTerm(value, 'Direct entry');
+            let name = 'Direct entry';
+            try {
+                const response = await ksFetch(`/api/go-terms/search?q=${encodeURIComponent(value)}`);
+                const data = await response.json();
+                const match = data.results?.find((t) => t.id === value);
+                if (match?.name) name = match.name;
+            } catch (error) {
+                console.warn('Could not look up GO term name:', error);
+            }
+            selectGoTerm(value, name);
             // Reset category selection
             document.getElementById('goCategoryContainer').style.display = 'flex';
             document.getElementById('goTermsSection').style.display = 'none';
         }
-    });
+    }, 300));
     
     // Parameter changes for gene count check
     ['max_genes', 'predict_phenotypes', 'evidence_filter'].forEach(id => {
