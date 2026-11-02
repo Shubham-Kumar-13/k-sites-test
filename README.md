@@ -119,6 +119,7 @@ k-sites --go-term-search "DNA repair" --organism "Homo sapiens" --output report.
 | `--no-measured-evidence` | Ignore the measured knockout data and rate genes from annotations and predictions alone | off |
 | `--species-validation` | TaxIDs for cross-species validation | pipeline default (human, mouse, rat, fly, worm) |
 | `--predict-phenotypes` | Predict knockout phenotype from PubMed, only for genes with no measured result (experimental) | off |
+| `--max-predictions` | Maximum RAG phenotype predictions to run for genes without a measured result; additional eligible genes are still rated but are at most CAUTION | 25 |
 | `--rag-report` | Per-gene literature reports (needs `--predict-phenotypes`) | off |
 | `--databases` | `quickgo`, `uniprot`, `kegg`, `all` (accepted for metadata tracking; queries always use QuickGO + UniProt + KEGG) | `all` |
 | `--go-term-search` | Search GO terms by keyword | – |

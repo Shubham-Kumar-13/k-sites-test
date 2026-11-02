@@ -157,6 +157,7 @@ def run_k_sites_analysis(args):
             'predict_phenotypes': getattr(args, 'predict_phenotypes', False),  # Default to False
             'databases': getattr(args, 'databases', ['all']),  # Databases to query
             'max_annotations': getattr(args, 'max_annotations', 2000),  # Safety limit on annotations read
+            'max_predictions': getattr(args, 'max_predictions', 25),  # Safety limit on RAG phenotype predictions
             'knockout_context': getattr(args, 'knockout_context', 'auto'),  # cells or whole organism
             'use_measured_evidence': not getattr(args, 'no_measured_evidence', False),
             'progress_callback': make_progress_printer()
@@ -334,6 +335,14 @@ Note:
         '--predict-phenotypes',
         action='store_true',
         help='Enable RAG-based phenotype prediction using literature mining (default: false)'
+    )
+
+    parser.add_argument(
+        '--max-predictions',
+        type=int,
+        default=25,
+        help='Maximum number of RAG phenotype predictions to run for genes without measured knockout data '
+             '(default: 25). Additional eligible genes are still rated but are at most CAUTION.'
     )
     
     parser.add_argument(

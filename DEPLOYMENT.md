@@ -30,8 +30,6 @@ What this means in practice:
   literature keyword heuristic, not a trained predictor: on a random sample of 60 mouse genes it recognised
   7 of 30 lethal genes and wrongly flagged 4 of 30 viable ones (see `VALIDATION.md`). When every gene of a
   run has a measured result or an estimate, the model is never downloaded.
-- **An NCBI API key is optional** (field on the analysis form). Without it the browser stays under
-  NCBI's 3 requests/second limit; with it, 10/second.
 - **KEGG pathway counts** come from data files built by the workflow (`kegg-data/`), refreshed monthly.
   KEGG data is free for academic use; the attribution is kept on the site.
 
@@ -101,7 +99,6 @@ lists are in `tools/data/gold/`. When the check fails, nothing is deployed and t
 | Organism list is empty | `kegg-data/organisms.json` was not built; run `tools/build_kegg_data.py` |
 | Every gene says "Not verified" | `evidence-data/` is missing or unreadable; run `tools/build_evidence_data.py` (the results page says so in a warning) |
 | "Only X% of annotations were read" warning | The 2000-annotation safety limit was hit for a very large GO term |
-| Jobs fail with NCBI errors | Rate limit; add an NCBI API key on the form and retry |
 | Phenotype model does not load | Needs access to `cdn.jsdelivr.net` and `huggingface.co`; try another network |
 | Job "paused" after closing the tab | Open the results page again to resume it |
 

@@ -22,9 +22,9 @@ SAFETY_TIER = {"SAFE": 0, "CAUTION": 1, "MODERATE_CONCERN": 2, "HIGH_CONCERN": 3
 
 
 def run_k_sites_pipeline(
-    go_term: str, 
-    organism: str, 
-    max_pleiotropy: int = 3, 
+    go_term: str,
+    organism: str,
+    max_pleiotropy: int = 3,
     evidence_filter: str = "experimental",
     species_validation: List[str] = None,
     predict_phenotypes: bool = False,
@@ -33,7 +33,8 @@ def run_k_sites_pipeline(
     progress_callback: Optional[Callable[[str, int, int], None]] = None,
     knockout_context: str = "auto",
     evidence_provider: Any = None,
-    use_measured_evidence: bool = True
+    use_measured_evidence: bool = True,
+    max_predictions: int = 25,
 ) -> Dict[str, Any]:
     """
     Execute the complete K-Sites pipeline.
@@ -56,7 +57,10 @@ def run_k_sites_pipeline(
         evidence_provider: Source of the measured knockout data (``k_sites.knockout_evidence.EvidenceProvider``);
             by default the files named by KSITES_EVIDENCE_DIR / KSITES_EVIDENCE_URL.
         use_measured_evidence: Set False to ignore measured knockout data and rely on annotations and predictions.
-        
+        max_predictions: Maximum number of RAG phenotype predictions to run for genes without measured knockout
+            data (default: 25). This limits slow PubMed/LLM calls; additional eligible genes are still rated but
+            are at most CAUTION because they have no prediction.
+
     Returns:
         Dictionary with pipeline results:
         {
@@ -196,6 +200,8 @@ def run_k_sites_pipeline(
         # The phenotype predictor (a language model) is only loaded when a gene has no measured knockout data
         phenotype_predictor = None
         predictions_skipped = 0
+        predictions_run = 0
+        predictions_over_limit = 0
         excluded_genes = []
 
         def get_phenotype_predictor():
@@ -254,7 +260,10 @@ def run_k_sites_pipeline(
                 phenotype_prediction = None
                 if predict_phenotypes and evidence and (evidence["has_measured"] or evidence.get("estimate")):
                     predictions_skipped += 1
+                elif predict_phenotypes and predictions_run >= max_predictions:
+                    predictions_over_limit += 1
                 elif predict_phenotypes and get_phenotype_predictor():
+                    predictions_run += 1
                     logger.debug(f"Predicting knockout phenotype for {gene_symbol}...")
                     try:
                         # the protein name is how many papers refer to the gene ("DNA polymerase beta")
@@ -325,6 +334,12 @@ def run_k_sites_pipeline(
         if progress_callback:
             progress_callback("Assessing genes", len(scored_genes), len(scored_genes))
 
+        if predictions_over_limit:
+            warnings.append(
+                f"Phenotype prediction (it reads PubMed abstracts, a few seconds per gene) was run for the first "
+                f"{max_predictions} genes without a measured result; the other {predictions_over_limit} were rated "
+                "without it, so they are at most CAUTION.")
+
         # Safest genes first (measured evidence decides the tier), then by composite score as before
         processed_genes.sort(key=lambda g: (SAFETY_TIER.get(g["safety_recommendation"]["safety_level"], len(SAFETY_TIER)),
                                             -(g.get("composite_score") or 0)))
@@ -343,6 +358,8 @@ def run_k_sites_pipeline(
             "by_safety_level": dict(collections.Counter(g["safety_recommendation"]["safety_level"] for g in processed_genes)),
             "by_evidence_basis": dict(collections.Counter(g["safety_recommendation"]["evidence_basis"] for g in processed_genes)),
             "phenotype_predictions_skipped": predictions_skipped,
+            "phenotype_predictions_run": predictions_run,
+            "phenotype_predictions_over_limit": predictions_over_limit,
             "avg_pleiotropy": 0.0,
             "most_specific_gene": None,
             "least_specific_gene": None
@@ -365,6 +382,7 @@ def run_k_sites_pipeline(
                 "timestamp": start_time.isoformat(),
                 "execution_duration": duration,
                 "max_pleiotropy": max_pleiotropy,
+                "max_predictions": max_predictions,
                 "evidence_filter": evidence_filter,
                 "species_validation": species_validation,
                 "predict_phenotypes": predict_phenotypes,

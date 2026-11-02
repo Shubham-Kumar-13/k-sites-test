@@ -1,4 +1,4 @@
-# K-Sites v1.2.0 - Feature Documentation
+# K-Sites v1.2.1 - Feature Documentation
 
 ## Core Features
 
@@ -211,3 +211,4 @@ k-sites --go-term GO:0006281 --organism 9606 --output report.html \
 | 1.0.0 | 2026-02-05 | Initial release |
 | 1.1.0 | 2026-02-13 | Web app, RAG system, enhanced reporting |
 | 1.2.0 | 2026-02-13 | RAG reports, improved CLI |
+| 1.2.1 | 2026-11-02 | Version alignment and documentation fixes |

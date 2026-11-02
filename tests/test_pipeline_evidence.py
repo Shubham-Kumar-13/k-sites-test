@@ -98,6 +98,18 @@ class TestPhenotypePrediction:
 
         predictor_class.assert_not_called()
 
+    def test_predictions_are_capped_and_the_user_is_warned(self, provider):
+        predictor = MagicMock()
+        predictor.predict_phenotype.return_value = None
+        ranked = [scored(f"NOSUCH{i}", 1.0, 0.5) for i in range(5)]
+        with patch("k_sites.rag_system.literature_context.RAGPhenotypePredictor", return_value=predictor):
+            results = run(ranked, max_pleiotropy=10, evidence_provider=provider, predict_phenotypes=True, max_predictions=2)
+
+        assert len(predictor.predict_phenotype.call_args_list) == 2
+        assert results["statistics"]["phenotype_predictions_run"] == 2
+        assert results["statistics"]["phenotype_predictions_over_limit"] == 3
+        assert any("first 2 genes" in w and "other 3" in w for w in results["warnings"])
+
 
 class TestWarnings:
     def test_a_missing_evidence_download_is_reported_not_hidden(self):
