@@ -109,7 +109,7 @@ venv.bak/
 .ropeproject
 
 # mkdocs documentation
-/site
+# /site  # committed for demo mode (ngrok backend)
 
 # mypy
 .mypy_cache/
@@ -148,8 +148,19 @@ Thumbs.db
 *.pth
 *.ckpt
 # Built deployment output
-site/
+# site/  # committed for demo mode (ngrok backend)
 hf_space/
+
+# Local runtime data
+cloudflared.exe
+cloudflared.pid
+cloudflared.log
+ngrok.exe
+ngrok.zip
+ngrok.log
+webapp/results/
+evidence-data/
+kegg-data/
 
 # JavaScript test dependencies
 node_modules/

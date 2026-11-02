@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Sign in - K-Sites</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .login-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+            max-width: 480px;
+            width: 100%;
+        }
+        .logo { text-align: center; margin-bottom: 24px; }
+        .logo i { font-size: 48px; color: #667eea; }
+        .btn-login {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 12px;
+            width: 100%;
+            font-weight: 600;
+        }
+        .btn-login:hover { color: white; opacity: 0.92; }
+    </style>
+    <script>window.KSITES_PUBLIC_PAGE = true;</script>
+    <script src="config.js"></script>
+    <script src="static/js/api.js"></script>
+</head>
+<body>
+    <div class="login-card">
+        <div class="logo">
+            <i class="fas fa-dna"></i>
+            <h2>K-Sites</h2>
+            <p class="mb-1">Suite for Knock-out/down Studies</p>
+            <p class="small text-muted">Safe Gene Selection for Knockout Studies</p>
+        </div>
+
+        <div id="serverStatus" class="alert alert-info small py-2">
+            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+            Waking up the analysis server. It sleeps when idle, so this can take a minute or two.
+        </div>
+        <div id="loginError" class="alert alert-danger d-none"></div>
+
+        <form id="loginForm">
+            <div class="mb-3">
+                <label for="token" class="form-label">
+                    <i class="fas fa-key me-2 text-primary"></i>Lab access code <span class="text-danger">*</span>
+                </label>
+                <input type="password" class="form-control" id="token" autocomplete="current-password" required
+                       placeholder="Ask the lab for the access code">
+            </div>
+            <div class="mb-3">
+                <label for="name" class="form-label">
+                    <i class="fas fa-user me-2 text-primary"></i>Full name <span class="text-danger">*</span>
+                </label>
+                <input type="text" class="form-control" id="name" autocomplete="name" required placeholder="Your name">
+            </div>
+            <div class="mb-4">
+                <label for="email" class="form-label">
+                    <i class="fas fa-envelope me-2 text-primary"></i>Email address <span class="text-danger">*</span>
+                </label>
+                <input type="email" class="form-control" id="email" autocomplete="email" required placeholder="Your email">
+            </div>
+            <button type="submit" class="btn btn-login" id="loginButton">
+                <i class="fas fa-sign-in-alt me-2"></i>Sign in
+            </button>
+        </form>
+
+        <p class="small text-muted text-center mt-4 mb-0">
+            <i class="fas fa-info-circle me-1"></i>
+            For lab members. Your name and email are saved only in this browser and are attached to the jobs you submit.
+        </p>
+    </div>
+
+    <script>
+    (function () {
+        const form = document.getElementById('loginForm');
+        const errorBox = document.getElementById('loginError');
+        const status = document.getElementById('serverStatus');
+        const button = document.getElementById('loginButton');
+
+        // Pre-fill what this browser already knows
+        const known = window.KSITES.user();
+        document.getElementById('name').value = known.name;
+        document.getElementById('email').value = known.email;
+
+        // Start waking the backend while the user types
+        window.KSITES.ensureAwake().then(function () {
+            status.className = 'alert alert-success small py-2';
+            status.innerHTML = '<i class="fas fa-check-circle me-2"></i>Analysis server is ready.';
+        }).catch(function () {
+            status.className = 'alert alert-danger small py-2';
+            status.textContent = 'The analysis server did not respond. Please try again in a few minutes.';
+        });
+
+        // Only ever go back to one of our own pages
+        function safeNext() {
+            const next = new URLSearchParams(window.location.search).get('next') || '';
+            return /^[A-Za-z0-9_.\-]+(\?[A-Za-z0-9_=&.%\-]*)?$/.test(next) ? next : 'index.html';
+        }
+
+        form.addEventListener('submit', async function (event) {
+            event.preventDefault();
+            errorBox.classList.add('d-none');
+            button.disabled = true;
+            const token = document.getElementById('token').value.trim();
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+
+            try {
+                await window.KSITES.ensureAwake();
+                const response = await fetch(window.KSITES.apiBase + '/api/auth/check', {
+                    headers: { 'X-KSites-Token': token }
+                });
+                if (response.status === 401) {
+                    throw new Error('That access code was not accepted.');
+                }
+                if (!response.ok) {
+                    throw new Error('The server answered with an error (HTTP ' + response.status + ').');
+                }
+                window.KSITES.saveLogin(token, name, email);
+                window.location.href = safeNext();
+            } catch (error) {
+                errorBox.textContent = error.message || 'Could not sign in.';
+                errorBox.classList.remove('d-none');
+                button.disabled = false;
+            }
+        });
+    })();
+    </script>
+</body>
+</html>

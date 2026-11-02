@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Results - K-Sites</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #2c5282;
+            --secondary-color: #48bb78;
+            --accent-color: #ed8936;
+            --bg-light: #f7fafc;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #1a365d 100%);
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+        
+        .navbar-brand small {
+            font-size: 0.65rem;
+            font-weight: 400;
+            opacity: 0.9;
+            display: block;
+            margin-top: -5px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: #1a365d;
+            border-color: #1a365d;
+        }
+        
+        .btn-success {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .kingdom-card, .go-category-card {
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .kingdom-card:hover, .go-category-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+        
+        .database-card {
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .database-card:hover:not(.disabled) {
+            border-color: var(--primary-color);
+        }
+        
+        .database-card.selected {
+            border-color: var(--secondary-color);
+            background-color: #f0fff4;
+        }
+        
+        .database-card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: rgba(255,255,255,0.2);
+            color: white;
+            font-weight: 700;
+            margin-right: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .status-pending {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-running {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .status-completed {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-failed {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .results-summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .sequence-box {
+            font-family: 'Courier New', monospace;
+            background-color: #f7fafc;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.95rem;
+        }
+        
+        .score-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .score-high {
+            background-color: #c6f6d5;
+            color: #22543d;
+        }
+        
+        .score-medium {
+            background-color: #feebc8;
+            color: #744210;
+        }
+        
+        .score-low {
+            background-color: #fed7d7;
+            color: #742a2a;
+        }
+        
+        .spinner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        .loading-text {
+            margin-top: 16px;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .cursor-pointer {
+            cursor: pointer;
+        }
+        
+        /* Loading states for cards */
+        .kingdom-card.loading, .go-category-card.loading {
+            border-color: var(--primary-color);
+            background-color: #f8fafc;
+            pointer-events: none;
+        }
+        
+        .go-category-card.loading {
+            border-color: var(--secondary-color);
+        }
+        
+        .kingdom-card.loading .spinner-border,
+        .go-category-card.loading .spinner-border {
+            width: 2rem;
+            height: 2rem;
+        }
+        
+        /* Loading overlay for sections */
+        .section-loading-overlay {
+            position: relative;
+        }
+        
+        .section-loading-overlay::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        
+        /* List loading state */
+        .list-loading {
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .list-loading .spinner-border {
+            width: 1.5rem;
+            height: 1.5rem;
+        }
+        
+        /* Pulse animation for loading cards */
+        @keyframes pulse-border {
+            0% { border-color: rgba(44, 82, 130, 0.4); }
+            50% { border-color: rgba(44, 82, 130, 1); }
+            100% { border-color: rgba(44, 82, 130, 0.4); }
+        }
+        
+        .kingdom-card.loading, .go-category-card.loading {
+            animation: pulse-border 1.5s ease-in-out infinite;
+        }
+    </style>
+    
+    
+    <meta name="robots" content="noindex, nofollow">
+    <script src="config.js"></script>
+    
+    <script src="static/js/api.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <i class="fas fa-dna me-2"></i>K-Sites
+                <small>by School of Bioinformatics and Computational Biology, ICAR-IIAB</small>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">
+                            <i class="fas fa-home me-1"></i>New Analysis
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="jobs.html">
+                            <i class="fas fa-list me-1"></i>Job History
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="help.html">
+                            <i class="fas fa-book me-1"></i>Help
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="validation.html">
+                            <i class="fas fa-check-double me-1"></i>Validation
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle me-1"></i><span id="userNameLabel">User</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li id="profileMenuItem"><a class="dropdown-item" href="#">
+                                <i class="fas fa-id-card me-2"></i>Profile
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" id="logoutLink" href="login.html">
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <main class="container my-4">
+        
+<div id="jobId" data-job-id=""></div>
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">
+            <i class="fas fa-chart-bar me-2 text-primary"></i>Analysis Results
+        </h2>
+        <p class="text-muted mb-0">Job ID: <code data-job-field="id"></code></p>
+    </div>
+    <div>
+        <span class="status-badge status-pending" id="statusBadge">
+            PENDING
+        </span>
+    </div>
+</div>
+
+<!-- Loading State with Progress -->
+<div id="loadingState" class="py-4" style="display: block;">
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <div class="mb-4">
+                <div class="spinner-border text-primary" style="width: 4rem; height: 4rem;" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+            
+            <h4 class="text-primary mb-2">Analysis in Progress</h4>
+            <p class="text-muted mb-4" id="currentStep">Loading...</p>
+            
+            <!-- Progress Bar -->
+            <div class="progress mb-3" style="height: 25px;">
+                <div id="progressBar" 
+                     class="progress-bar progress-bar-striped progress-bar-animated" 
+                     role="progressbar" 
+                     style="width: 0%"
+                     aria-valuenow="0" 
+                     aria-valuemin="0" 
+                     aria-valuemax="100">
+                    0%
+                </div>
+            </div>
+            
+            <!-- Elapsed time -->
+            <div id="elapsedDisplay" class="text-muted mb-4" style="display: none;">
+                <i class="fas fa-clock me-2"></i>
+                Running for <span id="elapsedTime"></span>
+            </div>
+            
+            <!-- Progress Steps -->
+            <div class="text-start mx-auto mt-4" style="max-width: 500px;">
+                <div class="card bg-light">
+                    <div class="card-header">
+                        <i class="fas fa-tasks me-2"></i>Progress
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush" id="progressSteps">
+                            <li class="list-group-item d-flex justify-content-between align-items-center ">
+                                <span><i class="fas fa-circle text-muted me-2"></i>Initialize</span>
+                                <span class="badge bg-secondary">5%</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center ">
+                                <span><i class="fas fa-circle text-muted me-2"></i>Resolve Organism</span>
+                                <span class="badge bg-secondary">15%</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center ">
+                                <span><i class="fas fa-circle text-muted me-2"></i>Fetch GO Genes</span>
+                                <span class="badge bg-secondary">30%</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center ">
+                                <span><i class="fas fa-circle text-muted me-2"></i>Process Annotations</span>
+                                <span class="badge bg-secondary">60%</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center ">
+                                <span><i class="fas fa-circle text-muted me-2"></i>Generate Reports</span>
+                                <span class="badge bg-secondary">85%</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center ">
+                                <span><i class="fas fa-circle text-muted me-2"></i>Complete</span>
+                                <span class="badge bg-secondary">100%</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <button type="button" class="btn btn-outline-danger" id="cancelJobButton">
+                    <i class="fas fa-stop-circle me-2"></i>Cancel this analysis
+                </button>
+            </div>
+
+            <div class="alert alert-warning mt-4" data-hosted-note style="display: none; max-width: 500px; margin: 0 auto;">
+                <i class="fas fa-laptop me-2"></i>
+                <strong>The analysis runs in this browser.</strong> Keep this tab open until it finishes.
+                If you close it, opening this page again resumes the job (finished steps are remembered).
+            </div>
+
+            <!-- Notification Info -->
+            <div class="alert alert-info mt-4" style="max-width: 500px; margin: 0 auto;">
+                <i class="fas fa-envelope me-2"></i>
+                
+                You can leave this page and check back later. Visit <a href="jobs.html">Job History</a> anytime.
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Error State -->
+<div id="errorState" class="alert alert-danger" style="display: none;">
+    <h5><i class="fas fa-times-circle me-2"></i>Analysis Failed</h5>
+    <p id="errorMessage"></p>
+    <a href="index.html" class="btn btn-primary">
+        <i class="fas fa-arrow-left me-2"></i>Start New Analysis
+    </a>
+</div>
+
+<!-- Results Content -->
+<div id="resultsContent" style="display: none;">
+    
+    <!-- Success Notification -->
+    <div class="alert alert-success mb-4">
+        <i class="fas fa-check-circle me-2"></i>
+        <strong>Analysis Complete!</strong>
+        
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="results-summary">
+        <div class="row g-4">
+            <div class="col-md-6 text-center">
+                <div class="display-4 fw-bold" data-job-field="total_genes_found">-</div>
+                <div class="text-white-50">Total Genes Found</div>
+            </div>
+            <div class="col-md-6 text-center">
+                <div class="display-4 fw-bold" data-job-field="genes_processed">-</div>
+                <div class="text-white-50">Genes Processed</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a id="downloadHtml" class="btn btn-primary" href="#" style="display: none;">
+            <i class="fas fa-file-code me-2"></i>Download HTML Report
+        </a>
+        <a id="downloadJson" class="btn btn-outline-primary" href="#" style="display: none;">
+            <i class="fas fa-file-code me-2"></i>Download JSON
+        </a>
+        <a id="downloadCsv" class="btn btn-outline-primary" href="#" style="display: none;">
+            <i class="fas fa-file-csv me-2"></i>Download CSV (all metrics)
+        </a>
+        <a id="downloadSummary" class="btn btn-outline-primary" href="#" style="display: none;">
+            <i class="fas fa-file-csv me-2"></i>Download gene summary CSV
+        </a>
+        <a id="downloadXlsx" class="btn btn-outline-primary" href="#" style="display: none;">
+            <i class="fas fa-file-excel me-2"></i>Download Excel
+        </a>
+        <button class="btn btn-outline-secondary" onclick="window.print()">
+            <i class="fas fa-print me-2"></i>Print Results
+        </button>
+        <a href="index.html" class="btn btn-success">
+            <i class="fas fa-plus me-2"></i>New Analysis
+        </a>
+    </div>
+    
+    <!-- Parameters Summary -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Analysis Parameters</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <td class="text-muted">Organism:</td>
+                            <td class="fw-semibold" data-job-field="organism"></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">TaxID:</td>
+                            <td><code data-job-field="taxid"></code></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">GO Term:</td>
+                            <td class="fw-semibold" data-job-field="go_term"></td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-4">
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <td class="text-muted">GO Term Name:</td>
+                            <td data-job-field="go_term_name">-</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Genes Reported:</td>
+                            <td data-job-field="max_genes"></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Pleiotropy Cutoff (0-10):</td>
+                            <td data-job-field="max_pleiotropy"></td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-4">
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <td class="text-muted">Evidence Filter:</td>
+                            <td data-job-field="evidence_filter"></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Knockout Context:</td>
+                            <td data-job-field="knockout_context">auto</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Phenotype Prediction:</td>
+                            <td data-job-field="predict_phenotypes">Disabled</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Databases:</td>
+                            <td data-job-field="selected_databases">QuickGO</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gene Results Tabs -->
+    <div class="card">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs" id="resultsTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="genes-tab" data-bs-toggle="tab" data-bs-target="#genes" type="button">
+                        <i class="fas fa-dna me-2"></i>Gene Results
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button">
+                        <i class="fas fa-chart-pie me-2"></i>Summary
+                    </button>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content" id="resultsTabContent">
+                <!-- Genes Tab -->
+                <div class="tab-pane fade show active" id="genes" role="tabpanel">
+                    <div id="genesContainer">
+                        <div class="text-center py-5 text-muted">
+                            <div class="spinner-border mb-3" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p>Loading gene results...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Summary Tab -->
+                <div class="tab-pane fade" id="summary" role="tabpanel">
+                    <div id="summaryContainer">
+                        <div class="text-center py-5 text-muted">
+                            <div class="spinner-border mb-3" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p>Loading summary...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+    </main>
+    
+    <footer class="bg-white py-3 mt-5 border-top">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 text-muted small mb-2 mb-md-0">
+                    
+                        <i class="fas fa-envelope me-1"></i>Email notifications supported
+                    
+                </div>
+                <div class="col-md-6 text-md-end text-muted small">
+                    K-Sites: Safe Gene Selection for Knockout Studies &copy; 2024
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    
+<script src="static/js/results.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Analysis - K-Sites</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #2c5282;
+            --secondary-color: #48bb78;
+            --accent-color: #ed8936;
+            --bg-light: #f7fafc;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #1a365d 100%);
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+        
+        .navbar-brand small {
+            font-size: 0.65rem;
+            font-weight: 400;
+            opacity: 0.9;
+            display: block;
+            margin-top: -5px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: #1a365d;
+            border-color: #1a365d;
+        }
+        
+        .btn-success {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .kingdom-card, .go-category-card {
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .kingdom-card:hover, .go-category-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+        
+        .database-card {
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .database-card:hover:not(.disabled) {
+            border-color: var(--primary-color);
+        }
+        
+        .database-card.selected {
+            border-color: var(--secondary-color);
+            background-color: #f0fff4;
+        }
+        
+        .database-card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: rgba(255,255,255,0.2);
+            color: white;
+            font-weight: 700;
+            margin-right: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .status-pending {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-running {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .status-completed {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-failed {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .results-summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .sequence-box {
+            font-family: 'Courier New', monospace;
+            background-color: #f7fafc;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.95rem;
+        }
+        
+        .score-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .score-high {
+            background-color: #c6f6d5;
+            color: #22543d;
+        }
+        
+        .score-medium {
+            background-color: #feebc8;
+            color: #744210;
+        }
+        
+        .score-low {
+            background-color: #fed7d7;
+            color: #742a2a;
+        }
+        
+        .spinner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        .loading-text {
+            margin-top: 16px;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .cursor-pointer {
+            cursor: pointer;
+        }
+        
+        /* Loading states for cards */
+        .kingdom-card.loading, .go-category-card.loading {
+            border-color: var(--primary-color);
+            background-color: #f8fafc;
+            pointer-events: none;
+        }
+        
+        .go-category-card.loading {
+            border-color: var(--secondary-color);
+        }
+        
+        .kingdom-card.loading .spinner-border,
+        .go-category-card.loading .spinner-border {
+            width: 2rem;
+            height: 2rem;
+        }
+        
+        /* Loading overlay for sections */
+        .section-loading-overlay {
+            position: relative;
+        }
+        
+        .section-loading-overlay::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        
+        /* List loading state */
+        .list-loading {
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .list-loading .spinner-border {
+            width: 1.5rem;
+            height: 1.5rem;
+        }
+        
+        /* Pulse animation for loading cards */
+        @keyframes pulse-border {
+            0% { border-color: rgba(44, 82, 130, 0.4); }
+            50% { border-color: rgba(44, 82, 130, 1); }
+            100% { border-color: rgba(44, 82, 130, 0.4); }
+        }
+        
+        .kingdom-card.loading, .go-category-card.loading {
+            animation: pulse-border 1.5s ease-in-out infinite;
+        }
+    </style>
+    
+    
+<style>
+    /* RAG phenotype prediction section */
+    #ragBrainIcon {
+        transition: color 0.2s ease;
+        display: inline-block;
+    }
+    #ragBrainIcon.active {
+        color: #f6ad55;
+    }
+    #ragBrainIcon.pop {
+        animation: brainPop 0.35s ease;
+    }
+    @keyframes brainPop {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.35); }
+        100% { transform: scale(1); }
+    }
+
+    .llm-key-card {
+        border: 1px solid #e2e8f0;
+        background-color: #ffffff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .llm-provider-trigger {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        border: 1px dashed #cbd5e0;
+        border-radius: 8px;
+        background-color: #f8fafc;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .llm-provider-trigger:hover {
+        background-color: #edf2f7;
+        border-color: #a0aec0;
+    }
+    .llm-provider-trigger.open {
+        border-style: solid;
+        border-color: #2c5282;
+        background-color: #ebf8ff;
+    }
+    .llm-provider-trigger.open #llmProviderTriggerIcon {
+        transform: rotate(180deg);
+    }
+    #llmProviderTriggerIcon {
+        transition: transform 0.2s ease;
+    }
+
+    .provider-option {
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.15s ease;
+    }
+    .provider-option:hover {
+        border-color: #2c5282;
+        transform: translateY(-1px);
+    }
+    .provider-option.selected {
+        border-color: #48bb78;
+        background-color: #f0fff4;
+    }
+</style>
+
+    <meta name="robots" content="noindex, nofollow">
+    <script src="config.js"></script>
+    
+    <script src="static/js/api.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <i class="fas fa-dna me-2"></i>K-Sites
+                <small>by School of Bioinformatics and Computational Biology, ICAR-IIAB</small>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">
+                            <i class="fas fa-home me-1"></i>New Analysis
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="jobs.html">
+                            <i class="fas fa-list me-1"></i>Job History
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="help.html">
+                            <i class="fas fa-book me-1"></i>Help
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="validation.html">
+                            <i class="fas fa-check-double me-1"></i>Validation
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle me-1"></i><span id="userNameLabel">User</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li id="profileMenuItem"><a class="dropdown-item" href="#">
+                                <i class="fas fa-id-card me-2"></i>Profile
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" id="logoutLink" href="login.html">
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <main class="container my-4">
+        
+<div class="row">
+    <div class="col-lg-11 mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-5">
+            <h1 class="display-5 fw-bold text-primary">
+                <i class="fas fa-dna me-3"></i>K-Sites
+            </h1>
+            <p class="lead text-muted">Suite for Knock-out/down Studies</p>
+            <p class="text-secondary">Safe Gene Selection for Knockout Studies</p>
+        </div>
+        
+        <form id="analysisForm" class="needs-validation" novalidate>
+            
+            <!-- User Email (for notifications) -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <span class="step-number active">1</span>
+                        User Information (Optional)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="user_email" class="form-label">
+                            <i class="fas fa-envelope me-2"></i>Email Address
+                        </label>
+                        <input type="email" 
+                               class="form-control" 
+                               id="user_email" 
+                               name="user_email"
+                               placeholder="your@email.com">
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Optional: Receive email notifications when analysis completes
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 1: Organism Selection -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <span class="step-number active">2</span>
+                        Select Organism
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Kingdom Selection -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-sitemap me-2"></i>Step A: Choose Kingdom/Category
+                        </label>
+                        <div id="kingdomContainer" class="row g-3">
+                            <!-- Kingdoms loaded dynamically -->
+                            <div class="text-center py-3">
+                                <div class="spinner-border spinner-border-sm text-primary"></div>
+                                <span class="ms-2">Loading categories...</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Species Selection -->
+                    <div id="speciesSection" class="mb-4" style="display: none;">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-microscope me-2"></i>Step B: Select Species
+                        </label>
+                        
+                        <!-- Selected kingdom display -->
+                        <div id="selectedKingdomDisplay" class="alert alert-info d-flex align-items-center mb-3">
+                            <span id="selectedKingdomName"></span>
+                            <button type="button" class="btn btn-sm btn-outline-primary ms-auto" onclick="resetKingdomSelection()">
+                                <i class="fas fa-undo me-1"></i>Change
+                            </button>
+                        </div>
+                        
+                        <!-- Search/Filter -->
+                        <div class="mb-3">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="speciesSearch" 
+                                       placeholder="Search all KEGG species (e.g., 'mouse', 'E. coli', 'zebrafish')...">
+                            </div>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Type to search through all organisms from KEGG database
+                            </div>
+                        </div>
+                        
+                        <!-- Species list -->
+                        <div id="speciesList" class="list-group" style="max-height: 300px; overflow-y: auto;">
+                            <!-- Species loaded dynamically -->
+                        </div>
+                    </div>
+                    
+                    <!-- Selected organism display -->
+                    <div id="selectedOrganismDisplay" class="alert alert-success" style="display: none;">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-check-circle me-2 fa-lg"></i>
+                            <div>
+                                <strong>Selected:</strong> <span id="selectedOrganismName"></span>
+                                <br><small class="text-muted">TaxID: <span id="selectedOrganismTaxid"></span></small>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-success ms-auto" onclick="resetOrganismSelection()">
+                                <i class="fas fa-edit me-1"></i>Change
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="evidenceCoverageNote" class="alert alert-light border small" style="display: none;"></div>
+
+                    <input type="hidden" id="organism" name="organism" required>
+                    <input type="hidden" id="taxid" name="taxid">
+                </div>
+            </div>
+            
+            <!-- Step 2: GO Term Selection -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <span class="step-number active">3</span>
+                        Select GO Term
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- GO Category Selection -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-sitemap me-2"></i>Step A: Choose GO Category
+                        </label>
+                        <div id="goCategoryContainer" class="row g-3">
+                            <!-- Categories loaded dynamically -->
+                            <div class="text-center py-3">
+                                <div class="spinner-border spinner-border-sm text-primary"></div>
+                                <span class="ms-2">Loading categories...</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Alternative: Direct GO ID input -->
+                    <div id="goDirectInputSection">
+                        <div class="d-flex align-items-center mb-3">
+                            <hr class="flex-grow-1 border-primary opacity-50" style="border-width: 2px;">
+                            <span class="mx-3 text-primary fw-bold">OR enter directly</span>
+                            <hr class="flex-grow-1 border-primary opacity-50" style="border-width: 2px;">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Enter GO Term ID</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="go_term_direct" 
+                                   placeholder="GO:0006281"
+                                   pattern="GO:\d{7}">
+                            <div class="form-text">Format: GO: followed by 7 digits</div>
+                        </div>
+                    </div>
+                    
+                    <!-- GO Terms Selection -->
+                    <div id="goTermsSection" class="mb-4" style="display: none;">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-list me-2"></i>Step B: Select GO Term
+                        </label>
+                        
+                        <!-- Selected category display -->
+                        <div id="selectedCategoryDisplay" class="alert alert-info d-flex align-items-center mb-3">
+                            <span id="selectedCategoryName"></span>
+                            <button type="button" class="btn btn-sm btn-outline-primary ms-auto" onclick="resetCategorySelection()">
+                                <i class="fas fa-undo me-1"></i>Change
+                            </button>
+                        </div>
+                        
+                        <!-- Search/Filter -->
+                        <div class="mb-3">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="goTermSearch" 
+                                       placeholder="Search all GO terms (e.g., 'DNA repair', 'kinase', 'nucleus')...">
+                            </div>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Type at least 2 characters to search thousands of GO terms
+                            </div>
+                        </div>
+                        
+                        <!-- GO Terms list -->
+                        <div id="goTermsList" class="list-group" style="max-height: 300px; overflow-y: auto;">
+                            <!-- Terms loaded dynamically -->
+                        </div>
+                    </div>
+                    
+                    <!-- Selected GO term display -->
+                    <div id="selectedGoTermDisplay" class="alert alert-success" style="display: none;">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-check-circle me-2 fa-lg"></i>
+                            <div>
+                                <strong>Selected:</strong> <span id="selectedGoTermId"></span>
+                                <br><span id="selectedGoTermName" class="text-muted"></span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-success ms-auto" onclick="resetGoTermSelection()">
+                                <i class="fas fa-edit me-1"></i>Change
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" id="go_term" name="go_term" required>
+                    <input type="hidden" id="go_term_name" name="go_term_name">
+                </div>
+            </div>
+            
+            <!-- Step 3: Database Selection -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <span class="step-number">4</span>
+                        Select Databases
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="databaseContainer" class="row g-3">
+                        <!-- Databases loaded dynamically -->
+                    </div>
+                    <div class="form-text mt-2">
+                        <i class="fas fa-info-circle me-1"></i>
+                        QuickGO is always used.
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 4: Analysis Parameters -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <span class="step-number">5</span>
+                        Analysis Parameters
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="max_genes" class="form-label">
+                                <i class="fas fa-list-ol me-2"></i>Genes to Report
+                                <a href="help.html#faq" class="text-decoration-none" target="_blank">
+                                    <i class="fas fa-question-circle text-muted"></i>
+                                </a>
+                            </label>
+                            <input type="number" 
+                                   class="form-control" 
+                                   id="max_genes" 
+                                   name="max_genes"
+                                   value="10"
+                                   min="1"
+                                   max="500"
+                                   required>
+                            <div class="form-text">
+                                How many genes to show in the report (1-500), safest first. Every gene of the
+                                GO term is assessed, so this does not change the run time; the others are listed
+                                as "not shown" with their measured knockout result, so nothing is hidden.
+                                <button type="button" class="btn btn-link btn-sm p-0 align-baseline" id="showAllGenes">Show all genes</button>
+                                <span id="showAllNote" class="text-success" style="display:none">All genes will be shown (500 is the largest possible report, shown here as the number).</span>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="max_pleiotropy" class="form-label">
+                                <i class="fas fa-filter me-2"></i>Max Pleiotropy Score
+                                <a href="help.html#pleiotropy_score" class="text-decoration-none" target="_blank">
+                                    <i class="fas fa-question-circle text-muted"></i>
+                                </a>
+                            </label>
+                            <input type="number" 
+                                   class="form-control" 
+                                   id="max_pleiotropy" 
+                                   name="max_pleiotropy"
+                                   value="5"
+                                   min="0"
+                                   max="10"
+                                   required>
+                            <div class="form-text">
+                                Cutoff on the 0-10 pleiotropy score: genes scoring above it are left out.
+                                0 = only the most specific genes, 10 = keep everything.
+                                <a href="help.html#pleiotropy_score" target="_blank">Learn more</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="evidence_filter" class="form-label">
+                                <i class="fas fa-check-double me-2"></i>Evidence Filter
+                            </label>
+                            <select class="form-select" id="evidence_filter" name="evidence_filter">
+                                <option value="experimental">Experimental only</option>
+                                <option value="computational">Computational only</option>
+                                <option value="all">All evidence types</option>
+                            </select>
+                            <div class="form-text">
+                                <strong>Experimental:</strong> only roles proven in lab experiments (strict, but can make
+                                poorly studied genes look more specific than they are).<br>
+                                <strong>Computational:</strong> only predicted roles.<br>
+                                <strong>All:</strong> every known role (most cautious about pleiotropy).
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="knockout_context" class="form-label">
+                                <i class="fas fa-vial me-2"></i>What will you knock out?
+                                <a href="help.html#knockout_context" class="text-decoration-none" target="_blank">
+                                    <i class="fas fa-question-circle text-muted"></i>
+                                </a>
+                            </label>
+                            <select class="form-select" id="knockout_context" name="knockout_context">
+                                <option value="auto" selected>Automatic (cultured cells for human, whole organism otherwise)</option>
+                                <option value="cells">Cultured cells (CRISPR knockout in a cell line)</option>
+                                <option value="organism">Whole organism (animal, plant or yeast)</option>
+                            </select>
+                            <div class="form-text">
+                                Decides which measurement the verdict follows: cell-line essentiality (DepMap) or whole-organism
+                                knockout survival (MGI, IMPC, SGD, ZFIN, FlyBase, WormBase). Both are shown for every gene.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row my-4">
+                        <div class="col-12 py-2">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="predict_phenotypes" name="predict_phenotypes">
+                                <label class="form-check-label" for="predict_phenotypes">
+                                    <i class="fas fa-brain me-2" id="ragBrainIcon"></i>Enable RAG Phenotype Prediction
+                                    <span class="badge bg-secondary ms-2 fw-normal">Optional</span>
+                                    <a href="help.html#phenotype_prediction" class="text-decoration-none" target="_blank"
+                                       title="When to use, limitations, and the optional API key">
+                                        <i class="fas fa-question-circle text-muted"></i>
+                                    </a>
+                                </label>
+                            </div>
+                            <div class="form-text">
+                                Guess phenotypes from PubMed abstracts for unmeasured genes only. Each unmeasured gene takes about 1 minute to read and is capped at 25 genes per run to keep the analysis manageable. Literature-derived predictions are advisory only and do not elevate the overall recommendation above CAUTION.
+                            </div>
+                            <div id="llmKeySection" class="collapse mt-3">
+                                <div class="card llm-key-card">
+                                    <div class="card-body">
+                                        <h6 class="card-title mb-3">
+                                            <i class="fas fa-key me-2"></i>Enhance with a hosted AI model <span class="text-muted fw-normal small">(your own API key)</span>
+                                        </h6>
+
+                                        <input type="hidden" id="llm_provider" name="llm_provider" value="kimi">
+
+                                        <!-- Step 1: open the provider list -->
+                                        <div id="llmProviderTrigger" class="llm-provider-trigger"
+                                             onclick="toggleLlmProviderPanel()">
+                                            <span id="llmProviderTriggerText">Pick a model to read abstracts</span>
+                                            <i class="fas fa-chevron-down" id="llmProviderTriggerIcon"></i>
+                                        </div>
+
+                                        <!-- Step 2: choose a provider -->
+                                        <div id="llmProviderOptions" class="d-none mt-2">
+                                            <div class="row g-2">
+                                                <div class="col-6 col-md-4">
+                                                    <div class="card provider-option h-100" data-provider="kimi" onclick="selectLlmProvider('kimi')">
+                                                        <div class="card-body text-center py-2">
+                                                            <strong>Kimi</strong>
+                                                            <div class="small text-muted">Moonshot</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6 col-md-4">
+                                                    <div class="card provider-option h-100" data-provider="openai" onclick="selectLlmProvider('openai')">
+                                                        <div class="card-body text-center py-2">
+                                                            <strong>OpenAI</strong>
+                                                            <div class="small text-muted">GPT</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6 col-md-4">
+                                                    <div class="card provider-option h-100" data-provider="anthropic" onclick="selectLlmProvider('anthropic')">
+                                                        <div class="card-body text-center py-2">
+                                                            <strong>Anthropic</strong>
+                                                            <div class="small text-muted">Claude</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6 col-md-4">
+                                                    <div class="card provider-option h-100" data-provider="qwen" onclick="selectLlmProvider('qwen')">
+                                                        <div class="card-body text-center py-2">
+                                                            <strong>Qwen</strong>
+                                                            <div class="small text-muted">Alibaba</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6 col-md-4">
+                                                    <div class="card provider-option h-100" data-provider="deepseek" onclick="selectLlmProvider('deepseek')">
+                                                        <div class="card-body text-center py-2">
+                                                            <strong>DeepSeek</strong>
+                                                            <div class="small text-muted">Chat</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6 col-md-4">
+                                                    <div class="card provider-option h-100" data-provider="grok" onclick="selectLlmProvider('grok')">
+                                                        <div class="card-body text-center py-2">
+                                                            <strong>Grok</strong>
+                                                            <div class="small text-muted">xAI</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Step 3: paste the key (appears only after a provider is selected) -->
+                                        <div id="llmApiKeyWrapper" class="collapse mt-3">
+                                            <label for="llm_api_key" class="form-label small text-muted mb-1">
+                                                API key for <span id="llmSelectedProviderName">Kimi (Moonshot)</span>
+                                            </label>
+                                            <input type="password" class="form-control" id="llm_api_key" name="llm_api_key"
+                                                   placeholder="sk-..." autocomplete="off">
+                                        </div>
+
+                                        <div class="form-text mt-2">
+                                            Paste your own API key for the selected provider to let a larger language model read the abstracts.
+                                            This improves accuracy (better negation handling, context understanding, and conflict resolution) compared with the default free browser model.
+                                            <strong>If the field is left blank, or if the API fails, K-Sites automatically uses the default browser-based model instead.</strong>
+                                            The key is used only in this browser and is never sent to our server.
+                                            <a href="help.html#phenotype_prediction" target="_blank">How to get an API key</a>.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- Gene Count Preview -->
+                    <div id="geneCountPreview" class="alert alert-info mt-3" style="display: none;">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div>
+                                <i class="fas fa-dna me-2"></i>
+                                <strong>Gene Count:</strong> <span id="geneCountValue">-</span> genes found
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="refreshGeneCount">
+                                <i class="fas fa-sync me-1"></i>Refresh
+                            </button>
+                        </div>
+                        <div id="estimatedTime" class="mb-2" style="display: none;">
+                            <i class="fas fa-clock me-2"></i>
+                            <strong>Estimated Time:</strong> <span id="estimatedTimeValue">-</span>
+                        </div>
+                        <div id="geneCountWarning" class="text-warning" style="display: none;">
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            <span id="geneCountWarningText"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Validation Alerts -->
+            <div id="validationAlerts"></div>
+            
+            <!-- Submit Button -->
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary btn-lg" id="startAnalysis">
+                    <i class="fas fa-play me-2"></i>Start Analysis
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="spinner-overlay" id="loadingOverlay" style="display: none;">
+    <div class="text-center">
+        <div class="spinner-border text-primary mb-3" style="width: 4rem; height: 4rem;" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <h4 class="text-primary" id="loadingText">Validating parameters...</h4>
+    </div>
+</div>
+
+    </main>
+    
+    <footer class="bg-white py-3 mt-5 border-top">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 text-muted small mb-2 mb-md-0">
+                    
+                        <i class="fas fa-envelope me-1"></i>Email notifications supported
+                    
+                </div>
+                <div class="col-md-6 text-md-end text-muted small">
+                    K-Sites: Safe Gene Selection for Knockout Studies &copy; 2024
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    
+<script src="static/js/main.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Help & Documentation - K-Sites</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #2c5282;
+            --secondary-color: #48bb78;
+            --accent-color: #ed8936;
+            --bg-light: #f7fafc;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #1a365d 100%);
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+        
+        .navbar-brand small {
+            font-size: 0.65rem;
+            font-weight: 400;
+            opacity: 0.9;
+            display: block;
+            margin-top: -5px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: #1a365d;
+            border-color: #1a365d;
+        }
+        
+        .btn-success {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .kingdom-card, .go-category-card {
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .kingdom-card:hover, .go-category-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+        
+        .database-card {
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .database-card:hover:not(.disabled) {
+            border-color: var(--primary-color);
+        }
+        
+        .database-card.selected {
+            border-color: var(--secondary-color);
+            background-color: #f0fff4;
+        }
+        
+        .database-card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: rgba(255,255,255,0.2);
+            color: white;
+            font-weight: 700;
+            margin-right: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .status-pending {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-running {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .status-completed {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-failed {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .results-summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .sequence-box {
+            font-family: 'Courier New', monospace;
+            background-color: #f7fafc;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.95rem;
+        }
+        
+        .score-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .score-high {
+            background-color: #c6f6d5;
+            color: #22543d;
+        }
+        
+        .score-medium {
+            background-color: #feebc8;
+            color: #744210;
+        }
+        
+        .score-low {
+            background-color: #fed7d7;
+            color: #742a2a;
+        }
+        
+        .spinner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        .loading-text {
+            margin-top: 16px;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .cursor-pointer {
+            cursor: pointer;
+        }
+        
+        /* Loading states for cards */
+        .kingdom-card.loading, .go-category-card.loading {
+            border-color: var(--primary-color);
+            background-color: #f8fafc;
+            pointer-events: none;
+        }
+        
+        .go-category-card.loading {
+            border-color: var(--secondary-color);
+        }
+        
+        .kingdom-card.loading .spinner-border,
+        .go-category-card.loading .spinner-border {
+            width: 2rem;
+            height: 2rem;
+        }
+        
+        /* Loading overlay for sections */
+        .section-loading-overlay {
+            position: relative;
+        }
+        
+        .section-loading-overlay::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        
+        /* List loading state */
+        .list-loading {
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .list-loading .spinner-border {
+            width: 1.5rem;
+            height: 1.5rem;
+        }
+        
+        /* Pulse animation for loading cards */
+        @keyframes pulse-border {
+            0% { border-color: rgba(44, 82, 130, 0.4); }
+            50% { border-color: rgba(44, 82, 130, 1); }
+            100% { border-color: rgba(44, 82, 130, 0.4); }
+        }
+        
+        .kingdom-card.loading, .go-category-card.loading {
+            animation: pulse-border 1.5s ease-in-out infinite;
+        }
+    </style>
+    
+    
+<style>
+.help-nav {
+    position: sticky;
+    top: 20px;
+}
+.help-nav .nav-link {
+    color: #495057;
+    border-left: 3px solid transparent;
+    padding: 8px 16px;
+}
+.help-nav .nav-link:hover,
+.help-nav .nav-link.active {
+    color: var(--primary-color);
+    border-left-color: var(--primary-color);
+    background-color: #f8f9fa;
+}
+.term-card {
+    transition: all 0.3s;
+    border-left: 4px solid var(--primary-color);
+}
+.term-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.methodology-step {
+    position: relative;
+    padding-left: 60px;
+    margin-bottom: 30px;
+}
+.methodology-step .step-icon {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 45px;
+    height: 45px;
+    background: linear-gradient(135deg, var(--primary-color) 0%, #1a365d 100%);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+.faq-item {
+    border-left: 3px solid var(--secondary-color);
+    padding-left: 20px;
+    margin-bottom: 25px;
+}
+.score-visual {
+    display: inline-block;
+    width: 100%;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.score-visual .fill {
+    height: 100%;
+    border-radius: 4px;
+}
+.score-high { background: linear-gradient(90deg, #28a745, #20c997); }
+.score-medium { background: linear-gradient(90deg, #ffc107, #ff9800); }
+.score-low { background: linear-gradient(90deg, #dc3545, #f44336); }
+</style>
+
+    <meta name="robots" content="noindex, nofollow">
+    <script src="config.js"></script>
+    
+    <script src="static/js/api.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <i class="fas fa-dna me-2"></i>K-Sites
+                <small>by School of Bioinformatics and Computational Biology, ICAR-IIAB</small>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">
+                            <i class="fas fa-home me-1"></i>New Analysis
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="jobs.html">
+                            <i class="fas fa-list me-1"></i>Job History
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="help.html">
+                            <i class="fas fa-book me-1"></i>Help
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="validation.html">
+                            <i class="fas fa-check-double me-1"></i>Validation
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle me-1"></i><span id="userNameLabel">User</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li id="profileMenuItem"><a class="dropdown-item" href="#">
+                                <i class="fas fa-id-card me-2"></i>Profile
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" id="logoutLink" href="login.html">
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <main class="container my-4">
+        
+<div class="row">
+    <!-- Sidebar Navigation -->
+    <div class="col-lg-3">
+        <nav class="help-nav d-none d-lg-block">
+            <h5 class="mb-3">Contents</h5>
+            <nav class="nav flex-column">
+                <a class="nav-link active" href="#overview">Overview</a>
+                <a class="nav-link" href="#methodology">Methodology</a>
+                <a class="nav-link" href="#analytical-terms">Analytical Terms</a>
+                
+                <a class="nav-link ms-3 small" href="#pleiotropy_score">Pleiotropy Score</a>
+                
+                <a class="nav-link ms-3 small" href="#specificity_score">Specificity Score</a>
+                
+                <a class="nav-link ms-3 small" href="#composite_score">Composite Score</a>
+                
+                <a class="nav-link ms-3 small" href="#evidence_quality">Evidence Quality</a>
+                
+                <a class="nav-link ms-3 small" href="#safety_level">Safety Level</a>
+                
+                <a class="nav-link ms-3 small" href="#knockout_evidence">Measured knockout evidence</a>
+                
+                <a class="nav-link ms-3 small" href="#knockout_context">What will you knock out?</a>
+                
+                <a class="nav-link ms-3 small" href="#phenotype_prediction">RAG Phenotype Prediction (experimental)</a>
+                
+                <a class="nav-link ms-3 small" href="#conservation_score">Cross-Species Conservation</a>
+                
+                <a class="nav-link" href="#faq">FAQ</a>
+            </nav>
+        </nav>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="col-lg-9">
+        <!-- Header -->
+        <div class="mb-5">
+            <h1 class="display-5 fw-bold text-primary">
+                <i class="fas fa-book-open me-3"></i>Help & Documentation
+            </h1>
+            <p class="lead text-muted">Understanding K-Sites: A Comprehensive Guide</p>
+        </div>
+        
+        <!-- Overview Section -->
+        <section id="overview" class="mb-5">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0"><i class="fas fa-info-circle me-2"></i>What is K-Sites?</h3>
+                </div>
+                <div class="card-body">
+                    <p class="lead">K-Sites is a comprehensive <strong>Suite for Knock-out/down Studies</strong> that integrates multiple biological databases and literature mining to help you pick a safe gene to delete.</p>
+                    
+                    <div class="row g-4 mt-3">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-bullseye fa-2x text-primary me-3 mt-1"></i>
+                                <div>
+                                    <h5>Multi-Database Evidence</h5>
+                                    <p class="text-muted mb-0">Combines GO (QuickGO), UniProt and KEGG data for each candidate gene; PubMed is used only for optional RAG phenotype prediction.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-brain fa-2x text-success me-3 mt-1"></i>
+                                <div>
+                                    <h5>AI-Powered Predictions</h5>
+                                    <p class="text-muted mb-0">RAG-based phenotype prediction from scientific literature.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-filter fa-2x text-info me-3 mt-1"></i>
+                                <div>
+                                    <h5>Smart Filtering</h5>
+                                    <p class="text-muted mb-0">Pleiotropy scoring to identify specific, safe targets.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-shield-alt fa-2x text-warning me-3 mt-1"></i>
+                                <div>
+                                    <h5>Safety Assessment</h5>
+                                    <p class="text-muted mb-0">Comprehensive knockout risk evaluation for each gene.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Methodology Section -->
+        <section id="methodology" class="mb-5">
+            <h2 class="mb-4"><i class="fas fa-microscope me-2 text-primary"></i>Methodology</h2>
+            
+            
+            <div class="methodology-step">
+                <div class="step-icon">
+                    <i class="fas fa-microscope"></i>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Overview</h5>
+                        <div class="card-text">
+                            
+            <p>K-Sites helps you pick a safe gene to delete. It integrates multiple 
+            biological databases and literature mining to rank the genes of a biological process by 
+            how specific their function is and how risky a knockout is likely to be.</p>
+            
+            <p>The platform follows a multi-step pipeline from gene discovery to a safety 
+            recommendation for each candidate gene.</p>
+        
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="methodology-step">
+                <div class="step-icon">
+                    <i class="fas fa-search"></i>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Step 1: Gene Discovery</h5>
+                        <div class="card-text">
+                            
+            <p>The pipeline begins by querying the <strong>QuickGO</strong> database to retrieve all 
+            genes annotated with the selected Gene Ontology (GO) term in the specified organism.</p>
+            
+            <p>Users can filter by evidence type:</p>
+            <ul>
+                <li><strong>Experimental:</strong> Only experimentally validated annotations</li>
+                <li><strong>Computational:</strong> Includes computational predictions</li>
+                <li><strong>All:</strong> All available evidence types</li>
+            </ul>
+            
+            <p>This step typically returns 10-500 genes depending on the GO term specificity.</p>
+        
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="methodology-step">
+                <div class="step-icon">
+                    <i class="fas fa-project-diagram"></i>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Step 2: Pleiotropy Scoring</h5>
+                        <div class="card-text">
+                            
+            <p>Each discovered gene is scored for <strong>pleiotropy</strong> - the degree to which it 
+            participates in multiple biological processes.</p>
+            
+            <p>The scoring algorithm:</p>
+            <ol>
+                <li>Queries all GO annotations for the gene</li>
+                <li>Counts unique Biological Process terms</li>
+                <li>Retrieves KEGG pathway memberships (reported as a pathway count)</li>
+                <li>Calculates exponential decay score</li>
+            </ol>
+            
+            <p>Genes with low pleiotropy scores are prioritized as they are more likely to produce 
+            specific, interpretable phenotypes upon knockout.</p>
+        
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="methodology-step">
+                <div class="step-icon">
+                    <i class="fas fa-check-double"></i>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Step 3: Evidence Quality Assessment</h5>
+                        <div class="card-text">
+                            
+            <p>GO annotations are evaluated based on their <strong>evidence codes</strong>:</p>
+            
+            <ul>
+                <li><strong>Experimental (EXP, IDA, IMP, IGI, IEP):</strong> Direct experimental evidence</li>
+                <li><strong>Phylogenetic (IBA, IBD, IKR, IRD):</strong> Evidence from related species</li>
+                <li><strong>Computational (ISS, ISO, ISA, ISM, IGC, IBA, IBD):</strong> Predicted annotations</li>
+                <li><strong>Author Statements (TAS, NAS):</strong> Non-traceable statements</li>
+                <li><strong>Electronic (IEA):</strong> Automated predictions (lowest confidence)</li>
+            </ul>
+            
+            <p>Genes with higher proportions of experimental evidence receive better scores.</p>
+        
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="methodology-step">
+                <div class="step-icon">
+                    <i class="fas fa-book"></i>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Step 4: Literature Mining</h5>
+                        <div class="card-text">
+                            
+            <p>The <strong>literature score</strong> counts the PubMed articles that NCBI Gene links to the gene
+            (the gene2pubmed list), not a text search of its name, so a gene symbol that is also an ordinary word
+            is not confused with the gene. The count is shown with each gene and enters the composite score.</p>
+
+            <p>When enabled, the experimental <strong>RAG (Retrieval-Augmented Generation)</strong> predictor reads
+            abstracts to guess knockout phenotypes, but only for genes that have neither a measured knockout result nor
+            a lethality estimate.</p>
+        
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="methodology-step">
+                <div class="step-icon">
+                    <i class="fas fa-vial"></i>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Step 5: Measured Knockout Evidence</h5>
+                        <div class="card-text">
+                            
+            <p>Every gene is looked up in the published knockout data (mouse, yeast, zebrafish, fly and worm knockouts, human cell-line
+            screens, tolerance of loss-of-function variants, tissue expression and paralogs). See
+            <a href="#knockout_evidence">Measured knockout evidence</a>. Genes above the pleiotropy cutoff are not
+            dropped silently: they are listed as "not shown" together with their measured result.</p>
+        
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="methodology-step">
+                <div class="step-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Step 6: Safety Assessment</h5>
+                        <div class="card-text">
+                            
+            <p>The final step turns the evidence into a verdict and advice:</p>
+
+            <ul>
+                <li>The measured result for your knockout context decides the level (lethal: AVOID; reduced survival or
+                    lethal in some lines: HIGH_CONCERN; viable: SAFE, or CAUTION when the gene has many annotated roles,
+                    a shortened lifespan or infertility has been reported)</li>
+                <li>Where nothing was measured the verdict is never better than CAUTION and is marked "Not verified"</li>
+                <li>Specific advice follows from the finding: a conditional allele for a lethal gene, a double knockout
+                    where a close paralog may compensate, a tissue-specific knockout where expression is restricted</li>
+            </ul>
+
+            <p>Safety levels range from SAFE (safe to proceed) to AVOID (a complete knockout is lethal or kills the cells).</p>
+        
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="methodology-step">
+                <div class="step-icon">
+                    <i class="fas fa-file-export"></i>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Output Generation</h5>
+                        <div class="card-text">
+                            
+            <p>Results are provided in multiple formats:</p>
+            
+            <ul>
+                <li><strong>HTML Report:</strong> Interactive, publication-ready summary</li>
+                <li><strong>CSV Tables:</strong> Gene-level data for spreadsheets</li>
+                <li><strong>JSON:</strong> Complete data for programmatic access</li>
+            </ul>
+            
+            <p>All results include detailed metadata, quality scores, and safety recommendations 
+            to support experimental design decisions.</p>
+        
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </section>
+        
+        <!-- Analytical Terms Section -->
+        <section id="analytical-terms" class="mb-5">
+            <h2 class="mb-4"><i class="fas fa-chart-bar me-2 text-primary"></i>Analytical Terms Explained</h2>
+            <p class="text-muted mb-4">Understanding the scores and metrics used in K-Sites analysis reports.</p>
+            
+            
+            <div id="pleiotropy_score" class="card term-card mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-project-diagram fa-lg text-primary me-3"></i>
+                        <h4 class="card-title mb-0">Pleiotropy Score</h4>
+                    </div>
+                    
+                    <p class="lead">How many biological processes a gene is annotated to (a hint about how broad its effects may be)</p>
+                    
+                    <div class="mt-4">
+                        
+            <p>The <strong>Pleiotropy Score</strong> counts how many different biological processes a gene is annotated
+            to. The more roles a gene has, the broader the effects of removing it may be.</p>
+
+            <h6>How it's calculated:</h6>
+            <ul>
+                <li>Counts the Biological Process GO terms of the gene (with the evidence type you chose).</li>
+                <li>Score = 10 &times; (1 &minus; e<sup>&minus;0.3 &times; (n &minus; 1)</sup>), where n is the total number of BP terms found for the gene (the <em>n &minus; 1</em> excludes the target GO term itself):
+                    1 term gives 0, 2 terms 2.6, 3 terms 4.5, 5 terms 7.0, 8 terms 8.8, and 11 or more terms give 10.</li>
+                <li>The number of KEGG pathways is shown next to the score but is not part of it.</li>
+            </ul>
+
+            <h6>Score Range:</h6>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <tr><td class="text-success"><strong>0-2</strong></td><td>Very few annotated roles</td></tr>
+                    <tr><td class="text-info"><strong>2-5</strong></td><td>A few annotated roles</td></tr>
+                    <tr><td class="text-warning"><strong>5-8</strong></td><td>Many annotated roles: expect broader phenotypes</td></tr>
+                    <tr><td class="text-danger"><strong>8-10</strong></td><td>Very many annotated roles</td></tr>
+                </table>
+            </div>
+
+            <h6>Max pleiotropy (cutoff):</h6>
+            <p>The score is always on a 0-10 scale. The <strong>max pleiotropy</strong> setting is a cutoff on that
+            score: genes scoring above it are left out of the ranking (they are listed as "not shown" with their
+            measured result). 0 keeps only the most specific genes, 10 keeps everything.</p>
+
+            <h6>How far it can be trusted:</h6>
+            <p>We compared the score with what is measured when the gene is knocked out in the mouse (13,733 genes, see the
+            <a href="validation.html">Validation page</a>). Genes with a higher score do affect more organ systems and are more often
+            lethal (14% lethal in the lowest band, 37% in the highest), but the link is modest: the rank correlation with the
+            number of organ systems affected is 0.34, and the area under the ROC curve for telling lethal from viable is 0.61
+            (0.5 is a coin flip). Heavily studied genes simply have more annotations. Use the score as a hint about broad
+            effects; the measured knockout result matters more.</p>
+        
+                    </div>
+                    
+                    <div class="mt-3 text-muted small">
+                        <i class="fas fa-book me-1"></i>Reference: GO Biological Process annotations; checked against MGI and IMPC knockouts (Validation page)
+                    </div>
+                </div>
+            </div>
+            
+            <div id="specificity_score" class="card term-card mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-bullseye fa-lg text-primary me-3"></i>
+                        <h4 class="card-title mb-0">Specificity Score</h4>
+                    </div>
+                    
+                    <p class="lead">The inverse of pleiotropy on a 0 to 1 scale - higher is more specific</p>
+                    
+                    <div class="mt-4">
+                        
+            <p>The <strong>Specificity Score</strong> is <code>1 &minus; pleiotropy_score / 10</code>, so it runs from
+            0 (very many annotated roles) to 1 (a single annotated process). A pleiotropy score of 2.6 gives 0.74.</p>
+
+            <h6>Interpretation:</h6>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <tr><td class="text-success"><strong>0.8-1.0</strong></td><td>Few annotated roles</td></tr>
+                    <tr><td class="text-info"><strong>0.5-0.8</strong></td><td>A few annotated roles</td></tr>
+                    <tr><td class="text-warning"><strong>0.2-0.5</strong></td><td>Many annotated roles</td></tr>
+                    <tr><td class="text-danger"><strong>0-0.2</strong></td><td>Very many annotated roles</td></tr>
+                </table>
+            </div>
+
+            <h6>Usage:</h6>
+            <p>It carries no information beyond the pleiotropy score; it is used because the composite score rewards genes
+            with fewer annotated roles. Whether a knockout is safe is decided by the measured knockout evidence, not by this score.</p>
+        
+                    </div>
+                    
+                    <div class="mt-3 text-muted small">
+                        <i class="fas fa-book me-1"></i>Reference: Derived from the pleiotropy score
+                    </div>
+                </div>
+            </div>
+            
+            <div id="composite_score" class="card term-card mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-star fa-lg text-primary me-3"></i>
+                        <h4 class="card-title mb-0">Composite Score</h4>
+                    </div>
+                    
+                    <p class="lead">Weighted combination of specificity, evidence quality, literature support and conservation</p>
+                    
+                    <div class="mt-4">
+                        
+            <p>The <strong>Composite Score</strong> combines four measures into one number between 0 and 1. It orders the
+            genes that have the same safety level; the safety level itself comes from the
+            <a href="#knockout_evidence">measured knockout evidence</a>.</p>
+
+            <h6>Formula:</h6>
+            <div class="alert alert-light">
+                <code>Composite = 0.40 &times; Specificity + 0.25 &times; Evidence Quality + 0.20 &times; Literature + 0.15 &times; Conservation</code>
+            </div>
+
+            <h6>Components (each from 0 to 1):</h6>
+            <ul>
+                <li><strong>Specificity (40%):</strong> 1 &minus; pleiotropy score / 10.</li>
+                <li><strong>Evidence Quality (25%):</strong> the share of the gene's annotations that rest on experiments (weight 1.0),
+                    computational analysis (0.6) or electronic annotation (0.3).</li>
+                <li><strong>Literature (20%):</strong> the PubMed articles that NCBI Gene links to the gene, on a log scale:
+                    1 article or none gives 0, 10 give 0.33, 100 give 0.67, 1,000 or more give 1.</li>
+                <li><strong>Conservation (15%):</strong> the share of five model species (human, mouse, rat, fly, worm) that have the
+                    gene or an ortholog of it (see Conservation).</li>
+            </ul>
+
+            <h6>Range:</h6>
+            <p>0 to 1; higher means a better candidate by these measures. The weights are a design choice, not fitted to knockout
+            outcomes.</p>
+        
+                    </div>
+                    
+                    <div class="mt-3 text-muted small">
+                        <i class="fas fa-book me-1"></i>Reference: Weighted scoring of annotation, literature and orthology data
+                    </div>
+                </div>
+            </div>
+            
+            <div id="evidence_quality" class="card term-card mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-check-double fa-lg text-primary me-3"></i>
+                        <h4 class="card-title mb-0">Evidence Quality</h4>
+                    </div>
+                    
+                    <p class="lead">Reliability of GO annotations based on evidence codes</p>
+                    
+                    <div class="mt-4">
+                        
+            <p>The <strong>Evidence Quality</strong> score reflects the reliability of Gene Ontology annotations 
+            based on the types of evidence supporting them.</p>
+            
+            <h6>Evidence Code Hierarchy:</h6>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <tr class="table-success">
+                        <td><strong>EXP</strong></td>
+                        <td>Experimental</td>
+                        <td>Direct experimental evidence (highest quality)</td>
+                    </tr>
+                    <tr class="table-success">
+                        <td><strong>IDA</strong></td>
+                        <td>Direct Assay</td>
+                        <td>Direct experimental assay</td>
+                    </tr>
+                    <tr class="table-success">
+                        <td><strong>IMP</strong></td>
+                        <td>Mutant Phenotype</td>
+                        <td>Evidence from mutant studies</td>
+                    </tr>
+                    <tr class="table-info">
+                        <td><strong>ISO</strong></td>
+                        <td>Sequence Orthology</td>
+                        <td>Inferred from orthologs</td>
+                    </tr>
+                    <tr class="table-warning">
+                        <td><strong>IEA</strong></td>
+                        <td>Electronic Annotation</td>
+                        <td>Computational prediction (lowest quality)</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <h6>Score Calculation:</h6>
+            <p>Weighted average based on the proportion of experimental vs computational evidence codes 
+            associated with the gene's GO annotations.</p>
+        
+                    </div>
+                    
+                    <div class="mt-3 text-muted small">
+                        <i class="fas fa-book me-1"></i>Reference: Gene Ontology Evidence Codes (https://geneontology.org/docs/guide-go-evidence-codes/)
+                    </div>
+                </div>
+            </div>
+            
+            <div id="safety_level" class="card term-card mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-shield-alt fa-lg text-primary me-3"></i>
+                        <h4 class="card-title mb-0">Safety Level</h4>
+                    </div>
+                    
+                    <p class="lead">Overall safety recommendation based on multiple risk factors</p>
+                    
+                    <div class="mt-4">
+                        
+            <p>The <strong>Safety Level</strong> provides an overall assessment of the risk associated 
+            with knocking out a particular gene.</p>
+            
+            <h6>Safety Levels:</h6>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <tr class="table-success">
+                        <td><strong>SAFE</strong></td>
+                        <td>Safe to delete - standard knockout acceptable</td>
+                    </tr>
+                    <tr class="table-info">
+                        <td><strong>CAUTION</strong></td>
+                        <td>Generally safe - validation recommended</td>
+                    </tr>
+                    <tr class="table-warning">
+                        <td><strong>MODERATE_CONCERN</strong></td>
+                        <td>Use with caution - heterozygous or validated knockout suggested</td>
+                    </tr>
+                    <tr class="table-danger">
+                        <td><strong>HIGH_CONCERN / AVOID</strong></td>
+                        <td>High risk - conditional knockout, CRISPRi or another strategy preferred</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <h6>What the level rests on:</h6>
+            <ol>
+                <li><strong>Measured knockout evidence</strong> comes first: whether the knockout organism or the
+                    cultured human cells survive (see <a href="#knockout_evidence">Measured knockout evidence</a>).
+                    A gene whose knockout is lethal is never rated safe, however specific it looks.</li>
+                <li>The <strong>pleiotropy score</strong> adds caution to a viable gene that has many annotated roles
+                    (above 5: validate first), because its phenotypes will be broad.</li>
+                <li>Without any measurement the verdict follows an <strong>estimate</strong> of lethality made from the
+                    measurements of the gene's human ortholog (cell lines, tolerance of loss-of-function variants, expression),
+                    and it is <strong>never better than CAUTION</strong>. The report says "Estimated from data". Where even
+                    that is impossible it says "Not verified".</li>
+            </ol>
+            <p>Genes are listed safest first, then by composite score. Each gene card says which measurement decided
+            the verdict.</p>
+        
+                    </div>
+                    
+                    <div class="mt-3 text-muted small">
+                        <i class="fas fa-book me-1"></i>Reference: K-Sites integrated safety assessment algorithm
+                    </div>
+                </div>
+            </div>
+            
+            <div id="knockout_evidence" class="card term-card mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-vial fa-lg text-primary me-3"></i>
+                        <h4 class="card-title mb-0">Measured knockout evidence</h4>
+                    </div>
+                    
+                    <p class="lead">What has actually been measured when the gene is lost</p>
+                    
+                    <div class="mt-4">
+                        
+            <p>K-Sites does not guess how harmful a knockout is where somebody has already measured it. For each gene it
+            looks up:</p>
+            <ul>
+                <li><strong>Whole-organism knockout.</strong> Mouse: the literature curated by MGI (knockout alleles in
+                    homozygous mice) and the systematic IMPC viability screen. Human and rat genes use the knockout of
+                    their one-to-one mouse ortholog (Alliance of Genome Resources). Yeast: SGD deletion phenotypes. Zebrafish:
+                    ZFIN mutant phenotypes (clean homozygous mutants only). Fly: FlyBase allele lethality phenotypes.
+                    Worm: WormBase allele and RNAi lethal / sterile phenotypes. For the genes of zebrafish, fly and worm
+                    that these databases do not cover, and for Xenopus, the mouse ortholog's knockout is shown as a hint
+                    only. Plants and other organisms have no measured data.
+                    The result is <em>lethal</em> (with the stage of death), <em>subviable</em> (fewer homozygotes than
+                    expected) or <em>viable</em>, with the number of knockout lines behind it and links to the papers.</li>
+                <li><strong>Human cell lines.</strong> The percentage of 1,178 cancer cell lines in which a CRISPR knockout
+                    kills the cells (DepMap 24Q4). <em>Essential</em>: most lines or DepMap's common essentials;
+                    <em>sometimes essential</em>: 10-50%; <em>rarely essential</em>: under 10%.</li>
+                <li><strong>Tolerance in people</strong> (gnomAD LOEUF), <strong>tissue expression</strong> (GTEx; a
+                    tissue-restricted gene can be removed in those tissues only) and <strong>close paralogs</strong>
+                    (Ensembl; they can take over the gene's work and hide the phenotype).</li>
+            </ul>
+            <h6>How to read the label on each gene:</h6>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <tr><td><strong>Measured</strong></td><td>the organism or the cells were tested for this gene</td></tr>
+                    <tr><td><strong>Measured in the mouse ortholog</strong></td><td>the mouse gene was tested; the result is carried over to the human or rat gene</td></tr>
+                    <tr><td><strong>Estimated from data (not measured)</strong></td><td>no knockout was measured; the chance that it is lethal in mice is estimated from the human ortholog's cell-line, population and expression data (a model tested on genes with known outcomes: see the <a href="validation.html">Validation page</a>)</td></tr>
+                    <tr><td><strong>Predicted from the literature</strong></td><td>nothing was measured and no estimate exists; a keyword model read abstracts (experimental, see below)</td></tr>
+                    <tr><td><strong>Not verified</strong></td><td>no measurement and no prediction: check MGI, IMPC or DepMap yourself</td></tr>
+                </table>
+            </div>
+            <h6>Things to know:</h6>
+            <ul>
+                <li>When knockout lines disagree (for example a classical null is lethal but a different allele or strain is
+                    viable) the report says so and rates the gene at least HIGH_CONCERN if any line was lethal.</li>
+                <li>"Viable" does not mean "unaffected": the organ systems with a reported phenotype are listed, and
+                    a shortened lifespan or infertility lowers the rating to CAUTION.</li>
+                <li>A mouse-lethal gene can be fine in cultured cells (it is needed for development, not in every cell),
+                    so both results are always shown.</li>
+                <li>The data come from the files published with this site, refreshed monthly. A "Data sources" list with the
+                    version is part of every report.</li>
+            </ul>
+        
+                    </div>
+                    
+                    <div class="mt-3 text-muted small">
+                        <i class="fas fa-book me-1"></i>Reference: MGI, IMPC, Alliance of Genome Resources, SGD, ZFIN, FlyBase, WormBase, DepMap 24Q4, gnomAD v4.1, GTEx v8, Ensembl Compara; checks on the Validation page
+                    </div>
+                </div>
+            </div>
+            
+            <div id="knockout_context" class="card term-card mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-flask fa-lg text-primary me-3"></i>
+                        <h4 class="card-title mb-0">What will you knock out?</h4>
+                    </div>
+                    
+                    <p class="lead">Cultured cells or a whole organism: it decides which measurement the verdict follows</p>
+                    
+                    <div class="mt-4">
+                        
+            <p>The same gene can be harmless to knock out in a cell line and impossible to knock out in an animal.
+            <em>TDG</em> and <em>POLB</em> are good examples: mouse embryos lacking them die, but human cell lines
+            tolerate their loss.</p>
+            <ul>
+                <li><strong>Cultured cells</strong> (the default for human): the verdict follows the DepMap CRISPR screens.
+                    The mouse result is still shown, as a reminder that an animal model would need a conditional allele.</li>
+                <li><strong>Whole organism</strong> (the default for mouse, rat, yeast, zebrafish, fly, worm and everything else): the verdict
+                    follows the knockout organism (or the mouse ortholog).</li>
+            </ul>
+            <p>Both measurements are shown for every gene whichever you choose; the card marks the one that decides
+            the verdict.</p>
+        
+                    </div>
+                    
+                    <div class="mt-3 text-muted small">
+                        <i class="fas fa-book me-1"></i>Reference: DepMap (cell lines); MGI / IMPC / SGD / ZFIN / FlyBase / WormBase (organisms)
+                    </div>
+                </div>
+            </div>
+            
+            <div id="phenotype_prediction" class="card term-card mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-brain fa-lg text-primary me-3"></i>
+                        <h4 class="card-title mb-0">RAG Phenotype Prediction (experimental)</h4>
+                    </div>
+                    
+                    <p class="lead">A literature-based guess for genes with no measured knockout data</p>
+                    
+                    <div class="mt-4">
+                        
+            <p><strong>Retrieval-Augmented Generation (RAG)</strong> phenotype prediction reads PubMed abstracts
+            and guesses the likely knockout phenotype for genes that have no measured result and no cross-species
+            estimate. It is switched off by default.</p>
+
+            <h6>When to use it:</h6>
+            <ul>
+                <li><strong>Turn it on</strong> for short lists (a few dozen genes), well-studied organisms,
+                    and when you can wait a few minutes. It gives at least a literature hint for genes that
+                    otherwise have no data.</li>
+                <li><strong>Leave it off</strong> for human and mouse (measured data already cover most genes),
+                    for organisms like zebrafish, Xenopus, fly, worm or rat where thousands of genes have no data,
+                    for lists above ~100 genes, and when you want the result quickly.</li>
+            </ul>
+
+            <h6>Optional hosted language-model API key:</h6>
+            <p>You can paste an API key for one of the supported providers to let a larger language model read the
+            abstracts. The key is used only in your browser and is never sent to the K-Sites server. If the key is
+            blank or the API fails, the analysis falls back automatically to the free browser model
+            (MiniLM + keyword patterns).</p>
+
+            <p><strong>Supported providers:</strong></p>
+            <ul>
+                <li><strong>Kimi (Moonshot)</strong> — default; strong context understanding.</li>
+                <li><strong>OpenAI</strong> — <code>gpt-4o-mini</code> or other chat models.</li>
+                <li><strong>Anthropic</strong> — Claude 3.5 Sonnet via the Messages API.</li>
+                <li><strong>Qwen (Alibaba)</strong> — DashScope compatible endpoint.</li>
+                <li><strong>DeepSeek</strong> — <code>deepseek-chat</code>.</li>
+                <li><strong>Grok (xAI)</strong> — <code>grok-2-latest</code>.</li>
+            </ul>
+
+            <p><strong>Why it helps:</strong> The default browser model matches keywords and counts how often words
+            like “lethal” or “viable” appear. It works for clear cases but can be misled by negation
+            (for example, “the knockout was <em>not</em> lethal”), by sentences about a different gene in the same
+            paper, or by conflicting reports. A hosted language model reads the abstracts as a whole, understands
+            context, resolves contradictions, and usually returns a more reliable severity call.</p>
+
+            <p><strong>How to get a key:</strong></p>
+            <ol>
+                <li>Choose a provider in the “Language model provider” drop-down on the analysis page.</li>
+                <li>Create an account with that provider and generate an API key:
+                    <ul>
+                        <li><strong>Kimi:</strong> <a href="https://platform.moonshot.ai" target="_blank">platform.moonshot.ai</a>
+                            → API keys (starts with <code>sk-</code>).</li>
+                        <li><strong>OpenAI:</strong> <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a>
+                            (starts with <code>sk-proj-</code> or <code>sk-</code>).</li>
+                        <li><strong>Anthropic:</strong> <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com/settings/keys</a>
+                            (starts with <code>sk-ant-</code>).</li>
+                        <li><strong>Qwen:</strong> <a href="https://dashscope.console.aliyun.com/apiKey" target="_blank">dashscope.console.aliyun.com/apiKey</a>
+                            (starts with <code>sk-</code>).</li>
+                        <li><strong>DeepSeek:</strong> <a href="https://platform.deepseek.com/api_keys" target="_blank">platform.deepseek.com/api_keys</a>
+                            (starts with <code>sk-</code>).</li>
+                        <li><strong>Grok:</strong> <a href="https://console.x.ai" target="_blank">console.x.ai</a>
+                            → API keys (starts with <code>xai-</code>).</li>
+                    </ul>
+                </li>
+                <li>Copy the key and paste it into the “API key (optional)” field after enabling “RAG Phenotype Prediction”.</li>
+                <li>The key is stored only in your browser for that analysis; you will need to paste it again
+                    on a different device or after clearing browser data.</li>
+            </ol>
+
+            <p><strong>Cost:</strong> The provider bills you directly for the tokens used. A typical K-Sites run with
+            ~25 unmeasured genes usually costs a few cents (USD), but this depends on the model, provider rates and
+            abstract lengths. Check the provider's pricing page for current rates.</p>
+
+            <h6>Severity Categories:</h6>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <tr class="table-danger"><td><strong>LETHAL</strong></td><td>Knockout causes organism death</td></tr>
+                    <tr class="table-warning"><td><strong>SEVERE</strong></td><td>Major developmental or physiological defects</td></tr>
+                    <tr class="table-info"><td><strong>MODERATE</strong></td><td>Detectable but manageable phenotypes</td></tr>
+                    <tr class="table-success"><td><strong>MILD</strong></td><td>Subtle or conditional phenotypes</td></tr>
+                    <tr class="table-secondary"><td><strong>UNKNOWN</strong></td><td>Insufficient data for prediction</td></tr>
+                </table>
+            </div>
+
+            <h6>Limitations:</h6>
+            <p>It is only used for genes without a <a href="#knockout_evidence">measured knockout result</a> and
+            without an estimate, and it is capped at 25 genes per job. We tested the free model on a random sample
+            of 60 mouse genes with known outcomes: it recognised 7 of 30 lethal genes, wrongly called 4 of 30 viable
+            genes lethal, and gave no answer for two thirds (see the <a href="validation.html">Validation page</a>).
+            Treat any prediction as a hint to read the papers, not as a result.</p>
+        
+                    </div>
+                    
+                    <div class="mt-3 text-muted small">
+                        <i class="fas fa-book me-1"></i>Reference: RAG-based NLP pipeline using PubMed; optional hosted LLM fallback (Kimi, OpenAI, Anthropic, Qwen, DeepSeek, Grok)
+                    </div>
+                </div>
+            </div>
+            
+            <div id="conservation_score" class="card term-card mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-globe fa-lg text-primary me-3"></i>
+                        <h4 class="card-title mb-0">Cross-Species Conservation</h4>
+                    </div>
+                    
+                    <p class="lead">In how many of five model species the gene, or an ortholog of it, exists</p>
+                    
+                    <div class="mt-4">
+                        
+            <p>The <strong>Conservation Score</strong> is the share of five model species (human, mouse, rat, fruit fly and
+            worm) that carry the gene or an ortholog of it. The organism you analyse counts for itself.</p>
+
+            <h6>How it's calculated:</h6>
+            <ul>
+                <li>The orthologs come from the Alliance of Genome Resources. A call counts when at least three of its
+                    algorithms agree, or two agree and it is the best pair in both directions.</li>
+                <li>Score = species with the gene or an ortholog / 5, so it takes the values 0, 0.2, 0.4, 0.6, 0.8 and 1.</li>
+                <li>Orthologs are matched by identifier, not by name: the fly counterpart of PCNA is called mus209, and a gene
+                    with the same name in another species is not necessarily an ortholog.</li>
+            </ul>
+
+            <h6>Interpretation:</h6>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <tr><td class="text-info"><strong>0-0.2</strong></td><td>Found in one species only: possibly species-specific</td></tr>
+                    <tr><td class="text-success"><strong>0.4-0.8</strong></td><td>Moderately conserved</td></tr>
+                    <tr><td class="text-warning"><strong>1.0</strong></td><td>In all five species: an old, widely kept gene</td></tr>
+                </table>
+            </div>
+
+            <h6>Usage:</h6>
+            <p>Genes kept in all five species are more often needed for basic functions, so the report notes it. It does not
+            decide the verdict: the measured knockout result does. For organisms without orthology data (plants, for example)
+            the conservation is searched for by gene name instead, which is less precise.</p>
+        
+                    </div>
+                    
+                    <div class="mt-3 text-muted small">
+                        <i class="fas fa-book me-1"></i>Reference: Alliance of Genome Resources orthologs (Validation page for the checks of the other scores)
+                    </div>
+                </div>
+            </div>
+            
+        </section>
+        
+        <!-- FAQ Section -->
+        <section id="faq" class="mb-5">
+            <h2 class="mb-4"><i class="fas fa-question-circle me-2 text-primary"></i>Frequently Asked Questions</h2>
+            
+            
+            <div class="faq-item">
+                <h5 class="text-primary">What is the difference between pleiotropy score and specificity score?</h5>
+                <p>Pleiotropy score measures how many processes a gene is involved in (0=specific, high=broad). Specificity score is the inverse on a 0-1 scale (1 minus pleiotropy divided by 10), so higher values indicate more specific genes. Both convey the same information but in opposite directions.</p>
+            </div>
+            
+            <div class="faq-item">
+                <h5 class="text-primary">How accurate is the phenotype prediction?</h5>
+                <p>Not very, which is why it is only a fallback. On a random sample of 60 mouse genes with a known knockout outcome it recognised 7 of the 30 lethal genes, wrongly called 4 of the 30 viable genes lethal, and gave no answer for two thirds. Genes with a measured knockout result are never predicted. Always validate predictions experimentally.</p>
+            </div>
+            
+            <div class="faq-item">
+                <h5 class="text-primary">How do I know the lethal / viable calls are right?</h5>
+                <p>They are the published measurements, not guesses: the MGI literature curation and the IMPC knockout screen for mouse, SGD for yeast, ZFIN for zebrafish, FlyBase for fly, WormBase for worm, DepMap for human cell lines. We checked them against the original papers of 24 well-known knockouts in mouse, zebrafish, fly and worm (all 24 agree, see the Validation page), and the two mouse sources agree for 92% of the 7,500 genes that both cover. Each gene lists the papers (PubMed links) behind its result.</p>
+            </div>
+            
+            <div class="faq-item">
+                <h5 class="text-primary">Why is a gene fine in human cells but marked AVOID in the mouse?</h5>
+                <p>Because the two measure different things. A gene needed for embryonic development (such as TDG or POLB) kills the mouse embryo, yet cultured cells, which do not have to develop, often manage without it. Choose &#39;What will you knock out?&#39; to make the verdict follow your system; both results are always shown.</p>
+            </div>
+            
+            <div class="faq-item">
+                <h5 class="text-primary">What does &#39;not shown&#39; mean?</h5>
+                <p>Every gene of the GO term is assessed. The report shows the safest &#39;Genes to report&#39; genes; the rest, and the genes above your pleiotropy cutoff, are listed under &#39;Genes assessed but not shown&#39; with their measured knockout result, so a gene is never hidden without a trace.</p>
+            </div>
+            
+            <div class="faq-item">
+                <h5 class="text-primary">Why does a gene say &#39;viable&#39; but still carry a warning?</h5>
+                <p>Viable knockouts can still have a shortened lifespan, be infertile, or show phenotypes in many organs; the report lists these. If some knockout lines of the gene were lethal (a different strain or allele) the gene is rated at least HIGH_CONCERN even when most lines were viable.</p>
+            </div>
+            
+            <div class="faq-item">
+                <h5 class="text-primary">What if my gene has a high pleiotropy score?</h5>
+                <p>High pleiotropy doesn&#39;t necessarily mean you shouldn&#39;t target the gene, but be prepared for complex phenotypes. Consider: 1) Using heterozygous or conditional knockouts, 2) Including pathway information in your interpretation, 3) Validating with an independent approach.</p>
+            </div>
+            
+            <div class="faq-item">
+                <h5 class="text-primary">How long does an analysis take?</h5>
+                <p>Typical runtime is 2-5 minutes for 5-10 genes. Factors affecting speed: number of genes, phenotype prediction (adds ~1 min/gene), and database response times.</p>
+            </div>
+            
+        </section>
+    </div>
+</div>
+
+    </main>
+    
+    <footer class="bg-white py-3 mt-5 border-top">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 text-muted small mb-2 mb-md-0">
+                    
+                        <i class="fas fa-envelope me-1"></i>Email notifications supported
+                    
+                </div>
+                <div class="col-md-6 text-md-end text-muted small">
+                    K-Sites: Safe Gene Selection for Knockout Studies &copy; 2024
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    
+<script>
+// Smooth scrolling for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
+});
+
+// Update active nav link on scroll
+window.addEventListener('scroll', function() {
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('.help-nav .nav-link');
+    
+    let current = '';
+    sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        if (pageYOffset >= sectionTop - 200) {
+            current = section.getAttribute('id');
+        }
+    });
+    
+    navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#' + current) {
+            link.classList.add('active');
+        }
+    });
+});
+</script>
+
+</body>
+</html>
