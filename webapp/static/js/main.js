@@ -169,17 +169,19 @@ function renderSpecies(species) {
 
 function selectOrganism(name, taxid, commonName) {
     selectedOrganism = { name, taxid, commonName };
-    
+
     // Update hidden fields
     document.getElementById('organism').value = name;
     document.getElementById('taxid').value = taxid;
-    
+
     // Update display
     document.getElementById('selectedOrganismName').textContent = name + (commonName ? ` (${commonName})` : '');
     document.getElementById('selectedOrganismTaxid').textContent = taxid;
     document.getElementById('selectedOrganismDisplay').style.display = 'block';
     document.getElementById('speciesSection').style.display = 'none';
-    
+    document.getElementById('organismDirectSection').style.display = 'none';
+    document.getElementById('kingdomContainer').style.display = 'none';
+
     // Say what is known about knockouts in this organism, and check the gene count
     showEvidenceCoverage(taxid);
     checkGeneCount();
@@ -238,13 +240,61 @@ async function showEvidenceCoverage(taxid) {
 
 function resetOrganismSelection() {
     selectedOrganism = null;
+    selectedKingdom = null;
     const coverageNote = document.getElementById('evidenceCoverageNote');
     if (coverageNote) coverageNote.style.display = 'none';
     document.getElementById('selectedOrganismDisplay').style.display = 'none';
-    document.getElementById('speciesSection').style.display = 'block';
+    document.getElementById('speciesSection').style.display = 'none';
+    document.getElementById('organismDirectSection').style.display = 'block';
+    document.getElementById('kingdomContainer').style.display = 'flex';
+    document.getElementById('organismDirectSearch').value = '';
+    document.getElementById('organismDirectResults').innerHTML = '';
     document.getElementById('organism').value = '';
     document.getElementById('taxid').value = '';
-    loadSpecies(selectedKingdom, document.getElementById('speciesSearch').value);
+}
+
+async function searchOrganismDirect(query) {
+    const list = document.getElementById('organismDirectResults');
+    if (!query || query.length < 2) {
+        list.innerHTML = '';
+        return;
+    }
+
+    list.innerHTML = `
+        <div class="list-group-item text-muted">
+            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+            Searching NCBI Taxonomy...
+        </div>
+    `;
+
+    try {
+        const response = await ksFetch(`/api/organisms/ncbi-search?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+        renderOrganismDirectResults(data.results || []);
+    } catch (error) {
+        console.error('Error searching organisms:', error);
+        list.innerHTML = '<div class="list-group-item text-danger"><i class="fas fa-exclamation-circle me-2"></i>Error searching organisms.</div>';
+    }
+}
+
+function renderOrganismDirectResults(results) {
+    const list = document.getElementById('organismDirectResults');
+    if (results.length === 0) {
+        list.innerHTML = '<div class="list-group-item text-muted">No organisms found</div>';
+        return;
+    }
+
+    list.innerHTML = results.map(s => `
+        <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+             onclick="selectOrganism('${s.name.replace(/'/g, "\\'")}', '${s.taxid}', '${(s.common_name || '').replace(/'/g, "\\'")}')"
+             style="cursor: pointer;">
+            <div>
+                <strong>${s.name}</strong>
+                ${s.common_name ? `<br><small class="text-muted">${s.common_name}</small>` : ''}
+            </div>
+            <span class="badge bg-secondary">TaxID: ${s.taxid}</span>
+        </div>
+    `).join('');
 }
 
 // ============================================================================
@@ -479,13 +529,18 @@ function updateDatabaseCard(checkbox) {
 // ============================================================================
 
 function initializeEventListeners() {
+    // Direct organism search
+    document.getElementById('organismDirectSearch')?.addEventListener('input', debounce(function() {
+        searchOrganismDirect(this.value.trim());
+    }, 300));
+
     // Species search
     document.getElementById('speciesSearch')?.addEventListener('input', debounce(function() {
         if (selectedKingdom) {
             loadSpecies(selectedKingdom, this.value);
         }
     }, 300));
-    
+
     // GO term search
     document.getElementById('goTermSearch')?.addEventListener('input', debounce(function() {
         if (selectedCategory) {

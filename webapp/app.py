@@ -9,6 +9,7 @@ import hmac
 import json
 import uuid
 import logging
+import queue
 import threading
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -24,7 +25,7 @@ from functools import wraps
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import K-Sites modules
-from k_sites.data_retrieval.organism_resolver import resolve_organism, search_organisms
+from k_sites.data_retrieval.organism_resolver import resolve_organism, search_organisms, search_organisms_ncbi
 from k_sites.data_retrieval.go_gene_mapper import get_genes_for_go_term, search_go_terms
 from k_sites.workflow.pipeline import run_k_sites_pipeline
 from k_sites.reporting.report_generator import generate_html_report
@@ -54,6 +55,7 @@ ACCESS_TOKEN = os.environ.get('KSITES_ACCESS_TOKEN', '').strip()
 HOSTED_MODE = bool(ACCESS_TOKEN)
 ALLOWED_ORIGINS = [o.strip().rstrip('/') for o in os.environ.get('KSITES_ALLOWED_ORIGINS', '').split(',') if o.strip()]
 MAX_PARALLEL_JOBS = max(1, int(os.environ.get('KSITES_MAX_PARALLEL_JOBS', '2')))
+MAX_QUEUE_SIZE = max(1, int(os.environ.get('KSITES_MAX_QUEUE_SIZE', '20')))
 
 if HOSTED_MODE:
     CORS(app,
@@ -71,10 +73,12 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or os.urandom(24)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Database configuration
-# KSITES_DATA_DIR lets a deployment keep the database and results on a writable disk
+# KSITES_DATA_DIR lets a deployment keep the database and results on a writable disk.
+# KSITES_DATABASE_URI overrides the default SQLite file (e.g. postgresql+psycopg2://user:pass@host/db).
 RESULTS_DIR = Path(os.environ.get('KSITES_DATA_DIR') or Path(__file__).parent / 'results')
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{RESULTS_DIR}/ksites_jobs.db'
+DATABASE_URI = os.environ.get('KSITES_DATABASE_URI') or f'sqlite:///{RESULTS_DIR}/ksites_jobs.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Email configuration
@@ -203,15 +207,18 @@ with app.app_context():
     db.create_all()
     try:
         # a database made by an older version lacks the knockout_context column
-        columns = [row[1] for row in db.session.execute(db.text('PRAGMA table_info(analysis_jobs)')).fetchall()]
-        if columns and 'knockout_context' not in columns:
-            db.session.execute(db.text("ALTER TABLE analysis_jobs ADD COLUMN knockout_context VARCHAR(20) DEFAULT 'auto'"))
-            db.session.commit()
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        if inspector.has_table('analysis_jobs'):
+            column_names = {col['name'] for col in inspector.get_columns('analysis_jobs')}
+            if 'knockout_context' not in column_names:
+                db.session.execute(db.text("ALTER TABLE analysis_jobs ADD COLUMN knockout_context VARCHAR(20) DEFAULT 'auto'"))
+                db.session.commit()
     except Exception as migration_error:
         db.session.rollback()
         logger.warning(f"Could not add the knockout_context column: {migration_error}")
     try:
-        interrupted = AnalysisJob.query.filter(AnalysisJob.status.in_(['pending', 'running'])).all()
+        interrupted = AnalysisJob.query.filter(AnalysisJob.status.in_(['pending', 'queued', 'running'])).all()
         for stale in interrupted:
             stale.status = 'failed'
             stale.current_step = 'Failed'
@@ -505,6 +512,22 @@ def get_organisms_by_kingdom():
     return jsonify({'results': results, 'kingdom': kingdom, 'query': query})
 
 
+@app.route('/api/organisms/ncbi-search')
+@login_required
+def search_organisms_ncbi_api():
+    """Search NCBI Taxonomy for organisms by name or TaxID."""
+    query = request.args.get('q', '').strip()
+    if len(query) < 2:
+        return jsonify({'results': [], 'query': query})
+    
+    try:
+        results = search_organisms_ncbi(query, limit=10)
+        return jsonify({'results': results, 'query': query})
+    except Exception as e:
+        logger.warning(f"NCBI organism search failed: {e}")
+        return jsonify({'results': [], 'query': query, 'error': str(e)})
+
+
 @app.route('/api/go-terms/categories')
 @login_required
 def get_go_categories_api():
@@ -600,13 +623,6 @@ def get_databases():
             'enabled': True,
             'required': False
         },
-        {
-            'id': 'kegg',
-            'name': 'KEGG',
-            'description': 'Pathway annotations (pathway count per gene)',
-            'enabled': True,
-            'required': False
-        }
     ]
     
     return jsonify({'databases': databases})
@@ -756,8 +772,8 @@ def start_analysis():
             predict_phenotypes=data.get('predict_phenotypes', False),
             knockout_context=data.get('knockout_context') if data.get('knockout_context') in ('auto', 'cells', 'organism') else 'auto',
             selected_databases=json.dumps(data.get('databases', ['quickgo'])),
-            status='pending',
-            current_step='Initializing',
+            status='queued',
+            current_step='Queued',
             progress_percent=0,
             estimated_completion=estimated_completion
         )
@@ -768,17 +784,23 @@ def start_analysis():
         # Send notification email
         send_job_notification(job, 'submitted')
         
-        # Start analysis in background
-        thread = threading.Thread(target=run_analysis_job, args=(job_id,))
-        thread.daemon = True
-        thread.start()
+        # Submit to the analysis queue
+        if not analysis_queue.submit(job_id):
+            job.status = 'failed'
+            job.current_step = 'Failed'
+            job.error_message = 'The analysis queue is full. Please try again later.'
+            db.session.commit()
+            return jsonify({
+                'success': False,
+                'error': 'The analysis queue is full. Please try again later.'
+            }), 503
         
         return jsonify({
             'success': True,
             'job_id': job_id,
-            'status': 'pending',
+            'status': 'queued',
             'estimated_completion': estimated_completion.isoformat(),
-            'message': 'Analysis started successfully'
+            'message': 'Analysis queued successfully'
         })
         
     except Exception as e:
@@ -799,34 +821,80 @@ def update_job_progress(job_id: str, step: str, percent: int):
             db.session.commit()
 
 
-JOB_SLOTS = threading.BoundedSemaphore(MAX_PARALLEL_JOBS)
+class AnalysisQueue:
+    """Persistent-style worker queue backed by an in-memory bounded queue."""
+
+    def __init__(self, max_workers: int = MAX_PARALLEL_JOBS, max_size: int = MAX_QUEUE_SIZE):
+        self._queue: queue.Queue = queue.Queue(maxsize=max_size)
+        self._workers: List[threading.Thread] = []
+        for _ in range(max_workers):
+            worker = threading.Thread(target=self._worker_loop, daemon=True)
+            worker.start()
+            self._workers.append(worker)
+
+    def _worker_loop(self):
+        while True:
+            job_id = self._queue.get()
+            if job_id is None:
+                self._queue.task_done()
+                break
+            try:
+                run_analysis_job(job_id)
+            except Exception as e:
+                logger.exception(f"Analysis worker crashed for job {job_id}: {e}")
+            finally:
+                self._queue.task_done()
+
+    def submit(self, job_id: str) -> bool:
+        """Add a job to the queue. Returns False when the queue is full."""
+        try:
+            self._queue.put(job_id, block=False)
+            return True
+        except queue.Full:
+            return False
+
+    def shutdown(self):
+        for _ in self._workers:
+            self._queue.put(None)
+        for worker in self._workers:
+            worker.join(timeout=5)
+
+
+analysis_queue = AnalysisQueue(MAX_PARALLEL_JOBS, MAX_QUEUE_SIZE)
 
 
 def run_analysis_job(job_id: str):
-    """Wait for a free analysis slot, then run the job."""
+    """Worker entry point: mark job running and execute it."""
     with app.app_context():
         job = AnalysisJob.query.get(job_id)
-        if job:
-            job.current_step = 'Waiting for a free analysis slot'
+        if not job:
+            logger.error(f"Job {job_id} not found")
+            return
+        if job.status == 'queued':
+            job.status = 'running'
+            job.current_step = 'Resolving organism'
+            job.progress_percent = 5
             db.session.commit()
-    with JOB_SLOTS:
-        _run_analysis_job(job_id)
+        logger.info(f"Starting analysis job {job_id}")
+
+    _execute_analysis_job(job_id)
 
 
-def _run_analysis_job(job_id: str):
+def _execute_analysis_job(job_id: str):
     """Run the analysis job with progress tracking"""
     with app.app_context():
         job = AnalysisJob.query.get(job_id)
         if not job:
             logger.error(f"Job {job_id} not found")
             return
-        
+
         try:
-            # Update status
-            job.status = 'running'
-            job.current_step = 'Resolving organism'
-            job.progress_percent = 5
-            db.session.commit()
+            # Status should already be running; ensure it is.
+            if job.status != 'running':
+                job.status = 'running'
+                job.current_step = 'Resolving organism'
+                job.progress_percent = 5
+                db.session.commit()
             
             logger.info(f"Starting analysis job {job_id}")
             

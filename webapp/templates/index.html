@@ -51,6 +51,34 @@
                     </h5>
                 </div>
                 <div class="card-body">
+                    <!-- Direct organism entry -->
+                    <div class="mb-4" id="organismDirectSection">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-keyboard me-2"></i>Search organism by name or TaxID
+                        </label>
+                        <div class="input-group mb-2">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text"
+                                   class="form-control"
+                                   id="organismDirectSearch"
+                                   placeholder="e.g., 'Apis mellifera' or '7460'"
+                                   autocomplete="off">
+                        </div>
+                        <div id="organismDirectResults" class="list-group" style="max-height: 200px; overflow-y: auto;">
+                            <!-- Results loaded dynamically -->
+                        </div>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Type at least 2 characters to search NCBI Taxonomy directly.
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center mb-3">
+                        <hr class="flex-grow-1 border-primary opacity-50" style="border-width: 2px;">
+                        <span class="mx-3 text-primary fw-bold">OR browse by category</span>
+                        <hr class="flex-grow-1 border-primary opacity-50" style="border-width: 2px;">
+                    </div>
+
                     <!-- Kingdom Selection -->
                     <div class="mb-4">
                         <label class="form-label fw-bold">

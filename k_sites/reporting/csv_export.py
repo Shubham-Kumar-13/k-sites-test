@@ -70,7 +70,7 @@ def generate_comprehensive_csv_report(pipeline_output: Dict[str, Any], csv_path:
             "Specificity_Score", "Evidence_Quality", "Literature_Support", 
             "Conservation_Score", "Composite_Score", "BP_Term_Count",
             "Experimental_Evidence_Count", "Computational_Evidence_Count", 
-            "IEA_Evidence_Count", "KEGG_Pathway_Count",
+            "IEA_Evidence_Count",
             "Phenotype_Severity", "Phenotype_Risk_Level", "Phenotype_Confidence",
             "Phenotype_Lethality_Stage", "Safety_Recommendation"
         ]
@@ -91,7 +91,6 @@ def generate_comprehensive_csv_report(pipeline_output: Dict[str, Any], csv_path:
             exp_count = gene.get("experimental_evidence_count", "")
             comp_count = gene.get("computational_evidence_count", "")
             iea_count = gene.get("iea_evidence_count", "")
-            kegg_count = gene.get("kegg_pathway_count", "")
             
             # Get phenotype prediction if available
             phenotype_pred = gene.get("phenotype_prediction", {})
@@ -120,7 +119,7 @@ def generate_comprehensive_csv_report(pipeline_output: Dict[str, Any], csv_path:
                 gene_symbol, gene_description, entrez_id, pleiotropy_score,
                 specificity_score, evidence_quality, literature_support,
                 conservation_score, composite_score, bp_term_count,
-                exp_count, comp_count, iea_count, kegg_count,
+                exp_count, comp_count, iea_count,
                 phenotype_severity, phenotype_risk, phenotype_confidence,
                 phenotype_stage, safety_recommendation
             ])
@@ -171,7 +170,7 @@ def generate_gene_summary_csv(pipeline_output: Dict[str, Any], csv_path: str) ->
                 'specificity_score', 'evidence_quality', 'literature_support',
                 'conservation_score', 'composite_score', 'bp_term_count',
                 'experimental_evidence_count', 'computational_evidence_count',
-                'iea_evidence_count', 'kegg_pathway_count', 'phenotype_severity',
+                'iea_evidence_count', 'phenotype_severity',
                 'phenotype_risk_level', 'safety_recommendation', 'safety_justification'
             ]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -204,7 +203,6 @@ def generate_gene_summary_csv(pipeline_output: Dict[str, Any], csv_path: str) ->
                     'experimental_evidence_count': gene.get('experimental_evidence_count', ''),
                     'computational_evidence_count': gene.get('computational_evidence_count', ''),
                     'iea_evidence_count': gene.get('iea_evidence_count', ''),
-                    'kegg_pathway_count': gene.get('kegg_pathway_count', ''),
                     'phenotype_severity': phenotype_severity,
                     'phenotype_risk_level': phenotype_risk,
                     'safety_recommendation': safety_recommendation,

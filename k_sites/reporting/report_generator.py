@@ -137,7 +137,7 @@ def _generate_csv_report(pipeline_output: dict, csv_path: str) -> None:
             "Specificity_Score", "Evidence_Quality", "Literature_Score",
             "Conservation_Score", "Composite_Score", "BP_Term_Count",
             "Experimental_Evidence_Count", "Computational_Evidence_Count",
-            "IEA_Evidence_Count", "KEGG_Pathway_Count", "PubMed_Count",
+            "IEA_Evidence_Count", "PubMed_Count",
             "Phenotype_Severity", "Phenotype_Risk_Level", "Phenotype_Confidence",
             "Phenotype_Lethality_Stage", "Safety_Level", "Safety_Recommendation",
             "Safety_Justification"
@@ -159,7 +159,6 @@ def _generate_csv_report(pipeline_output: dict, csv_path: str) -> None:
             exp_count = gene.get("experimental_evidence_count", "")
             comp_count = gene.get("computational_evidence_count", "")
             iea_count = gene.get("iea_evidence_count", "")
-            kegg_count = gene.get("kegg_pathway_count", "")
             pubmed_count = gene.get("pubmed_count", "")
             
             # Get phenotype prediction if available
@@ -179,7 +178,7 @@ def _generate_csv_report(pipeline_output: dict, csv_path: str) -> None:
                 gene_symbol, gene_description, entrez_id, pleiotropy_score,
                 specificity_score, evidence_quality, literature_score,
                 conservation_score, composite_score, bp_term_count,
-                exp_count, comp_count, iea_count, kegg_count, pubmed_count,
+                exp_count, comp_count, iea_count, pubmed_count,
                 phenotype_severity, phenotype_risk, phenotype_confidence,
                 phenotype_stage, safety_level, primary_rec, safety_justification
             ] + evidence_cells(gene))
@@ -222,7 +221,7 @@ def _generate_gene_summary_csv(pipeline_output: dict, csv_path: str) -> None:
                 'evidence_quality', 'literature_score', 'conservation_score',
                 'bp_term_count', 'experimental_evidence_count', 
                 'computational_evidence_count', 'iea_evidence_count',
-                'kegg_pathway_count', 'pubmed_count',
+                'pubmed_count',
                 'phenotype_severity', 'phenotype_risk_level',
                 'safety_level', 'safety_recommendation', 'safety_justification'
             ] + [name.lower() for name in EVIDENCE_HEADERS]
@@ -247,7 +246,6 @@ def _generate_gene_summary_csv(pipeline_output: dict, csv_path: str) -> None:
                     'experimental_evidence_count': gene.get('experimental_evidence_count', ''),
                     'computational_evidence_count': gene.get('computational_evidence_count', ''),
                     'iea_evidence_count': gene.get('iea_evidence_count', ''),
-                    'kegg_pathway_count': gene.get('kegg_pathway_count', ''),
                     'pubmed_count': gene.get('pubmed_count', ''),
                     'phenotype_severity': _extract_enum_value(phenotype_pred.get('severity', '')),
                     'phenotype_risk_level': _extract_enum_value(phenotype_pred.get('risk_level', '')),
@@ -806,7 +804,6 @@ def _generate_report_html(
                         <th>Composite Score</th>
                         <th>Safety Level</th>
                         <th>Measured Knockout Evidence</th>
-                        <th>KEGG Pathways</th>
                         <th>Recommendation</th>
                     </tr>
                 </thead>
@@ -843,7 +840,6 @@ def _generate_report_html(
         # Determine safety class
         safety_class = _safety_class(safety_level)
         
-        kegg_count = gene.get("kegg_pathway_count", "N/A")
         if isinstance(safety_justification, (list, tuple)):
             safety_justification = "; ".join(str(line) for line in safety_justification)
         evidence_html = _evidence_html(gene)
@@ -863,7 +859,6 @@ def _generate_report_html(
                         <td>{composite_score:.3f}</td>
                         <td><span class="safety-level {safety_class}">{html.escape(_safety_label(safety_level))}</span></td>
                         <td>{evidence_html}</td>
-                        <td>{kegg_count}</td>
                         <td>
                             {primary_rec}
                             {f'<div class="justification-box">{html.escape(str(safety_justification))}</div>' if safety_justification else ''}

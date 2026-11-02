@@ -8,9 +8,11 @@ to standardized organism information using NCBI E-Utils.
 import os
 import json
 import logging
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 from pathlib import Path
 import time
+
+from k_sites.data_retrieval.http import http_get
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -93,124 +95,93 @@ class OrganismNotFoundError(Exception):
 def resolve_organism(input_str: str) -> Dict[str, str]:
     """
     Resolve an organism identifier to standardized organism information.
-    
+
+    Uses the shared HTTP cache and NCBI E-Utils (esummary/esearch). Falls back
+    to a built-in mapping for common organisms.
+
     Args:
         input_str: Either NCBI TaxID (e.g., "9606") or scientific name (e.g., "Homo sapiens")
-        
+
     Returns:
         Dictionary with taxid, scientific_name, and common_name
-        
+
     Raises:
         OrganismNotFoundError: If the organism cannot be resolved
     """
     input_clean = input_str.strip()
-    
+
     # First check cache
     cached_result = _get_cached_result(input_clean)
     if cached_result:
         logger.debug(f"Found cached result for {input_clean}")
         return cached_result
-    
+
     # Check common organisms mapping first
     if input_clean in COMMON_ORGANISMS:
         result = COMMON_ORGANISMS[input_clean]
         _cache_result(input_clean, result)
         logger.debug(f"Resolved {input_clean} using common organisms mapping")
         return result
-    
-    # Try to determine if input is a taxid or scientific name
+
     is_numeric = input_clean.isdigit()
-    
+
     try:
-        # Use NCBI E-Utils via requests
-        import requests
-        
         if is_numeric:
-            # Input is likely a TaxID, fetch organism info
-            taxid = input_clean
-            url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
-            params = {
-                "db": "taxonomy",
-                "id": taxid,
-                "retmode": "json"
-            }
-            
-            response = requests.get(url, params=params, timeout=10)
-            response.raise_for_status()
-            
-            data = response.json()
-            
-            if "taxonomy" in data and len(data["taxonomy"]) > 0:
-                tax_data = data["taxonomy"][0]
-                
+            # Use esummary (JSON) to look up the taxid directly
+            response = http_get(
+                "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi",
+                params={"db": "taxonomy", "id": input_clean, "retmode": "json"},
+                timeout=10,
+            )
+            doc = response.json().get("result", {}).get(input_clean, {})
+            scientific = doc.get("scientificname") or doc.get("ScientificName", "")
+            if scientific:
                 result = {
-                    "taxid": tax_data.get("TaxId", taxid),
-                    "scientific_name": tax_data.get("ScientificName", ""),
-                    "common_name": tax_data.get("OtherNames", {}).get("GenbankCommonName", "")
+                    "taxid": str(doc.get("taxid", input_clean)),
+                    "scientific_name": scientific,
+                    "common_name": doc.get("commonname") or doc.get("CommonName", ""),
                 }
-                
                 _cache_result(input_clean, result)
-                logger.info(f"Resolved taxid {taxid} to {result['scientific_name']}")
+                logger.info(f"Resolved taxid {input_clean} to {result['scientific_name']}")
                 return result
         else:
-            # Input is likely a scientific name, search for TaxID
-            url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
-            params = {
-                "db": "taxonomy",
-                "term": f"{input_clean}[Organism]",
-                "retmode": "json"
-            }
-            
-            response = requests.get(url, params=params, timeout=10)
-            response.raise_for_status()
-            
-            data = response.json()
-            
-            if "esearchresult" in data and "idlist" in data["esearchresult"]:
-                id_list = data["esearchresult"]["idlist"]
-                
-                if id_list:
-                    taxid = id_list[0]
-                    
-                    # Now fetch the detailed info
-                    url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
-                    params = {
-                        "db": "taxonomy",
-                        "id": taxid,
-                        "retmode": "json"
-                    }
-                    
-                    response = requests.get(url, params=params, timeout=10)
-                    response.raise_for_status()
-                    
-                    detail_data = response.json()
-                    
-                    if "taxonomy" in detail_data and len(detail_data["taxonomy"]) > 0:
-                        tax_data = detail_data["taxonomy"][0]
-                        
-                        result = {
-                            "taxid": tax_data.get("TaxId", taxid),
-                            "scientific_name": tax_data.get("ScientificName", input_clean),
-                            "common_name": tax_data.get("OtherNames", {}).get("GenbankCommonName", "")
-                        }
-                        
-                        # Cache with both the original input and the taxid
-                        _cache_result(input_clean, result)
-                        _cache_result(taxid, result)
-                        
-                        logger.info(f"Resolved {input_clean} to taxid {taxid}")
-                        return result
-    
-    except Exception as e:
-        logger.warning(f"NCBI lookup failed for {input_clean}: {str(e)}. Using fallback mapping.")
-        # If NCBI fails, try the common organisms mapping again with variations
-        for key, value in COMMON_ORGANISMS.items():
-            if input_clean.lower() in key.lower() or key.lower() in input_clean.lower():
-                result = value
-                _cache_result(input_clean, result)
-                logger.debug(f"Resolved {input_clean} using fuzzy match to {key}")
+            # Search NCBI Taxonomy by name and prefer an exact scientific-name match
+            results = search_organisms_ncbi(input_clean, limit=20)
+            query_lower = input_clean.lower()
+            match = None
+            exact_match = False
+            for candidate in results:
+                if candidate["name"].lower() == query_lower:
+                    match = candidate
+                    exact_match = True
+                    break
+            if match is None and results:
+                match = results[0]
+            if match:
+                result = {
+                    "taxid": match["taxid"],
+                    "scientific_name": match["name"],
+                    "common_name": match.get("common_name", ""),
+                }
+                # Only cache name resolutions when they are an exact match, so a
+                # broad search does not pin an inexact result forever.
+                if exact_match:
+                    _cache_result(input_clean, result)
+                _cache_result(match["taxid"], result)
+                logger.info(f"Resolved {input_clean} to taxid {match['taxid']}")
                 return result
-    
+
+    except Exception as e:
+        logger.warning(f"NCBI lookup failed for {input_clean}: {e}. Using fallback mapping.")
+
+    # If NCBI failed, try the common organisms mapping again with variations
+    for key, value in COMMON_ORGANISMS.items():
+        if input_clean.lower() in key.lower() or key.lower() in input_clean.lower():
+            result = value
+            _cache_result(input_clean, result)
+            logger.debug(f"Resolved {input_clean} using fuzzy match to {key}")
+            return result
+
     # If we get here, the organism couldn't be resolved
     raise OrganismNotFoundError(f"Could not resolve organism: {input_clean}")
 
@@ -325,4 +296,74 @@ def search_organisms(query: str, limit: int = 20) -> list:
         except OrganismNotFoundError:
             pass
     
+    return results
+
+
+def search_organisms_ncbi(query: str, limit: int = 10) -> List[Dict[str, str]]:
+    """
+    Search NCBI Taxonomy for organisms by scientific/common name or TaxID.
+
+    Returns a list of organisms with ``name`` (scientific name), ``common_name``
+    and ``taxid``. Results are cached through the shared HTTP cache.
+    """
+    query = query.strip()
+    if not query or len(query) < 2:
+        return []
+
+    tax_ids: List[str] = []
+
+    if query.isdigit():
+        tax_ids = [query]
+    else:
+        try:
+            response = http_get(
+                "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+                params={
+                    "db": "taxonomy",
+                    "term": query,
+                    "retmode": "json",
+                    "retmax": limit,
+                },
+                timeout=10,
+            )
+            data = response.json()
+            tax_ids = data.get("esearchresult", {}).get("idlist", [])[:limit]
+        except Exception as e:
+            logger.warning(f"NCBI organism search failed for {query!r}: {e}")
+            return []
+
+    if not tax_ids:
+        return []
+
+    try:
+        summary_response = http_get(
+            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi",
+            params={
+                "db": "taxonomy",
+                "id": ",".join(tax_ids),
+                "retmode": "json",
+            },
+            timeout=10,
+        )
+        summary_data = summary_response.json()
+    except Exception as e:
+        logger.warning(f"Could not fetch organism summaries for {query!r}: {e}")
+        return []
+
+    results: List[Dict[str, str]] = []
+    result_docs = summary_data.get("result", {})
+    for taxid in tax_ids:
+        doc = result_docs.get(str(taxid), {})
+        if not doc:
+            continue
+        # NCBI esummary returns lowercase keys in JSON
+        scientific = doc.get("scientificname") or doc.get("ScientificName", "")
+        if not scientific:
+            continue
+        results.append({
+            "name": scientific,
+            "common_name": doc.get("commonname") or doc.get("CommonName", ""),
+            "taxid": str(taxid),
+        })
+
     return results

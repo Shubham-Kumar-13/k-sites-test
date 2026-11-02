@@ -12,6 +12,8 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+from k_sites.data_retrieval.cache import cached_get
+
 DEFAULT_TIMEOUT = 30
 USER_AGENT = "K-Sites/1.2 (safe gene selection for knockout studies)"
 
@@ -42,7 +44,17 @@ def get_session() -> requests.Session:
     return _session
 
 
-def http_get(url: str, **kwargs) -> requests.Response:
-    """GET through the shared session. Raises ``requests.RequestException`` on network failure."""
+def _real_http_get(url: str, **kwargs) -> requests.Response:
+    """Uncached GET through the shared session."""
     kwargs.setdefault("timeout", DEFAULT_TIMEOUT)
     return get_session().get(url, **kwargs)
+
+
+def http_get(url: str, **kwargs) -> requests.Response:
+    """GET through the shared session, with disk caching for repeated requests."""
+    params = kwargs.pop("params", None)
+    use_cache = kwargs.pop("use_cache", True)
+    if not use_cache:
+        kwargs["params"] = params
+        return _real_http_get(url, **kwargs)
+    return cached_get(_real_http_get, url, params=params, **kwargs)

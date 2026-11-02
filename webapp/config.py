@@ -17,7 +17,8 @@ class Config:
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
     
     # Database
-    SQLALCHEMY_DATABASE_URI = f'sqlite:///{RESULTS_DIR}/ksites_jobs.db'
+    # KSITES_DATABASE_URI can point to PostgreSQL, MySQL, etc. Default is local SQLite.
+    SQLALCHEMY_DATABASE_URI = os.environ.get('KSITES_DATABASE_URI') or f'sqlite:///{RESULTS_DIR}/ksites_jobs.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Email Configuration
