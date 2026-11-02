@@ -24,7 +24,7 @@ def load_tool(name):
 @pytest.fixture(scope="module")
 def site(tmp_path_factory):
     out = tmp_path_factory.mktemp("built") / "site"
-    load_tool("build_static_site").build("https://example-space.hf.space/", out)
+    load_tool("build_static_site").build("https://example.com/backend/", out)
     return out
 
 
@@ -40,7 +40,7 @@ class TestStaticSite:
     def test_backend_address_is_written_without_trailing_slash(self, site):
         config = (site / "config.js").read_text(encoding="utf-8")
 
-        assert 'https://example-space.hf.space"' in config
+        assert 'https://example.com/backend"' in config
         assert "KSITES_CONFIG" in config
 
     def test_no_template_syntax_is_left_in_the_pages(self, site):
@@ -95,54 +95,6 @@ class TestStaticSite:
 
         with pytest.raises(SystemExit):
             tool.main()
-
-
-@pytest.fixture(scope="module")
-def space(tmp_path_factory):
-    out = tmp_path_factory.mktemp("space") / "hf_space"
-    files = load_tool("build_hf_space").build(out)
-    return out, files
-
-
-class TestSpaceFolder:
-
-    def test_has_what_a_docker_space_needs(self, space):
-        out, files = space
-
-        for name in ("Dockerfile", "README.md", "requirements.txt"):
-            assert name in files
-        assert (out / "README.md").read_text(encoding="utf-8").startswith("---")
-        assert "sdk: docker" in (out / "README.md").read_text(encoding="utf-8")
-        assert "app_port: 7860" in (out / "README.md").read_text(encoding="utf-8")
-
-    def test_contains_the_package_and_the_api(self, space):
-        _, files = space
-
-        assert "k_sites/workflow/pipeline.py" in files
-        assert "webapp/app.py" in files
-
-    def test_leaves_out_databases_caches_and_tests(self, space):
-        _, files = space
-
-        assert not any(f.endswith((".db", ".pyc")) for f in files)
-        assert not any("__pycache__" in f for f in files)
-        assert not any(f.startswith("tests/") for f in files)
-        assert not any(f.startswith("webapp/results") for f in files)
-
-    def test_dockerfile_serves_the_flask_app_on_the_spaces_port(self, space):
-        dockerfile = (space[0] / "Dockerfile").read_text(encoding="utf-8")
-
-        assert "app:app" in dockerfile and "7860" in dockerfile
-        assert "--workers" in dockerfile and '"1"' in dockerfile
-        assert "KSITES_DATA_DIR" in dockerfile
-
-    def test_every_import_the_backend_needs_is_in_the_requirements(self, space):
-        requirements = (space[0] / "requirements.txt").read_text(encoding="utf-8").lower()
-
-        for package in ("flask", "flask-cors", "flask-sqlalchemy", "flask-mail", "gunicorn", "requests",
-                        "biopython", "pandas", "openpyxl", "sentence-transformers", "faiss-cpu",
-                        "dataclasses-json", "pyyaml"):
-            assert package in requirements, package
 
 
 class TestBrowserSite:

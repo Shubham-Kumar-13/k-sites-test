@@ -4,7 +4,7 @@
  * The same pages run in three modes:
  *  - local:   served by the Flask app; relative URLs and the cookie login are used.
  *  - remote:  static pages calling a separate backend. config.js sets
- *             window.KSITES_CONFIG = { apiBase: "https://....hf.space" } and the lab
+ *             window.KSITES_CONFIG = { apiBase: "https://your-backend.example.com" } and the lab
  *             access token is kept in this browser (localStorage).
  *  - browser: static pages (GitHub Pages) where the analysis itself runs in this browser.
  *             config.js sets window.KSITES_CONFIG = { mode: "browser", keggBase: "kegg-data/" };

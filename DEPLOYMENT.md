@@ -102,9 +102,4 @@ lists are in `tools/data/gold/`. When the check fails, nothing is deployed and t
 | Phenotype model does not load | Needs access to `cdn.jsdelivr.net` and `huggingface.co`; try another network |
 | Job "paused" after closing the tab | Open the results page again to resume it |
 
-## Optional: a separate Python backend
 
-`python tools/build_static_site.py --api-base https://YOUR-BACKEND --out site` builds the older variant
-whose pages call a hosted copy of `webapp/app.py` protected by an access code
-(`KSITES_ACCESS_TOKEN`; see `deploy/huggingface/`). It is not needed for the browser version, and
-Hugging Face Docker Spaces are no longer free.

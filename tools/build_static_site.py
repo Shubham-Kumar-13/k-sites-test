@@ -10,7 +10,7 @@ Use --api-base only when you want the pages to call a remote Flask backend (for 
 lab server or a hosted Hugging Face Space).
 
     python tools/build_static_site.py --out site                                  # analysis in the browser
-    python tools/build_static_site.py --api-base https://your-space.hf.space --out site   # separate backend
+    python tools/build_static_site.py --api-base https://your-backend.example.com --out site   # separate backend
 
 The browser version also needs the KEGG data files and the measured knockout evidence:
     python tools/build_kegg_data.py --out site/kegg-data
