@@ -408,10 +408,18 @@ function selectGoTerm(id, name) {
 function resetGoTermSelection() {
     selectedGoTerm = null;
     document.getElementById('selectedGoTermDisplay').style.display = 'none';
-    document.getElementById('goTermsSection').style.display = 'block';
     document.getElementById('go_term').value = '';
     document.getElementById('go_term_name').value = '';
-    loadGoTerms(selectedCategory, document.getElementById('goTermSearch').value);
+    if (selectedCategory) {
+        // Came from the category/Step B flow: go back to Step B
+        document.getElementById('goTermsSection').style.display = 'block';
+        loadGoTerms(selectedCategory, document.getElementById('goTermSearch').value);
+    } else {
+        // Came from direct entry: go back to the initial category + direct input view
+        document.getElementById('goCategoryContainer').style.display = 'flex';
+        document.getElementById('goDirectInputSection').style.display = 'block';
+        document.getElementById('goTermsSection').style.display = 'none';
+    }
 }
 
 // ============================================================================
