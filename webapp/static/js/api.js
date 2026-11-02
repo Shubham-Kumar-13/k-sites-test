@@ -95,7 +95,10 @@
             let shown = false;
             while (Date.now() - started < 180000) {
                 try {
-                    const response = await fetch(apiBase + '/api/health', { cache: 'no-store' });
+                    const response = await fetch(apiBase + '/api/health', {
+                        cache: 'no-store',
+                        headers: { 'ngrok-skip-browser-warning': '1' }
+                    });
                     if (response.ok) {
                         if (shown) clearBanner();
                         return;
@@ -135,7 +138,10 @@
         if (hosted) {
             await ensureAwake();
             const u = user();
-            options.headers = Object.assign({}, options.headers, { 'X-KSites-Token': u.token });
+            options.headers = Object.assign({}, options.headers, {
+                'X-KSites-Token': u.token,
+                'ngrok-skip-browser-warning': '1'
+            });
             if (u.name) options.headers['X-KSites-User-Name'] = u.name;
             if (u.email) options.headers['X-KSites-User-Email'] = u.email;
         }

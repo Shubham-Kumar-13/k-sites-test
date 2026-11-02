@@ -61,7 +61,7 @@ if HOSTED_MODE:
     CORS(app,
          origins=ALLOWED_ORIGINS,
          methods=['GET', 'POST', 'OPTIONS'],
-         allow_headers=['Content-Type', 'X-KSites-Token', 'X-KSites-User-Name', 'X-KSites-User-Email'],
+         allow_headers=['Content-Type', 'X-KSites-Token', 'X-KSites-User-Name', 'X-KSites-User-Email', 'ngrok-skip-browser-warning'],
          expose_headers=['Content-Disposition'])
     if not ALLOWED_ORIGINS:
         logger.warning("KSITES_ACCESS_TOKEN is set but KSITES_ALLOWED_ORIGINS is empty: "
