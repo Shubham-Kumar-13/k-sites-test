@@ -203,6 +203,29 @@ SOURCES = {
             "alliance_phenotype_wb.json.gz": "https://fms.alliancegenome.org/download/PHENOTYPE_WB.json.gz",
         },
     },
+    "thalemine": {
+        "name": "ThaleMine (Araport)", "url": "https://bar.utoronto.ca/thalemine/",
+        "what": "Arabidopsis loss-of-function mutant phenotypes (Lloyd and Meinke 2012)",
+        "license": "CC BY 4.0", "optional": True,
+        "files": {},
+    },
+    "pombase": {
+        "name": "PomBase", "url": "https://www.pombase.org/",
+        "what": "fission yeast deletion viability (viable / inviable / condition-dependent)",
+        "license": "CC BY 4.0", "optional": True,
+        "files": {
+            "pombase_viability.tsv": "https://www.pombase.org/data/annotations/Phenotype_annotations/FYPOviability.tsv",
+            "pombase_gene_names.tsv": "https://www.pombase.org/data/names_and_identifiers/gene_IDs_names.tsv",
+        },
+    },
+    "project_score": {
+        "name": "Project Score CERES (Sanger)", "url": "https://figshare.com/articles/dataset/Project_SCORE_processed_with_CERES/9116732",
+        "what": "CRISPR knockout dependency probabilities in 318 human cancer cell lines",
+        "license": "CC BY 4.0", "optional": True,
+        "files": {
+            "project_score_gene_dependency.csv": "https://ndownloader.figshare.com/files/28340739",
+        },
+    },
 }
 
 # Stages of death, earliest first. W (before weaning) and U (age not stated) say the least.
@@ -966,6 +989,125 @@ def build_yeast(lines):
             record["pm"] = [int(p) for p, _ in pmids[systematic].most_common(3)]
         for key in {systematic, names.get(systematic) or systematic}:
             records[key.upper()] = record
+    return records
+
+
+# --------------------------------------------------------------------------------------------------
+# ThaleMine (Arabidopsis thaliana): curated loss-of-function mutant phenotypes
+# --------------------------------------------------------------------------------------------------
+
+THALEMINE_LISTS = "https://bar.utoronto.ca/thalemine/service/lists"
+THALEMINE_QUERY = "https://bar.utoronto.ca/thalemine/service/query/results"
+
+
+def fetch_thalemine_list(list_name, http):
+    """Fetch the genes in a ThaleMine list using the query API."""
+    query = (
+        '<query model="genomic" view="Gene.symbol Gene.primaryIdentifier">'
+        f'<constraint path="Gene" op="IN" value="{list_name}"/>'
+        '</query>'
+    )
+    response = http.get(THALEMINE_QUERY, params={"query": query}, timeout=60)
+    response.raise_for_status()
+    return response.text
+
+
+def build_thalemine(http):
+    """Build Arabidopsis knockout records from ThaleMine phenotype lists."""
+    records = {}
+    # Essential categories: lethal at different stages
+    essential_lists = {
+        "List Analysis for Genes with a Loss-of-Function Mutant Phenotype: Essential - Lethal": "L",
+        "Genes with a Loss-of-Function Mutant Phenotype: Essential - Embryo Seed": "L",
+        "Genes with a Loss-of-Function Mutant Phenotype: Essential - Gametophyte": "L",
+    }
+    # Non-essential categories: viable
+    viable_lists = {
+        "Genes with a Loss-of-Function Mutant Phenotype: Biochemical": "V",
+        "Genes with a Loss-of-Function Mutant Phenotype: Cellular": "V",
+        "Genes with a Loss-of-Function Mutant Phenotype: Conditional - Biological": "V",
+        "Genes with a Loss-of-Function Mutant Phenotype: Conditional - Chemical": "V",
+        "Genes with a Loss-of-Function Mutant Phenotype: Conditional - Physical": "V",
+        "Genes with a Loss-of-Function Mutant Phenotype: Morphological - Timing": "V",
+        "Genes with a Loss-of-Function Mutant Phenotype: Morphological - Vegetative": "V",
+    }
+    for list_name, call in {**essential_lists, **viable_lists}.items():
+        try:
+            text = fetch_thalemine_list(list_name, http)
+            for line in text.strip().splitlines():
+                parts = line.strip().split("\t")
+                if len(parts) < 2:
+                    continue
+                symbol, identifier = parts[0].strip().upper(), parts[1].strip()
+                if not symbol:
+                    continue
+                key = identifier or symbol
+                if key not in records:
+                    records[key] = {"v": call, "n": [1 if call == "L" else 0, 0, 1 if call == "V" else 0],
+                                    "src": "T", "id": identifier}
+                elif records[key]["v"] != call:
+                    records[key]["x"] = 1
+        except Exception as error:
+            print(f"  WARNING: could not fetch ThaleMine list {list_name}: {error}", flush=True)
+    return records
+
+
+# --------------------------------------------------------------------------------------------------
+# PomBase (Schizosaccharomyces pombe): deletion viability
+# --------------------------------------------------------------------------------------------------
+
+def build_pombase(viability_lines, name_lines):
+    """Build fission yeast knockout records from PomBase viability and gene name files."""
+    names = {}
+    for line in name_lines:
+        if line.startswith("#"):
+            continue
+        parts = line.rstrip("\r\n").split("\t")
+        if len(parts) >= 2:
+            names[parts[0]] = parts[1] or parts[0]
+    records = {}
+    for line in viability_lines:
+        parts = line.rstrip("\r\n").split("\t")
+        if len(parts) < 2:
+            continue
+        systematic, viability = parts[0], parts[1].strip().lower()
+        if viability not in ("viable", "inviable", "condition-dependent"):
+            continue
+        call = {"viable": "V", "inviable": "L", "condition-dependent": "S"}[viability]
+        symbol = names.get(systematic, systematic).upper()
+        if symbol not in records:
+            records[symbol] = {"v": call, "n": [0, 0, 0], "src": "P", "id": systematic}
+        records[symbol]["n"][{"L": 0, "S": 1, "V": 2}[call]] += 1
+    return records
+
+
+# --------------------------------------------------------------------------------------------------
+# Project Score CERES (human cell lines): CRISPR dependency probabilities
+# --------------------------------------------------------------------------------------------------
+
+def build_project_score(lines, threshold=0.5):
+    """Compute the percentage of cell lines where each gene is essential from Project Score CERES."""
+    import csv
+    reader = csv.reader(lines)
+    header = next(reader)
+    genes = [g.split(" (")[0].strip().upper() for g in header[1:]]
+    counts = [0] * len(genes)
+    total = 0
+    for row in reader:
+        if not row:
+            continue
+        total += 1
+        for i, value in enumerate(row[1:]):
+            try:
+                if float(value) >= threshold:
+                    counts[i] += 1
+            except ValueError:
+                pass
+    records = {}
+    for i, symbol in enumerate(genes):
+        if total:
+            percent = counts[i] / total * 100
+            records[symbol] = {"c": ["", round(percent, 1)]}
     return records
 
 
@@ -1981,6 +2123,24 @@ def build_all(out, cache, refresh=False, depmap_path=DEPMAP_SUMMARY, organisms=(
             layers.append("paralogs")
         organism_files["559292"] = {"genes": yeast, "aliases": {}}
         index_organisms["559292"] = {"name": "Saccharomyces cerevisiae S288C", "layers": layers}
+    if "arabidopsis" in organisms:
+        http = requests.Session()
+        http.headers["User-Agent"] = "K-Sites data builder"
+        arabidopsis = build_thalemine(http)
+        organism_files["3702"] = {"genes": arabidopsis, "aliases": {}}
+        index_organisms["3702"] = {"name": "Arabidopsis thaliana", "layers": ["knockout"]}
+    if "pombe" in organisms:
+        with open_text(files["pombase_viability.tsv"]) as viability_handle, open_text(files["pombase_gene_names.tsv"]) as name_handle:
+            pombe = build_pombase(viability_handle, name_handle)
+        organism_files["4896"] = {"genes": pombe, "aliases": {}}
+        index_organisms["4896"] = {"name": "Schizosaccharomyces pombe", "layers": ["knockout"]}
+    if "project_score" in organisms:
+        with open_text(files["project_score_gene_dependency.csv"]) as handle:
+            project_score = build_project_score(handle)
+        if "9606" in organism_files:
+            for symbol, record in project_score.items():
+                if symbol in organism_files["9606"]["genes"]:
+                    organism_files["9606"]["genes"][symbol].update(record)
 
     if "mouse" in organisms and "human" in organisms:
         model = add_lethality_estimates(human, human_aliases, mouse_records, mouse_paralogs, pairs)
@@ -2037,7 +2197,7 @@ def main():
     parser.add_argument("--cache", default=str(DEFAULT_CACHE), help="Folder for the downloaded sources")
     parser.add_argument("--refresh", action="store_true", help="Download the sources again")
     parser.add_argument("--depmap-summary", default=str(DEPMAP_SUMMARY))
-    parser.add_argument("--organisms", nargs="*", default=["mouse", "human", "rat", "yeast", "distant"])
+    parser.add_argument("--organisms", nargs="*", default=["mouse", "human", "rat", "yeast", "distant", "arabidopsis", "pombe", "project_score"])
     parser.add_argument("--no-paralogs", action="store_true", help="Skip the paralog download (about 5 minutes)")
     args = parser.parse_args()
     if not Path(args.depmap_summary).exists():
