@@ -5,10 +5,26 @@ Uses KEGG API for organisms and QuickGO/OLS API for GO terms
 
 import requests
 import logging
+import re
+import json
+from pathlib import Path
 from typing import List, Dict, Optional
 from functools import lru_cache
 
 logger = logging.getLogger(__name__)
+
+# KEGG organism code -> NCBI taxonomy id mapping shipped with the repo
+_TAXID_MAPPING_FILE = Path(__file__).resolve().parent.parent.parent / "tools" / "data" / "kegg_code_to_taxid.json"
+
+
+def _load_taxid_mapping() -> Dict[str, str]:
+    """Load the kegg_code -> NCBI taxid mapping shipped with the repo."""
+    if _TAXID_MAPPING_FILE.exists():
+        try:
+            return json.loads(_TAXID_MAPPING_FILE.read_text(encoding="utf-8"))
+        except Exception as error:
+            logger.warning(f"Could not read {_TAXID_MAPPING_FILE}: {error}")
+    return {}
 
 # Kingdom categories with icons (no hardcoded species)
 KINGDOMS = {
@@ -92,48 +108,45 @@ def fetch_kegg_organisms() -> List[Dict]:
         return _kegg_organisms_cache
 
     try:
-        # KEGG API endpoint for organism list
-        url = "http://rest.kegg.jp/list/organism"
-        response = requests.get(url, timeout=30)
+        # KEGG BRITE hierarchy endpoint for organism list
+        url = "https://www.genome.jp/kegg-bin/download_htext?htext=br08601.keg&format=htext"
+        response = requests.get(url, timeout=60)
         response.raise_for_status()
 
+        taxid_mapping = _load_taxid_mapping()
         organisms = []
-        for line in response.text.strip().split('\n'):
-            # Format: T##\tkegg_code\torganism_name\ttaxonomy
-            parts = line.split('\t')
-            if len(parts) >= 4:
-                kegg_code = parts[1]
-                name = parts[2]
-                taxonomy = parts[3]
-
-                # Extract taxid from taxonomy (last element is usually taxid)
-                tax_parts = taxonomy.split(';')
-                taxid = None
-                for part in reversed(tax_parts):
-                    if part.strip().isdigit():
-                        taxid = part.strip()
-                        break
-
-                # Determine kingdom from taxonomy
-                kingdom = _classify_organism(taxonomy)
-
-                # Get common name if available (in parentheses)
-                common_name = ""
-                if '(' in name and ')' in name:
-                    parts_name = name.split('(')
-                    scientific_name = parts_name[0].strip()
-                    common_name = parts_name[1].replace(')', '').strip()
-                else:
-                    scientific_name = name
-
-                organisms.append({
-                    "name": scientific_name,
-                    "common_name": common_name,
-                    "taxid": taxid or "",
-                    "kegg_code": kegg_code,
-                    "kingdom": kingdom,
-                    "taxonomy": taxonomy
-                })
+        levels = {}
+        for line in response.text.splitlines():
+            if not line or line[0] not in "ABCDE" or line.startswith("+"):
+                continue
+            letter, content = line[0], line[1:].strip()
+            if not content:
+                continue
+            if letter != "E":
+                level = "ABCDE".index(letter)
+                levels[level] = re.sub(r"\s*\(\d+\)\s*$", "", content)
+                for deeper in [k for k in levels if k > level]:
+                    del levels[deeper]
+                continue
+            match = re.match(r"^(\S+)\s+(.+)$", content)
+            if not match:
+                continue
+            code, label = match.groups()
+            taxonomy = ";".join(levels[k] for k in sorted(levels))
+            common_name = ""
+            name = label
+            paren = re.match(r"^(.*?)\s*\(([^)]*)\)\s*$", label)
+            if paren:
+                name, common_name = paren.group(1).strip(), paren.group(2).strip()
+            taxid = taxid_mapping.get(code, "")
+            organisms.append({
+                "name": name,
+                "common_name": common_name,
+                "taxid": taxid,
+                "kegg_code": code,
+                "kingdom": _classify_organism(taxonomy),
+                "taxonomy": taxonomy,
+            })
 
         _kegg_organisms_cache = organisms
         logger.info(f"Fetched {len(organisms)} organisms from KEGG")

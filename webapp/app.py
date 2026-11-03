@@ -612,7 +612,7 @@ def get_databases():
         {
             'id': 'quickgo',
             'name': 'QuickGO',
-            'description': 'Gene Ontology annotations from EBI (always used)',
+            'description': 'Gene Ontology annotations from EBI',
             'enabled': True,
             'required': True
         },
