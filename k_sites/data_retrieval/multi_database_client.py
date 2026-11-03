@@ -7,6 +7,7 @@ This is a CRITICAL component for non-pleiotropic gene identification.
 
 import logging
 import time
+import xml.etree.ElementTree as ET
 from typing import Dict, List, Optional, Tuple
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -83,19 +84,12 @@ class MultiDatabaseClient:
         "6239": "Caenorhabditis elegans",   # Worm
     }
 
-    # KEGG organism codes
-    KEGG_ORGANISM_CODES = {
-        "9606": "hsa",
-        "10090": "mmu",
-        "7227": "dme",
-        "6239": "cel",
-        "10116": "rno",
-        "7955": "dre",
-    }
-
     QUICKGO_URL = "https://www.ebi.ac.uk/QuickGO/services/annotation/search"
     QUICKGO_PAGE_SIZE = 200  # QuickGO rejects larger pages with HTTP 400
     UNIPROT_URL = "https://rest.uniprot.org/uniprotkb/search"
+    MYGENE_URL = "https://mygene.info/v3/query"
+    NCBI_ESEARCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+    NCBI_EFETCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
 
     def __init__(self):
         self.session = get_session()
@@ -103,40 +97,55 @@ class MultiDatabaseClient:
     def query_all_databases_simultaneously(
         self,
         gene_symbol: str,
-        taxid: str
+        taxid: str,
+        databases: Optional[List[str]] = None
     ) -> Dict[str, any]:
         """
-        Query GO.org, UniProt, and KEGG simultaneously for a gene.
+        Query the selected databases simultaneously for a gene.
 
         Args:
             gene_symbol: Gene symbol (e.g., "BRCA1")
             taxid: NCBI Taxonomy ID
+            databases: List of database ids to query (e.g., ['quickgo', 'uniprot']).
+                QuickGO is always included. When None, all available databases are used.
 
         Returns:
-            Comprehensive gene data from all three databases. ``query_status`` says per
+            Comprehensive gene data from the selected databases. ``query_status`` says per
             database whether the lookup worked; ``data_issues`` lists human-readable
             problems (failed lookups, unresolved gene).
         """
-        logger.info(f"Querying all databases simultaneously for {gene_symbol} in {taxid}")
+        logger.info(f"Querying databases for {gene_symbol} in {taxid}: {databases or 'all'}")
+
+        selected = set(databases or [])
+        if not selected:
+            selected = {"quickgo", "uniprot", "mygene", "ncbi"}
+        selected.add("quickgo")
 
         results = {
             "gene_symbol": gene_symbol,
             "taxid": taxid,
             "go_data": {},
             "uniprot_data": {},
-            "kegg_data": {},
+            "mygene_data": {},
+            "ncbi_data": {},
             "combined_bp_terms": [],
             "combined_evidence": {},
             "query_status": {},
             "data_issues": []
         }
 
-        # Execute queries in parallel
-        with ThreadPoolExecutor(max_workers=3) as executor:
+        query_map = {
+            "quickgo": ("go", self._query_quickgo),
+            "uniprot": ("uniprot", self._query_uniprot),
+            "mygene": ("mygene", self._query_mygene),
+            "ncbi": ("ncbi", self._query_ncbi_gene),
+        }
+        active = {name: func for db_id, (name, func) in query_map.items() if db_id in selected}
+
+        with ThreadPoolExecutor(max_workers=max(1, len(active))) as executor:
             futures = {
-                executor.submit(self._query_quickgo, gene_symbol, taxid): "go",
-                executor.submit(self._query_uniprot, gene_symbol, taxid): "uniprot",
-                executor.submit(self._query_kegg, gene_symbol, taxid): "kegg",
+                executor.submit(func, gene_symbol, taxid): name
+                for name, func in active.items()
             }
 
             for future in as_completed(futures):
@@ -150,7 +159,7 @@ class MultiDatabaseClient:
                     results["query_status"][db_name] = f"failed: {str(e)}"
                     results["data_issues"].append(f"{db_name} lookup failed: {e}")
 
-        # Combine and deduplicate BP terms from all sources
+        # Combine and deduplicate BP terms from the selected sources
         results["combined_bp_terms"] = self._combine_bp_terms(results)
         results["combined_evidence"] = self._combine_evidence(results)
 
@@ -298,69 +307,144 @@ class MultiDatabaseClient:
             "bp_terms": bp_terms
         }
 
-    def _query_kegg(self, gene_symbol: str, taxid: str) -> Dict:
-        """Query KEGG for the pathways a gene belongs to."""
-        logger.debug(f"Querying KEGG for {gene_symbol}")
+    def _query_mygene(self, gene_symbol: str, taxid: str) -> Dict:
+        """Query MyGene.info for GO Biological Process annotations."""
+        logger.debug(f"Querying MyGene.info for {gene_symbol}")
 
-        org_code = self.KEGG_ORGANISM_CODES.get(taxid)
-        if not org_code:
-            return {"found": False, "pathway_count": 0, "pathways": [],
-                    "note": f"No KEGG organism code for taxid {taxid}"}
+        params = {
+            "q": f"symbol:{gene_symbol}",
+            "species": taxid,
+            "fields": "go",
+            "size": 1,
+        }
 
         time.sleep(RATE_LIMIT_DELAY)
         try:
-            response = http_get(f"https://rest.kegg.jp/find/{org_code}/{gene_symbol}")
+            response = http_get(self.MYGENE_URL, params=params)
         except Exception as e:
-            raise LookupFailure(f"KEGG request failed: {e}")
+            raise LookupFailure(f"MyGene.info request failed: {e}")
 
-        if response.status_code == 404:
-            return {"found": False, "pathway_count": 0, "pathways": []}
         if response.status_code != 200:
-            raise LookupFailure(f"KEGG returned HTTP {response.status_code}")
+            raise LookupFailure(f"MyGene.info returned HTTP {response.status_code}: {response.text[:200]}")
 
-        # KEGG "find" is a fuzzy search. Prefer the gene whose MAIN symbol is the query; a gene that
-        # merely lists it as a synonym (LRIG1 lists "LIG1", POLK lists "POLQ") is a different gene.
-        primary_match = None
-        synonym_match = None
-        for line in response.text.strip().split('\n'):
-            parts = line.split('\t')
-            if len(parts) < 2:
-                continue
-            names = [n.strip().upper() for n in parts[1].split(';')[0].split(',')]
-            if names and names[0] == gene_symbol.upper():
-                primary_match = parts[0]
-                break
-            if synonym_match is None and gene_symbol.upper() in names:
-                synonym_match = parts[0]
-        kegg_gene_id = primary_match or synonym_match
-        
-        if not kegg_gene_id:
-            return {"found": False, "pathway_count": 0, "pathways": []}
+        data = response.json()
+        hits = data.get("hits", [])
+        bp_terms = []
 
-        time.sleep(RATE_LIMIT_DELAY)
-        try:
-            response = http_get(f"https://rest.kegg.jp/link/pathway/{kegg_gene_id}")
-        except Exception as e:
-            raise LookupFailure(f"KEGG request failed: {e}")
-
-        if response.status_code not in (200, 404):
-            raise LookupFailure(f"KEGG returned HTTP {response.status_code}")
-
-        pathways = []
-        if response.status_code == 200:
-            for line in response.text.strip().split('\n'):
-                parts = line.split('\t')
-                if len(parts) >= 2:
-                    pathways.append({
-                        "pathway_id": parts[1].replace("path:", ""),
-                        "gene_id": kegg_gene_id
-                    })
+        for hit in hits:
+            go = hit.get("go", {})
+            bp = go.get("BP", [])
+            if isinstance(bp, dict):
+                bp = [bp]
+            for term in bp:
+                go_id = term.get("id", "")
+                if not go_id:
+                    continue
+                evidence = term.get("evidence", "")
+                bp_terms.append({
+                    "go_id": go_id,
+                    "go_name": term.get("term", ""),
+                    "aspect": "biological_process",
+                    "evidence_codes": [self._normalize_code(evidence)] if evidence else [],
+                    "evidence_type": self._classify_evidence([evidence]),
+                    "source": "MyGene.info",
+                })
 
         return {
-            "found": True,
-            "kegg_gene_id": kegg_gene_id,
-            "pathway_count": len(pathways),
-            "pathways": pathways
+            "found": bool(bp_terms),
+            "total_entries": len(hits),
+            "bp_term_count": len({t["go_id"] for t in bp_terms}),
+            "bp_terms": bp_terms,
+        }
+
+    def _query_ncbi_gene(self, gene_symbol: str, taxid: str) -> Dict:
+        """Query NCBI Gene (Entrez) for GO Biological Process annotations."""
+        logger.debug(f"Querying NCBI Gene for {gene_symbol}")
+
+        params = {
+            "db": "gene",
+            "term": f"{gene_symbol}[Gene Name] AND {taxid}[Taxonomy ID]",
+            "retmode": "json",
+            "retmax": 1,
+        }
+
+        time.sleep(RATE_LIMIT_DELAY)
+        try:
+            response = http_get(self.NCBI_ESEARCH_URL, params=params)
+        except Exception as e:
+            raise LookupFailure(f"NCBI esearch request failed: {e}")
+
+        if response.status_code != 200:
+            raise LookupFailure(f"NCBI esearch returned HTTP {response.status_code}: {response.text[:200]}")
+
+        data = response.json()
+        ids = data.get("esearchresult", {}).get("idlist", [])
+        if not ids:
+            return {"found": False, "bp_term_count": 0, "bp_terms": []}
+
+        gene_id = ids[0]
+        params = {
+            "db": "gene",
+            "id": gene_id,
+            "retmode": "xml",
+        }
+
+        time.sleep(RATE_LIMIT_DELAY)
+        try:
+            response = http_get(self.NCBI_EFETCH_URL, params=params)
+        except Exception as e:
+            raise LookupFailure(f"NCBI efetch request failed: {e}")
+
+        if response.status_code != 200:
+            raise LookupFailure(f"NCBI efetch returned HTTP {response.status_code}: {response.text[:200]}")
+
+        bp_terms = []
+        try:
+            root = ET.fromstring(response.text)
+            for commentary in root.iter("Gene-commentary"):
+                heading = (commentary.findtext("Gene-commentary_heading") or "").strip()
+                if heading.lower() != "geneontology":
+                    continue
+                for section in commentary.findall(".//Gene-commentary"):
+                    label = (section.findtext("Gene-commentary_label") or "").strip()
+                    if label.lower() != "process":
+                        continue
+                    for entry in section.findall(".//Gene-commentary"):
+                        go_id = None
+                        go_name = None
+                        evidence = None
+                        for object_id in entry.findall(".//Object-id_id"):
+                            value = (object_id.text or "").strip()
+                            if value.isdigit():
+                                go_id = f"GO:{int(value):07d}"
+                                break
+                        for anchor in entry.findall(".//Other-source_anchor"):
+                            value = (anchor.text or "").strip()
+                            if value:
+                                go_name = value
+                                break
+                        for post_text in entry.findall(".//Other-source_post-text"):
+                            value = (post_text.text or "").strip()
+                            if value.lower().startswith("evidence:"):
+                                evidence = value.split(":", 1)[1].strip()
+                                break
+                        if go_id:
+                            bp_terms.append({
+                                "go_id": go_id,
+                                "go_name": go_name or "",
+                                "aspect": "biological_process",
+                                "evidence_codes": [self._normalize_code(evidence)] if evidence else [],
+                                "evidence_type": self._classify_evidence([evidence]),
+                                "source": "NCBI Gene",
+                            })
+        except ET.ParseError as e:
+            raise LookupFailure(f"NCBI Gene XML parse failed: {e}")
+
+        return {
+            "found": bool(bp_terms),
+            "gene_id": gene_id,
+            "bp_term_count": len({t["go_id"] for t in bp_terms}),
+            "bp_terms": bp_terms,
         }
 
     def _resolve_gene_to_uniprot(self, gene_symbol: str, taxid: str) -> Optional[str]:
@@ -436,7 +520,7 @@ class MultiDatabaseClient:
         """
         merged: Dict[str, Dict] = {}
 
-        for source_key in ("go_data", "uniprot_data"):
+        for source_key in ("go_data", "uniprot_data", "mygene_data", "ncbi_data"):
             for term in results.get(source_key, {}).get("bp_terms", []):
                 go_id = term.get("go_id", "")
                 if not go_id:
@@ -482,11 +566,11 @@ def get_multi_database_client() -> MultiDatabaseClient:
     return _multi_db_client
 
 
-def query_gene_from_all_databases(gene_symbol: str, taxid: str) -> Dict:
+def query_gene_from_all_databases(gene_symbol: str, taxid: str, databases: Optional[List[str]] = None) -> Dict:
     """
-    Query GO.org, UniProt, and KEGG simultaneously for a gene.
-    
+    Query the selected databases simultaneously for a gene.
+
     This is the main entry point for multi-database integration.
     """
     client = get_multi_database_client()
-    return client.query_all_databases_simultaneously(gene_symbol, taxid)
+    return client.query_all_databases_simultaneously(gene_symbol, taxid, databases)

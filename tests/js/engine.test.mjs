@@ -36,7 +36,7 @@ function scripted(handler, extra = {}) {
     return { http, calls };
 }
 
-/** Pretend-database: answers UniProt, QuickGO and KEGG for a few genes. */
+/** Pretend-database: answers UniProt, QuickGO for a few genes. */
 function fakeWorld(genes) {
     return (url) => {
         const u = new URL(url);

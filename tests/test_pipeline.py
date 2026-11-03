@@ -63,7 +63,6 @@ class TestPipeline:
 
         assert gene["pleiotropy_score"] == 1.0
         assert gene["specificity_score"] == 0.9
-        assert gene["kegg_pathway_count"] == 4
         assert gene["literature_support"] == 0.8
         assert gene["safety_recommendation"]["safety_level"] == "SAFE"
 

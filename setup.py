@@ -15,7 +15,7 @@ setup(
     version="1.2.1",
     author="Kanaka KK, Sandip Garai, Jeevan C, Tanzil Fatima",
     author_email="kanakakk@example.com",
-    description="K-Sites: Safe gene selection for knockout studies with multi-database integration (GO.org, UniProt, KEGG), exponential-decay pleiotropy scoring, evidence-based filtering and RAG-based phenotype prediction",
+    description="K-Sites: Safe gene selection for knockout studies with multi-database integration (GO.org, UniProt), exponential-decay pleiotropy scoring, evidence-based filtering and RAG-based phenotype prediction",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/KanakaKK/K-sites",

@@ -6,7 +6,7 @@
 
 **Status:** ✅ Fully Implemented
 
-K-Sites queries **GO.org (QuickGO), UniProt, and KEGG simultaneously** using parallel processing for comprehensive gene data retrieval.
+K-Sites queries **GO.org (QuickGO), UniProt, simultaneously** using parallel processing for comprehensive gene data retrieval.
 
 **Implementation:**
 - File: `k_sites/data_retrieval/multi_database_client.py`
@@ -47,7 +47,7 @@ IEA_CODE = {"IEA"}  # Inferred from Electronic Annotation (PREDICTION, not evide
 # Use all databases (default)
 k-sites --go-term GO:0006281 --organism 9606 --output report.html
 
-# Note: --databases is accepted for metadata tracking but currently all queries use QuickGO, UniProt and KEGG
+# Note: --databases is accepted for metadata tracking but currently all queries use QuickGO and UniProt
 k-sites --go-term GO:0006281 --organism 9606 --output report.html --databases quickgo
 ```
 

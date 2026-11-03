@@ -117,7 +117,8 @@ def score_gene_pleiotropy(
     taxid: str,
     target_go_term: str = None,
     evidence_filter: str = "experimental",
-    use_multi_database: bool = True
+    use_multi_database: bool = True,
+    databases: List[str] = None
 ) -> Dict:
     """
     Calculate comprehensive pleiotropy score for a gene using multi-database integration.
@@ -160,7 +161,6 @@ def score_gene_pleiotropy(
         "experimental_evidence_count": 0,
         "computational_evidence_count": 0,
         "iea_evidence_count": 0,
-        "kegg_pathway_count": 0,
         "database_sources": [],
         "bp_terms": []
     }
@@ -169,7 +169,7 @@ def score_gene_pleiotropy(
         if use_multi_database:
             # Query all databases simultaneously
             from k_sites.data_retrieval.multi_database_client import query_gene_from_all_databases
-            db_results = query_gene_from_all_databases(gene_symbol, taxid)
+            db_results = query_gene_from_all_databases(gene_symbol, taxid, databases)
 
             bp_terms = db_results.get("combined_bp_terms", [])
 
@@ -183,9 +183,6 @@ def score_gene_pleiotropy(
             result["experimental_evidence_count"] = evidence.get("experimental", 0)
             result["computational_evidence_count"] = evidence.get("computational", 0)
             result["iea_evidence_count"] = evidence.get("IEA", 0)
-
-            kegg_data = db_results.get("kegg_data", {})
-            result["kegg_pathway_count"] = kegg_data.get("pathway_count", 0)
 
             go_sources_failed = any(
                 str(db_results.get("query_status", {}).get(name, "")).startswith("failed")
@@ -487,7 +484,6 @@ def _insufficient_data_record(gene_info: Dict, scoring: Dict) -> Dict:
         "experimental_evidence_count": scoring.get("experimental_evidence_count", 0),
         "computational_evidence_count": scoring.get("computational_evidence_count", 0),
         "iea_evidence_count": scoring.get("iea_evidence_count", 0),
-        "kegg_pathway_count": scoring.get("kegg_pathway_count", 0),
         "pubmed_count": 0,
         "specificity_consistency": 0.0,
         "database_sources": scoring.get("database_sources", []),
@@ -503,7 +499,8 @@ def _rank_single_gene(
     include_literature: bool,
     include_cross_species: bool,
     max_pleiotropy_threshold: int,
-    facts_lookup: Optional[Callable[[str], Optional[Dict]]] = None
+    facts_lookup: Optional[Callable[[str], Optional[Dict]]] = None,
+    databases: List[str] = None
 ) -> Dict:
     """Rank a single gene - helper for parallel processing."""
     gene_symbol = gene_info.get("symbol", "")
@@ -517,7 +514,8 @@ def _rank_single_gene(
             taxid, 
             target_go_term,
             evidence_filter,
-            use_multi_database=True
+            use_multi_database=True,
+            databases=databases
         )
 
         # A gene we could not score is reported as such, not ranked on default values
@@ -585,7 +583,6 @@ def _rank_single_gene(
             "experimental_evidence_count": scoring.get("experimental_evidence_count", 0),
             "computational_evidence_count": scoring.get("computational_evidence_count", 0),
             "iea_evidence_count": scoring.get("iea_evidence_count", 0),
-            "kegg_pathway_count": scoring.get("kegg_pathway_count", 0),
             "pubmed_count": pubmed_count,
             "specificity_consistency": specificity_consistency,
             "database_sources": scoring.get("database_sources", []),
@@ -609,7 +606,8 @@ def rank_genes_by_specificity(
     include_cross_species: bool = True,
     max_pleiotropy_threshold: int = 10,
     progress_callback: Optional[Callable[[str, int, int], None]] = None,
-    facts_lookup: Optional[Callable[[str], Optional[Dict]]] = None
+    facts_lookup: Optional[Callable[[str], Optional[Dict]]] = None,
+    databases: List[str] = None
 ) -> List[Dict]:
     """
     Rank genes by specificity using weighted scoring combining:
@@ -654,7 +652,8 @@ def rank_genes_by_specificity(
                 include_literature,
                 include_cross_species,
                 max_pleiotropy_threshold,
-                facts_lookup
+                facts_lookup,
+                databases
             ): gene_info
             for gene_info in gene_list
         }

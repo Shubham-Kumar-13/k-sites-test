@@ -58,7 +58,7 @@
     "composite_score": 0.7713272882726872,
     "bp_term_count": 6,
     "data_issues": [],
-    "kegg_pathway_count": 2,
+    "
     "experimental_evidence_count": 2,
     "computational_evidence_count": 0,
     "iea_evidence_count": 2,
@@ -151,7 +151,7 @@
     "composite_score": 0.7407779482201278,
     "bp_term_count": 12,
     "data_issues": [],
-    "kegg_pathway_count": 5,
+    "
     "experimental_evidence_count": 1,
     "computational_evidence_count": 3,
     "iea_evidence_count": 3,
@@ -244,7 +244,7 @@
     "composite_score": 0.6473825796891236,
     "bp_term_count": 13,
     "data_issues": [],
-    "kegg_pathway_count": 3,
+    "
     "experimental_evidence_count": 2,
     "computational_evidence_count": 1,
     "iea_evidence_count": 6,
@@ -336,7 +336,7 @@
     "composite_score": 0.510547314640405,
     "bp_term_count": 13,
     "data_issues": [],
-    "kegg_pathway_count": 5,
+    "
     "experimental_evidence_count": 10,
     "computational_evidence_count": 0,
     "iea_evidence_count": 3,
@@ -437,7 +437,7 @@
     "composite_score": 0.4968992379678594,
     "bp_term_count": 13,
     "data_issues": [],
-    "kegg_pathway_count": 0,
+    "
     "experimental_evidence_count": 8,
     "computational_evidence_count": 1,
     "iea_evidence_count": 3,
@@ -539,7 +539,7 @@
     "composite_score": 0.4925,
     "bp_term_count": 58,
     "data_issues": [],
-    "kegg_pathway_count": 5,
+    "
     "experimental_evidence_count": 30,
     "computational_evidence_count": 7,
     "iea_evidence_count": 18,

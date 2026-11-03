@@ -27,7 +27,7 @@ function hasNoFunctionalDescription(description) {
 }
 
 /**
- * @param ctx   { http, keggProvider, ncbiApiKey, ncbiEmail,
+ * @param ctx   { http, ncbiApiKey, ncbiEmail,
  *                evidenceProvider?  (measured knockout data; none = verdicts rest on annotations alone),
  *                phenotypePredictor? | getPhenotypePredictor?  (the predictor, or a loader called on first use) }
  * @param opts  { goTerm, organism, taxid, scientificName, maxPleiotropy, evidenceFilter,
@@ -248,7 +248,6 @@ export async function runKSitesPipeline(ctx, opts) {
                 composite_score: geneInfo.composite_score ?? 5.0,
                 bp_term_count: geneInfo.bp_term_count ?? 0,
                 data_issues: geneInfo.data_issues || [],
-                kegg_pathway_count: geneInfo.kegg_pathway_count ?? 0,
                 experimental_evidence_count: geneInfo.experimental_evidence_count ?? 0,
                 computational_evidence_count: geneInfo.computational_evidence_count ?? 0,
                 iea_evidence_count: geneInfo.iea_evidence_count ?? 0,

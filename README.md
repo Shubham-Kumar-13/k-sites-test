@@ -36,12 +36,11 @@ GO term + organism
 
 | Signal | Source | Meaning |
 |---|---|---|
-| **Pleiotropy score (0–10)** | GO Biological Process terms (QuickGO, UniProt, KEGG) | How many other processes the gene takes part in. 0 = very specific. |
+| **Pleiotropy score (0–10)** | GO Biological Process terms (QuickGO, UniProt) | How many other processes the gene takes part in. 0 = very specific. |
 | **Specificity (0–1)** | `1 − pleiotropy / 10` | Inverse of pleiotropy. 1 = most specific. |
 | **Evidence quality (0–1)** | GO evidence codes | Experimental evidence weighs 1.0, computational 0.6, IEA predictions 0.3. |
 | **Literature support (0–1)** | PubMed publication count | More studied genes score higher. |
 | **Conservation (0–1)** | Cross-species check | Whether the gene behaves similarly in other species. |
-| **KEGG pathway count** | KEGG | Number of KEGG pathways the gene belongs to (reported per gene). |
 | **Knockout viability** | MGI, IMPC (mouse), SGD (yeast), ZFIN (zebrafish), FlyBase (fly), WormBase (worm); human and rat genes use the one-to-one mouse ortholog; zebrafish, fly, worm and Xenopus genes without a measurement of their own get the mouse ortholog's knockout as a hint only | Lethal / subviable / viable, the stage of death, the number of knockout lines, the papers behind it. |
 | **Cell-line essentiality** | DepMap 24Q4 CRISPR screens | In what percentage of 1,178 human cancer cell lines losing the gene kills the cells. |
 | **Loss-of-function tolerance, expression, paralogs** | gnomAD v4.1, GTEx v8, Ensembl Compara | Context for the advice: constrained genes, tissue-restricted genes (tissue-specific knockout), close paralogs (double knockout). |
@@ -121,7 +120,7 @@ k-sites --go-term-search "DNA repair" --organism "Homo sapiens" --output report.
 | `--predict-phenotypes` | Predict knockout phenotype from PubMed, only for genes with no measured result (experimental) | off |
 | `--max-predictions` | Maximum RAG phenotype predictions to run for genes without a measured result; additional eligible genes are still rated but are at most CAUTION | 25 |
 | `--rag-report` | Per-gene literature reports (needs `--predict-phenotypes`) | off |
-| `--databases` | `quickgo`, `uniprot`, `kegg`, `all` (accepted for metadata tracking; queries always use QuickGO + UniProt + KEGG) | `all` |
+| `--databases` | `quickgo`, `uniprot`, `all` (accepted for metadata tracking; queries always use QuickGO + UniProt) | `all` |
 | `--go-term-search` | Search GO terms by keyword | – |
 
 The measured knockout data are published with the K-Sites website and downloaded once a month into `~/.k_sites/evidence-data`. To use a local copy (or work offline) build the files and point to them:
@@ -185,7 +184,7 @@ For `--output report.html`:
 k_sites/
 ├── cli.py                    # command line entry point
 ├── config/                   # configuration loading
-├── data_retrieval/           # QuickGO, UniProt, KEGG, organism lookup
+├── data_retrieval/           # QuickGO, UniProt, organism lookup
 ├── gene_analysis/            # pleiotropy scoring and ranking
 ├── rag_system/               # PubMed mining and phenotype prediction
 ├── workflow/
@@ -202,7 +201,7 @@ demo/
 ## Known limitations
 
 - Very large GO terms can have more annotations than the safety limit (`--max-annotations`). The tool then warns how much was read, and genes that appear only in the unread part are missing.
-- Scores depend on live queries to QuickGO, UniProt, KEGG and PubMed. A gene whose data cannot be retrieved is listed as "not scored (insufficient data)" instead of being ranked; re-run if the reason says a lookup failed.
+- Scores depend on live queries to QuickGO, UniProt and PubMed. A gene whose data cannot be retrieved is listed as "not scored (insufficient data)" instead of being ranked; re-run if the reason says a lookup failed.
 - The evidence type you choose (`--evidence-filter`) changes the result: under `experimental`, a poorly studied gene with few lab-proven roles can look more specific than it is. Compare with `all` when in doubt.
 - Measured results exist for most genes of the common model organisms (about 14,400 mouse genes, 95% of human protein-coding genes through the mouse ortholog or DepMap, 5,700 yeast genes, and for zebrafish, fly and worm the genes that ZFIN, FlyBase and WormBase have curated: about 950 zebrafish, 4,900 fly and 4,100 worm genes) but not for every gene and not for most other species. A gene without a measurement is marked "Not verified" and rated at most CAUTION.
 - Knockout results depend on the strain and the allele; the report shows how many lines agree and rates a gene at least HIGH_CONCERN when any line was lethal. Mouse results are carried to human and rat genes only through one-to-one orthologs, and a gene needed by the embryo may still be fine in cultured cells (both are shown).
@@ -233,4 +232,4 @@ MIT License – see [LICENSE](LICENSE).
 
 ## Acknowledgments
 
-Gene Ontology Consortium, UniProt, KEGG and NCBI (PubMed, Entrez) for their open data. The measured knockout evidence comes from Mouse Genome Informatics (MGI), the International Mouse Phenotyping Consortium (IMPC), the Alliance of Genome Resources, the Saccharomyces Genome Database (SGD), ZFIN (CC BY 4.0), FlyBase (CC BY 4.0), WormBase, DepMap (Broad Institute, 24Q4 Public, CC BY 4.0), gnomAD, GTEx, HGNC and Ensembl Compara; please cite those resources when you use the reports.
+Gene Ontology Consortium, UniProt and NCBI (PubMed, Entrez) for their open data. The measured knockout evidence comes from Mouse Genome Informatics (MGI), the International Mouse Phenotyping Consortium (IMPC), the Alliance of Genome Resources, the Saccharomyces Genome Database (SGD), ZFIN (CC BY 4.0), FlyBase (CC BY 4.0), WormBase, DepMap (Broad Institute, 24Q4 Public, CC BY 4.0), gnomAD, GTEx, HGNC and Ensembl Compara; please cite those resources when you use the reports.

@@ -47,7 +47,7 @@ def run_k_sites_pipeline(
         evidence_filter: Type of evidence to include ("experimental", "computational", "all")
         species_validation: List of species taxids for cross-species validation
         predict_phenotypes: Whether to predict knockout phenotypes using RAG (default: False)
-        databases: List of databases to query (e.g., ['quickgo', 'uniprot', 'kegg'])
+        databases: List of databases to query (e.g., ['quickgo', 'uniprot', 'mygene'])
         max_annotations: Safety limit on the GO annotations read for the GO term (default: 2000).
             If the limit stops the read early, ``warnings`` says how much was read.
         progress_callback: Optional ``callback(stage, done, total)`` for long runs; stages are
@@ -180,7 +180,8 @@ def run_k_sites_pipeline(
             include_cross_species=species_validation is not None,
             max_pleiotropy_threshold=max_pleiotropy,
             progress_callback=progress_callback,
-            facts_lookup=facts_lookup
+            facts_lookup=facts_lookup,
+            databases=databases
         )
         logger.info(f"Ranked {len(ranked_genes)} genes by specificity")
         
@@ -300,7 +301,6 @@ def run_k_sites_pipeline(
                     "composite_score": gene_info.get("composite_score", 5.0),
                     "bp_term_count": gene_info.get("bp_term_count", 0),
                     "data_issues": gene_info.get("data_issues", []),
-                    "kegg_pathway_count": gene_info.get("kegg_pathway_count", 0),
                     "experimental_evidence_count": gene_info.get("experimental_evidence_count", 0),
                     "computational_evidence_count": gene_info.get("computational_evidence_count", 0),
                     "iea_evidence_count": gene_info.get("iea_evidence_count", 0),

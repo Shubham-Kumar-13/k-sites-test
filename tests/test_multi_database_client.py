@@ -147,29 +147,6 @@ class TestUniProt:
                 client._query_uniprot("G", "9606")
 
 
-class TestKegg:
-    def test_only_exact_gene_symbol_match_is_used(self, client):
-        find_text = "hsa:111\tPOLD1P, pseudogene; something\nhsa:5424\tPOLD1, CDC2; DNA polymerase delta 1\n"
-        link_text = "hsa:5424\tpath:hsa03030\nhsa:5424\tpath:hsa03410\n"
-        with patch(HTTP_GET, side_effect=[response(200, text=find_text), response(200, text=link_text)]):
-            data = client._query_kegg("POLD1", "9606")
-
-        assert data["kegg_gene_id"] == "hsa:5424"
-        assert data["pathway_count"] == 2
-
-    def test_no_exact_match_means_not_found(self, client):
-        find_text = "hsa:111\tPOLD1P, pseudogene; something\n"
-        with patch(HTTP_GET, return_value=response(200, text=find_text)):
-            data = client._query_kegg("POLD1", "9606")
-
-        assert data["found"] is False
-        assert data["pathway_count"] == 0
-
-    def test_unsupported_organism_is_not_a_failure(self, client):
-        data = client._query_kegg("G", "99999")
-        assert data["found"] is False
-
-
 class TestCombine:
     def test_strongest_evidence_wins_across_sources(self, client):
         results = {
@@ -196,7 +173,8 @@ class TestQueryAll:
         with patch.object(client, "_query_quickgo", side_effect=LookupFailure("HTTP 400")), \
              patch.object(client, "_query_uniprot", return_value={"bp_terms": [
                  {"go_id": "GO:1", "evidence_type": "experimental", "go_name": ""}]}), \
-             patch.object(client, "_query_kegg", return_value={"pathway_count": 3}):
+             patch.object(client, "_query_mygene", return_value={"bp_terms": []}), \
+             patch.object(client, "_query_ncbi_gene", return_value={"bp_terms": []}):
             result = client.query_all_databases_simultaneously("G", "9606")
 
         assert result["query_status"]["go"].startswith("failed")

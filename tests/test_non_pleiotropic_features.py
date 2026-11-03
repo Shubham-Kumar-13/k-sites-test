@@ -2,7 +2,7 @@
 Comprehensive test for Non-Pleiotropic Gene Identification features.
 
 Tests ALL requirements:
-1. Multi-database integration: GO.org, UniProt, KEGG simultaneously
+1. Multi-database integration: GO.org, UniProt simultaneously
 2. Pleiotropy scoring: Exponential decay based on BP GO terms
 3. Evidence-based filtering: IDA, IMP, IGI = experimental; IEA = prediction
 4. Cross-species validation: human, mouse, fly, worm
@@ -97,7 +97,7 @@ class TestEvidenceClassification(unittest.TestCase):
 
 
 class TestMultiDatabaseIntegration(unittest.TestCase):
-    """Test multi-database integration (GO.org, UniProt, KEGG)."""
+    """Test multi-database integration (GO.org, UniProt)."""
     
     def test_multi_database_client_structure(self):
         """Test that multi-database client is properly structured."""
@@ -108,7 +108,6 @@ class TestMultiDatabaseIntegration(unittest.TestCase):
         # Verify all required databases are configured
         self.assertTrue(hasattr(client, '_query_quickgo'))  # GO.org
         self.assertTrue(hasattr(client, '_query_uniprot'))  # UniProt
-        self.assertTrue(hasattr(client, '_query_kegg'))     # KEGG
     
     def test_simultaneous_query_function_exists(self):
         """Test that simultaneous query function exists."""

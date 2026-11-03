@@ -9,7 +9,7 @@
 ## What's New in v1.1.0
 
 ### Major Features
-- **Non-Pleiotropic Gene Identification**: Multi-database integration (GO, UniProt, KEGG)
+- **Non-Pleiotropic Gene Identification**: Multi-database integration (GO, UniProt)
 - **RAG-Based Phenotype Prediction**: Literature mining with semantic search
 - **Web Application**: Flask-based UI with hierarchical selection
 - **Email Notifications**: Analysis completion alerts

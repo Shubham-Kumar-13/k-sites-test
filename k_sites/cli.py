@@ -3,7 +3,7 @@
 Unified Command-Line Interface for K-Sites
 
 This module serves as the entry point for K-Sites, a tool that helps
-scientists pick a safe gene for knockout/deletion using GO, UniProt, KEGG
+scientists pick a safe gene for knockout/deletion using GO, UniProt
 and PubMed evidence.
 """
 
@@ -48,11 +48,11 @@ def validate_and_resolve_organism(organism_input):
         "worm": "6239",
         "Danio rerio": "7955",
         "zebrafish": "7955",
-        "hsa": "9606",  # KEGG code
-        "mmu": "10090",  # KEGG code
-        "cel": "6239",  # KEGG code
-        "dre": "7955",  # KEGG code
-        "sce": "4932"   # KEGG code
+        "hsa": "9606",
+        "mmu": "10090",
+        "cel": "6239",
+        "dre": "7955",
+        "sce": "4932"
     }
     
     organism_normalized = organism_input.strip()
@@ -251,8 +251,7 @@ Examples:
 Database Options (--databases):
   - quickgo:   Gene Ontology annotations (always used for GO term mapping)
   - uniprot:   Protein knowledgebase (protein function, domains)
-  - kegg:      KEGG pathway database (pathway annotations)
-  - all:       Use all available databases (default; currently equivalent to quickgo uniprot kegg)
+  - all:       Use all available databases (default; currently equivalent to quickgo uniprot)
 
 Note:
   - Organism can be NCBI TaxID (e.g., 9606) or scientific name (e.g., "Homo sapiens")
@@ -354,10 +353,10 @@ Note:
     parser.add_argument(
         '--databases',
         nargs='+',
-        choices=['quickgo', 'uniprot', 'kegg', 'all'],
+        choices=['quickgo', 'uniprot', 'all'],
         default=['all'],
-        help='Track which databases were intended for the query (default: all). Options: quickgo, uniprot, kegg, all. '
-             'Currently all runs use QuickGO, UniProt and KEGG regardless of this setting; it is recorded for metadata only.'
+        help='Track which databases were intended for the query (default: all). Options: quickgo, uniprot, all. '
+             'Currently all runs use QuickGO and UniProt regardless of this setting; it is recorded for metadata only.'
     )
     
     parser.add_argument(

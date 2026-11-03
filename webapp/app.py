@@ -623,6 +623,20 @@ def get_databases():
             'enabled': True,
             'required': False
         },
+        {
+            'id': 'mygene',
+            'name': 'MyGene.info',
+            'description': 'Aggregated gene and GO annotation service',
+            'enabled': True,
+            'required': False
+        },
+        {
+            'id': 'ncbi',
+            'name': 'NCBI Gene',
+            'description': 'Entrez Gene records with GO annotations',
+            'enabled': True,
+            'required': False
+        },
     ]
     
     return jsonify({'databases': databases})
@@ -950,6 +964,7 @@ def _execute_analysis_job(job_id: str):
                 evidence_filter=job.evidence_filter,
                 predict_phenotypes=job.predict_phenotypes,
                 knockout_context=job.knockout_context or 'auto',
+                databases=json.loads(job.selected_databases) if job.selected_databases else None,
                 progress_callback=report_progress
             )
             

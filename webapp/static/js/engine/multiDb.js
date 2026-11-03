@@ -1,5 +1,5 @@
 /**
- * Query QuickGO, UniProt and KEGG for one gene at the same time.
+ * Query QuickGO and UniProt for one gene at the same time.
  * Port of k_sites/data_retrieval/multi_database_client.py.
  *
  * Each lookup returns data when it worked (including "gene not found") and throws
@@ -134,18 +134,6 @@ export async function queryUniprot(http, symbol, taxid) {
     };
 }
 
-/** Pathways come from the data file built from KEGG (see tools/build_kegg_data.py). */
-export async function queryKegg(keggProvider, symbol, taxid) {
-    if (!keggProvider) return { found: false, pathway_count: 0, pathways: [], note: 'No KEGG data available' };
-    try {
-        const hit = await keggProvider(taxid, symbol);
-        if (!hit) return { found: false, pathway_count: 0, pathways: [], note: `No KEGG data for taxid ${taxid}` };
-        return { found: hit.found, pathway_count: hit.pathway_count || 0, pathways: hit.pathways || [], kegg_gene_id: hit.kegg_gene_id };
-    } catch (error) {
-        throw new LookupFailure(`KEGG data could not be loaded: ${error.message}`);
-    }
-}
-
 /** Merge the BP terms of every source; the strongest evidence wins when a term is seen twice. */
 export function combineBpTerms(results) {
     const merged = new Map();
@@ -176,10 +164,10 @@ export function combineEvidence(results) {
     return counts;
 }
 
-export async function queryGeneFromAllDatabases(http, keggProvider, symbol, taxid) {
+export async function queryGeneFromAllDatabases(http, symbol, taxid) {
     const results = {
         gene_symbol: symbol, taxid,
-        go_data: {}, uniprot_data: {}, kegg_data: {},
+        go_data: {}, uniprot_data: {},
         combined_bp_terms: [], combined_evidence: {},
         query_status: {}, data_issues: [],
     };
@@ -187,7 +175,6 @@ export async function queryGeneFromAllDatabases(http, keggProvider, symbol, taxi
     const jobs = [
         ['go', queryQuickGo(http, symbol, taxid)],
         ['uniprot', queryUniprot(http, symbol, taxid)],
-        ['kegg', queryKegg(keggProvider, symbol, taxid)],
     ];
     const settled = await Promise.allSettled(jobs.map(([, promise]) => promise));
     settled.forEach((outcome, index) => {

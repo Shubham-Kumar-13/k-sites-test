@@ -95,12 +95,6 @@ class TestScoreGenePleiotropy:
         assert broad["specificity_score"] < narrow["specificity_score"]
 
     @patch(QUERY)
-    def test_kegg_pathway_count_is_reported(self, mock_query):
-        mock_query.return_value = db_result(experimental=3, kegg_pathways=7)
-
-        assert score_gene_pleiotropy("GENE1", "9606")["kegg_pathway_count"] == 7
-
-    @patch(QUERY)
     def test_experimental_filter_counts_only_experimental_terms(self, mock_query):
         mock_query.return_value = db_result(experimental=2, computational=2, iea=2)
 
@@ -185,7 +179,7 @@ class TestInsufficientData:
 
     @patch(QUERY)
     def test_ranking_puts_unscorable_genes_last_without_scores(self, mock_query):
-        def fake_query(symbol, taxid):
+        def fake_query(symbol, taxid, databases=None):
             return db_result(experimental=2) if symbol == "GOOD" else db_result()
 
         mock_query.side_effect = fake_query

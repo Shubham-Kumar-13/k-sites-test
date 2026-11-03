@@ -2,7 +2,7 @@
  * Pleiotropy scoring, evidence quality, literature support, cross-species validation and
  * gene ranking. Port of k_sites/gene_analysis/pleiotropy_scorer.py.
  *
- * `ctx` carries what a lookup needs: { http, keggProvider, ncbiApiKey, ncbiEmail }.
+ * `ctx` carries what a lookup needs: { http, ncbiApiKey, ncbiEmail }.
  */
 
 import { getPleiotropyScoreDetailed } from './goMapper.js';
@@ -63,7 +63,7 @@ export async function scoreGenePleiotropy(ctx, symbol, taxid, targetGoTerm = nul
         pleiotropy_score: null, specificity_score: null,
         evidence_quality: 0.0,
         experimental_evidence_count: 0, computational_evidence_count: 0, iea_evidence_count: 0,
-        kegg_pathway_count: 0, database_sources: [], bp_terms: [],
+        database_sources: [], bp_terms: [],
     };
 
     try {
@@ -71,7 +71,7 @@ export async function scoreGenePleiotropy(ctx, symbol, taxid, targetGoTerm = nul
         let goSourcesFailed;
 
         if (useMultiDatabase) {
-            const db = await queryGeneFromAllDatabases(ctx.http, ctx.keggProvider, symbol, taxid);
+            const db = await queryGeneFromAllDatabases(ctx.http, symbol, taxid);
             bpTerms = db.combined_bp_terms || [];
             result.database_sources = Object.entries(db.query_status || {}).filter(([, v]) => v === 'success').map(([k]) => k);
             result.data_issues.push(...(db.data_issues || []));
@@ -80,7 +80,6 @@ export async function scoreGenePleiotropy(ctx, symbol, taxid, targetGoTerm = nul
             result.experimental_evidence_count = evidence.experimental || 0;
             result.computational_evidence_count = evidence.computational || 0;
             result.iea_evidence_count = evidence.IEA || 0;
-            result.kegg_pathway_count = (db.kegg_data || {}).pathway_count || 0;
 
             goSourcesFailed = ['go', 'uniprot'].some((name) => String((db.query_status || {})[name] || '').startsWith('failed'));
         } else {
@@ -247,7 +246,6 @@ export function insufficientDataRecord(geneInfo, scoring = {}) {
         experimental_evidence_count: scoring.experimental_evidence_count || 0,
         computational_evidence_count: scoring.computational_evidence_count || 0,
         iea_evidence_count: scoring.iea_evidence_count || 0,
-        kegg_pathway_count: scoring.kegg_pathway_count || 0,
         pubmed_count: 0, specificity_consistency: 0.0,
         database_sources: scoring.database_sources || [],
         passes_threshold: false,
@@ -312,7 +310,6 @@ async function rankSingleGene(ctx, geneInfo, taxid, targetGoTerm, evidenceFilter
             experimental_evidence_count: scoring.experimental_evidence_count,
             computational_evidence_count: scoring.computational_evidence_count,
             iea_evidence_count: scoring.iea_evidence_count,
-            kegg_pathway_count: scoring.kegg_pathway_count,
             pubmed_count: pubmedCount,
             specificity_consistency: specificityConsistency,
             database_sources: scoring.database_sources || [],

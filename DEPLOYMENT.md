@@ -31,7 +31,7 @@ What this means in practice:
   7 of 30 lethal genes and wrongly flagged 4 of 30 viable ones (see `VALIDATION.md`). When every gene of a
   run has a measured result or an estimate, the model is never downloaded.
 - **KEGG pathway counts** come from data files built by the workflow (`kegg-data/`), refreshed monthly.
-  KEGG data is free for academic use; the attribution is kept on the site.
+  data is free for academic use; the attribution is kept on the site.
 
 ## One-time setup
 

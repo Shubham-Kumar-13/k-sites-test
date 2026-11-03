@@ -59,23 +59,23 @@ def _classify_organism(kegg_class: str) -> str:
     # KEGG taxonomy format: Eukaryotes;Animals;Mammals;Primates
     # or: Prokaryotes;Bacteria;Proteobacteria;Gammaproteobacteria
     parts = [p.strip() for p in kegg_class.split(';')]
-    
+
     # Check for prokaryotes first
     if any(p in ['Bacteria', 'Archaea'] for p in parts):
         return "Microbes"
-    
+
     # Check for plants
     if 'Plants' in parts or any('Plant' in p for p in parts):
         return "Plants"
-    
+
     # Check for fungi
     if 'Fungi' in parts:
         return "Fungi"
-    
+
     # Check for animals (includes Mammals, Birds, Fish, Insects, etc.)
     if 'Animals' in parts:
         return "Animals"
-    
+
     # Default to Other Eukaryotes for protists, etc.
     return "Other Eukaryotes"
 
@@ -87,16 +87,16 @@ def fetch_kegg_organisms() -> List[Dict]:
     Returns list of organism dictionaries with name, taxid, kegg_code, and kingdom.
     """
     global _kegg_organisms_cache
-    
+
     if _kegg_organisms_cache is not None:
         return _kegg_organisms_cache
-    
+
     try:
         # KEGG API endpoint for organism list
         url = "http://rest.kegg.jp/list/organism"
         response = requests.get(url, timeout=30)
         response.raise_for_status()
-        
+
         organisms = []
         for line in response.text.strip().split('\n'):
             # Format: T##\tkegg_code\torganism_name\ttaxonomy
@@ -105,7 +105,7 @@ def fetch_kegg_organisms() -> List[Dict]:
                 kegg_code = parts[1]
                 name = parts[2]
                 taxonomy = parts[3]
-                
+
                 # Extract taxid from taxonomy (last element is usually taxid)
                 tax_parts = taxonomy.split(';')
                 taxid = None
@@ -113,10 +113,10 @@ def fetch_kegg_organisms() -> List[Dict]:
                     if part.strip().isdigit():
                         taxid = part.strip()
                         break
-                
+
                 # Determine kingdom from taxonomy
                 kingdom = _classify_organism(taxonomy)
-                
+
                 # Get common name if available (in parentheses)
                 common_name = ""
                 if '(' in name and ')' in name:
@@ -125,7 +125,7 @@ def fetch_kegg_organisms() -> List[Dict]:
                     common_name = parts_name[1].replace(')', '').strip()
                 else:
                     scientific_name = name
-                
+
                 organisms.append({
                     "name": scientific_name,
                     "common_name": common_name,
@@ -134,11 +134,11 @@ def fetch_kegg_organisms() -> List[Dict]:
                     "kingdom": kingdom,
                     "taxonomy": taxonomy
                 })
-        
+
         _kegg_organisms_cache = organisms
         logger.info(f"Fetched {len(organisms)} organisms from KEGG")
         return organisms
-        
+
     except Exception as e:
         logger.error(f"Error fetching KEGG organisms: {e}")
         # Return fallback organisms if API fails

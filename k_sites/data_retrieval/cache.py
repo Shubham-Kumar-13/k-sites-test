@@ -1,7 +1,7 @@
 """
 HTTP response cache for K-Sites data retrieval.
 
-Caches GET responses from external APIs (QuickGO, UniProt, NCBI, KEGG, etc.)
+Caches GET responses from external APIs (QuickGO, UniProt, NCBI, etc.)
 on disk with a configurable TTL. This avoids repeating slow or rate-limited
 queries when the same gene/GO term/organism is analysed more than once.
 """

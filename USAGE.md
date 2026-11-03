@@ -68,7 +68,7 @@ k-sites --go-term GO:0006281 --organism 9606 --output report.html
 # Adjust pleiotropy threshold
 k-sites --go-term GO:0006281 --organism "Homo sapiens" --output report.html --max-pleiotropy 2
 
-# Use KEGG organism code
+# Use organism code
 k-sites --go-term GO:0006281 --organism hsa --output report.html
 ```
 
@@ -77,7 +77,7 @@ k-sites --go-term GO:0006281 --organism hsa --output report.html
 | Parameter | Description | Example |
 |-----------|-------------|---------|
 | `--go-term` | GO term to analyze | `GO:0006281` (DNA repair) |
-| `--organism` | Organism (name, TaxID, or KEGG code) | `"Homo sapiens"`, `9606`, `hsa` |
+| `--organism` | Organism (name, TaxID, or code) | `"Homo sapiens"`, `9606`, `hsa` |
 | `--output` | Output HTML report path | `report.html` |
 | `--max-pleiotropy` | Max allowed pleiotropy score | `10` (default) |
 

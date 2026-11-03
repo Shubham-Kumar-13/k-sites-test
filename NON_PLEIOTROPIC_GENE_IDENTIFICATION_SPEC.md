@@ -7,7 +7,7 @@ This document describes the **VERIFIED** implementation of all Non-Pleiotropic G
 
 ## ✅ 1. Multi-Database Integration
 
-**Requirement**: Queries GO.org, UniProt, and KEGG **simultaneously**
+**Requirement**: Queries GO.org, UniProt, **simultaneously**
 
 **Implementation**: `k_sites/data_retrieval/multi_database_client.py`
 
@@ -218,7 +218,7 @@ def get_literature_support(gene_symbol: str, taxid: str) -> Dict:
 ## Key Files Modified/Created
 
 1. **NEW**: `k_sites/data_retrieval/multi_database_client.py`
-   - Multi-database integration (GO.org, UniProt, KEGG)
+   - Multi-database integration (GO.org, UniProt)
    - Evidence code classification
    - Model organism definitions
 
@@ -274,7 +274,7 @@ All **13 requirements** for Non-Pleiotropic Gene Identification have been **VERI
 
 | # | Requirement | Status |
 |---|-------------|--------|
-| 1 | Multi-database integration (GO.org, UniProt, KEGG simultaneously) | ✅ |
+| 1 | Multi-database integration (GO.org, UniProt simultaneously) | ✅ |
 | 2 | Exponential decay pleiotropy scoring | ✅ |
 | 3 | Evidence-based filtering (IDA/IMP/IGI = experimental; IEA ≠ experimental) | ✅ |
 | 4 | Cross-species validation (human, mouse, fly, worm) | ✅ |

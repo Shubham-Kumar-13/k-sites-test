@@ -129,7 +129,7 @@ async function loadSpecies(kingdom, query = '') {
                     <span class="visually-hidden">Loading...</span>
                 </div>
                 <div class="text-muted small">
-                    ${query ? `Searching for "${query}"...` : 'Loading species from KEGG database...'}
+                    ${query ? `Searching for "${query}"...` : 'Loading species...'}
                 </div>
             </div>
         </div>

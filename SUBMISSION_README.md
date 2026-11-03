@@ -59,7 +59,7 @@ K-Sites integrates biological context (pleiotropy, evidence quality, cross-speci
 
 ### Technical Achievements
 - Comprehensive pytest test suite
-- Multi-database integration (GO via QuickGO, UniProt, KEGG)
+- Multi-database integration (GO via QuickGO, UniProt)
 - Measured knockout evidence integration (MGI, IMPC, SGD, ZFIN, FlyBase, WormBase, DepMap, gnomAD, GTEx, Ensembl)
 - Cross-species validation (human, mouse, rat, fly, worm)
 
@@ -208,7 +208,7 @@ This manuscript and associated materials are released under:
 
 The authors thank:
 - The Gene Ontology Consortium for annotation resources
-- KEGG for pathway data
+- for pathway data
 - NCBI for Entrez E-Utilities and PubMed
 - The open-source community for Python and ML libraries
 

@@ -18,7 +18,6 @@ const KNOCKOUT_CONTEXTS = ['auto', 'cells', 'organism'];
 const DATABASES = [
     { id: 'quickgo', name: 'QuickGO', description: 'Gene Ontology annotations from EBI', enabled: true, required: true },
     { id: 'uniprot', name: 'UniProt', description: 'Protein knowledgebase with functional annotation', enabled: true, required: false },
-    { id: 'kegg', name: 'KEGG', description: 'Pathway annotations (pathway count per gene)', enabled: true, required: false },
 ];
 
 function jsonResponse(body, status = 200, headers = {}) {

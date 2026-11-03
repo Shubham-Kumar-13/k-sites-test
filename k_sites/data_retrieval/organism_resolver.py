@@ -47,7 +47,6 @@ COMMON_ORGANISMS = {
     "yeast": {"taxid": "4932", "scientific_name": "Saccharomyces cerevisiae", "common_name": "yeast"},
     "Saccharomyces cerevisiae": {"taxid": "4932", "scientific_name": "Saccharomyces cerevisiae", "common_name": "yeast"},
     
-    # KEGG organism codes
     "hsa": {"taxid": "9606", "scientific_name": "Homo sapiens", "common_name": "human"},
     "mmu": {"taxid": "10090", "scientific_name": "Mus musculus", "common_name": "mouse"},
     "rno": {"taxid": "10116", "scientific_name": "Rattus norvegicus", "common_name": "rat"},

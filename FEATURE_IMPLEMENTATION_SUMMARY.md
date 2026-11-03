@@ -9,7 +9,7 @@ K-Sites is a non-pleiotropic gene-selection platform that helps scientists choos
 
 ### Implemented Features
 
-#### 1. Multi-Database Integration (GO.org, UniProt, KEGG)
+#### 1. Multi-Database Integration (GO.org, UniProt)
 - **Module**: `k_sites/data_retrieval/multi_database_client.py`
 - **Functionality**:
   - Queries all three databases simultaneously using ThreadPoolExecutor
@@ -90,7 +90,7 @@ K-Sites is a non-pleiotropic gene-selection platform that helps scientists choos
 ```
 k_sites/
 ├── data_retrieval/
-│   ├── multi_database_client.py  (GO, UniProt, KEGG)
+│   ├── multi_database_client.py  (GO, UniProt)
 │   ├── go_autocomplete.py        (Auto-complete)
 │   └── go_gene_mapper.py         (Gene mapping)
 ├── gene_analysis/
@@ -253,7 +253,7 @@ k-sites --go-term-search "DNA repair" --organism "Homo sapiens"
 ```
 k_sites/
 ├── data_retrieval/
-│   ├── multi_database_client.py  (GO, UniProt, KEGG)
+│   ├── multi_database_client.py  (GO, UniProt)
 │   ├── go_autocomplete.py        (Auto-complete)
 │   └── go_gene_mapper.py         (Gene mapping)
 ├── gene_analysis/
@@ -347,7 +347,7 @@ for gene, pubs in batch_results.items():
 ## Validation Summary
 
 ### Non-Pleiotropic Gene Identification
-- ✅ Multi-database integration (GO.org, UniProt, KEGG)
+- ✅ Multi-database integration (GO.org, UniProt)
 - ✅ Exponential decay pleiotropy scoring
 - ✅ Evidence-based filtering (IDA/IMP/IGI ≠ IEA)
 - ✅ Cross-species validation (human, mouse, fly, worm)

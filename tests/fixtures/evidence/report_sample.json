@@ -270,7 +270,7 @@
    "evidence_quality": 0.65,
    "experimental_evidence_count": 1,
    "iea_evidence_count": 0,
-   "kegg_pathway_count": 2,
+   "
    "knockout_evidence": {
     "cells": {
      "call": "NON_ESSENTIAL",
@@ -418,7 +418,7 @@
    "evidence_quality": 0.65,
    "experimental_evidence_count": 1,
    "iea_evidence_count": 0,
-   "kegg_pathway_count": 2,
+   "
    "knockout_evidence": {
     "cells": {
      "call": "NON_ESSENTIAL",
@@ -575,7 +575,7 @@
    "evidence_quality": 0.65,
    "experimental_evidence_count": 1,
    "iea_evidence_count": 0,
-   "kegg_pathway_count": 2,
+   "
    "knockout_evidence": {
     "cells": {
      "call": "NON_ESSENTIAL",
@@ -737,7 +737,7 @@
    "evidence_quality": 0.65,
    "experimental_evidence_count": 1,
    "iea_evidence_count": 0,
-   "kegg_pathway_count": 2,
+   "
    "knockout_evidence": {
     "cells": {
      "call": "SELECTIVE",
@@ -894,7 +894,7 @@
    "evidence_quality": 0.65,
    "experimental_evidence_count": 1,
    "iea_evidence_count": 0,
-   "kegg_pathway_count": 2,
+   "
    "knockout_evidence": {
     "cells": {
      "call": "UNKNOWN",
@@ -986,7 +986,7 @@
    "evidence_quality": 0.65,
    "experimental_evidence_count": 1,
    "iea_evidence_count": 0,
-   "kegg_pathway_count": 2,
+   "
    "knockout_evidence": {
     "cells": {
      "call": "ESSENTIAL",
@@ -1149,7 +1149,7 @@
    "evidence_quality": 0.65,
    "experimental_evidence_count": 1,
    "iea_evidence_count": 0,
-   "kegg_pathway_count": 2,
+   "
    "knockout_evidence": {
     "cells": {
      "call": "ESSENTIAL",

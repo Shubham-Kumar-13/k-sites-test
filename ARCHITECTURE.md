@@ -17,7 +17,7 @@ K-Sites is a non-pleiotropic gene-selection platform that uses GO term analysis,
 │                           WORKFLOW CONTROLLER                               │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  Coordinates module execution, manages data flow                           │
-│  Orchestrates GO and KEGG pathway integration                              │
+│  Orchestrates GO pathway integration                              │
 │  Generates final HTML/CSV reports                                          │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
@@ -31,7 +31,7 @@ K-Sites is a non-pleiotropic gene-selection platform that uses GO term analysis,
 │  │ • GO annotations│  │ • Pleiotropy    │  │ • Pipeline      │            │
 │  │ • Gene data     │  │   scoring       │  │ • Data          │            │
 │  │ • Organism data │  │ • Specificity   │  │   orchestration │            │
-│  │ • KEGG mapping  │  │   analysis      │  │ • Integration   │            │
+│  │ • mapping  │  │   analysis      │  │ • Integration   │            │
 │  └─────────────────┘  │ • Evidence      │  └─────────────────┘            │
 │                       │   filtering     │                                │
 │                       └─────────────────┘                                │
@@ -74,7 +74,7 @@ K-Sites is a non-pleiotropic gene-selection platform that uses GO term analysis,
 - `quickgo_client.py`: QuickGO API integration for GO annotations
 - `organism_resolver.py`: Scientific name ↔ NCBI TaxID conversion
 - `gene_fetcher.py`: Gene information retrieval
-- `kegg_mapper.py`: KEGG pathway mapping for GO terms
+- `kegg_mapper.py`: pathway mapping for GO terms
 
 ### `k_sites/gene_analysis/` (Analysis Layer)
 - `pleiotropy_scorer.py`: Pleiotropy scoring using GO Biological Process annotations
@@ -88,7 +88,7 @@ K-Sites is a non-pleiotropic gene-selection platform that uses GO term analysis,
 - `context_analyzer.py`: Combined literature and pathway context extraction
 
 ### `k_sites/workflow/` (Orchestration Layer)
-- `pipeline.py`: Main workflow orchestration with GO and KEGG integration
+- `pipeline.py`: Main workflow orchestration with GO integration
 - `report_generator.py`: HTML/CSV report generation with safety recommendations and knockout evidence
 - `data_aggregator.py`: Results aggregation from all sources
 
@@ -102,7 +102,7 @@ K-Sites is a non-pleiotropic gene-selection platform that uses GO term analysis,
    - NCBI Entrez resolves organism TaxID
    - QuickGO provides GO annotations for the target term
    - UniProt provides protein-level annotations
-   - KEGG provides pathway annotations
+   - provides pathway annotations
 3. **Gene Filtering and Scoring**:
    - GO-based pleiotropy scoring
    - Evidence-quality filtering
@@ -114,7 +114,7 @@ K-Sites is a non-pleiotropic gene-selection platform that uses GO term analysis,
 ## Technology Stack
 
 - **Backend**: Python 3.8+
-- **Data Retrieval**: NCBI Entrez E-Utilities, QuickGO REST API, UniProt REST API, KEGG API
+- **Data Retrieval**: NCBI Entrez E-Utilities, QuickGO REST API, UniProt REST API API
 - **Scientific Libraries**: Biopython, NumPy, Pandas
 - **Web Requests**: requests library
 - **Report Generation**: Jinja2 templates for HTML, built-in CSV module
@@ -122,7 +122,7 @@ K-Sites is a non-pleiotropic gene-selection platform that uses GO term analysis,
 
 ## Integration Points
 
-- **KEGG Pathway Mapping**: KEGG API and local mapping files provide pathway annotations used for pleiotropy context.
+- **KEGG Pathway Mapping**: API and local mapping files provide pathway annotations used for pleiotropy context.
 - **Measured Knockout Evidence**: Model-organism databases (MGI, IMPC, SGD, ZFIN, FlyBase, WormBase) and DepMap are integrated via the evidence provider.
 
 ## Deployment Considerations

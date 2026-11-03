@@ -135,7 +135,7 @@ export function comprehensiveCsv(results) {
     lines.push(csvLine([
         'Gene_Symbol', 'Gene_Description', 'Entrez_ID', 'Pleiotropy_Score', 'Specificity_Score', 'Evidence_Quality',
         'Literature_Score', 'Conservation_Score', 'Composite_Score', 'BP_Term_Count', 'Experimental_Evidence_Count',
-        'Computational_Evidence_Count', 'IEA_Evidence_Count', 'KEGG_Pathway_Count', 'PubMed_Count',
+        'Computational_Evidence_Count', 'IEA_Evidence_Count', 'PubMed_Count',
         'Phenotype_Severity', 'Phenotype_Risk_Level', 'Phenotype_Confidence', 'Phenotype_Lethality_Stage',
         'Safety_Level', 'Safety_Recommendation', 'Safety_Justification', ...EVIDENCE_HEADERS,
     ]));
@@ -146,7 +146,7 @@ export function comprehensiveCsv(results) {
             gene.symbol, gene.description, gene.entrez_id, gene.pleiotropy_score, gene.specificity_score, gene.evidence_quality,
             gene.literature_score, gene.conservation_score, gene.composite_score, gene.bp_term_count,
             gene.experimental_evidence_count, gene.computational_evidence_count, gene.iea_evidence_count,
-            gene.kegg_pathway_count, gene.pubmed_count,
+            gene.pubmed_count,
             enumText(phenotype.severity), enumText(phenotype.risk_level), phenotype.confidence_score, phenotype.lethality_stage,
             safety.safety_level, safety.primary_recommendation, safety.justification, ...evidenceCells(gene),
         ]));
@@ -166,7 +166,7 @@ export function geneSummaryCsv(results) {
     const lines = [csvLine([
         'gene_symbol', 'gene_description', 'entrez_id', 'pleiotropy_score', 'specificity_score', 'composite_score',
         'evidence_quality', 'literature_score', 'conservation_score', 'bp_term_count', 'experimental_evidence_count',
-        'computational_evidence_count', 'iea_evidence_count', 'kegg_pathway_count', 'pubmed_count',
+        'computational_evidence_count', 'iea_evidence_count', 'pubmed_count',
         'phenotype_severity', 'phenotype_risk_level', 'safety_level', 'safety_recommendation', 'safety_justification',
         ...EVIDENCE_HEADERS.map((h) => h.toLowerCase()),
     ])];
@@ -177,7 +177,7 @@ export function geneSummaryCsv(results) {
             gene.symbol, gene.description, gene.entrez_id, gene.pleiotropy_score, gene.specificity_score, gene.composite_score,
             gene.evidence_quality, gene.literature_score, gene.conservation_score, gene.bp_term_count,
             gene.experimental_evidence_count, gene.computational_evidence_count, gene.iea_evidence_count,
-            gene.kegg_pathway_count, gene.pubmed_count, enumText(phenotype.severity), enumText(phenotype.risk_level),
+            gene.pubmed_count, enumText(phenotype.severity), enumText(phenotype.risk_level),
             safety.safety_level, safety.primary_recommendation, safety.justification, ...evidenceCells(gene),
         ]));
     }
@@ -281,7 +281,6 @@ export function htmlReport(results) {
             <td>${num(gene.composite_score, 3)}</td>
             <td><span class="safety-level ${safetyClass(safety.safety_level)}">${escapeHtml(safetyLabel(safety.safety_level))}</span></td>
             <td>${evidenceHtml(gene)}</td>
-            <td>${gene.kegg_pathway_count ?? 'N/A'}</td>
             <td>${phenotypeCell}</td>
             <td>${escapeHtml(safety.primary_recommendation || '')}${justification}</td>
         </tr>`;
@@ -334,7 +333,7 @@ ${warnings}
     <h2 class="section-title">Gene Rankings</h2>
     <p style="margin-bottom:15px;color:var(--muted)">Ranked by a composite of specificity (40%), evidence quality (25%), literature support (20%) and conservation (15%).
     Specificity is on a 0-1 scale (higher = more specific, less pleiotropic).</p>
-    <table><thead><tr><th>Rank</th><th>Gene</th><th>Pleiotropy (0-10)</th><th>Specificity (0-1)</th><th>Composite</th><th>Safety Level</th><th>Measured Knockout Evidence</th><th>KEGG Pathways</th><th>Predicted Knockout Phenotype</th><th>Recommendation</th></tr></thead>
+    <table><thead><tr><th>Rank</th><th>Gene</th><th>Pleiotropy (0-10)</th><th>Specificity (0-1)</th><th>Composite</th><th>Safety Level</th><th>Measured Knockout Evidence</th><th>Predicted Knockout Phenotype</th><th>Recommendation</th></tr></thead>
     <tbody>${rows}</tbody></table>
 </div>
 ${excludedSection}
@@ -382,9 +381,9 @@ export async function excelWorkbook(results, xlsxLibrary = null) {
     ];
     const rankings = [
         ['Rank', 'Gene Symbol', 'Pleiotropy Score', 'Specificity Score', 'Composite Score', 'Evidence Quality', 'Literature Score',
-            'Conservation Score', 'BP Term Count', 'KEGG Pathways', 'Safety Level', 'Evidence Basis'],
+            'Conservation Score', 'BP Term Count', 'Safety Level', 'Evidence Basis'],
         ...genes.map((g, i) => [i + 1, g.symbol, g.pleiotropy_score, g.specificity_score, g.composite_score, g.evidence_quality,
-            g.literature_score, g.conservation_score, g.bp_term_count, g.kegg_pathway_count,
+            g.literature_score, g.conservation_score, g.bp_term_count,
             (g.safety_recommendation || {}).safety_level || '', (g.safety_recommendation || {}).evidence_basis || '']),
     ];
     const safety = [

@@ -13,7 +13,7 @@
 **Description:** Flowchart showing the K-Sites platform architecture with interconnected layers: Input Layer (GO term + organism), Workflow Controller, Module Layer (Data Retrieval, Gene Analysis, RAG System, Workflow), and Output Layer (HTML/CSV reports).
 
 **Key Components:**
-- Data Retrieval: GO.org (QuickGO), UniProt, KEGG, NCBI Entrez
+- Data Retrieval: GO.org (QuickGO), UniProt, NCBI Entrez
 - Gene Analysis: Pleiotropy scoring, specificity analysis, evidence filtering
 - RAG System: Literature mining, phenotype prediction
 
