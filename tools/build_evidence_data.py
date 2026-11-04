@@ -1016,6 +1016,18 @@ def build_yeast(lines):
 
 THALEMINE_LISTS = "https://bar.utoronto.ca/thalemine/service/lists"
 THALEMINE_QUERY = "https://bar.utoronto.ca/thalemine/service/query/results"
+THALEMINE_LIST_CALLS = {
+    "List Analysis for Genes with a Loss-of-Function Mutant Phenotype: Essential - Lethal": "L",
+    "Genes with a Loss-of-Function Mutant Phenotype: Essential - Embryo Seed": "L",
+    "Genes with a Loss-of-Function Mutant Phenotype: Essential - Gametophyte": "L",
+    "Genes with a Loss-of-Function Mutant Phenotype: Biochemical": "V",
+    "Genes with a Loss-of-Function Mutant Phenotype: Cellular": "V",
+    "Genes with a Loss-of-Function Mutant Phenotype: Conditional - Biological": "V",
+    "Genes with a Loss-of-Function Mutant Phenotype: Conditional - Chemical": "V",
+    "Genes with a Loss-of-Function Mutant Phenotype: Conditional - Physical": "V",
+    "Genes with a Loss-of-Function Mutant Phenotype: Morphological - Timing": "V",
+    "Genes with a Loss-of-Function Mutant Phenotype: Morphological - Vegetative": "V",
+}
 
 
 def fetch_thalemine_list(list_name, http):
@@ -1032,22 +1044,8 @@ def fetch_thalemine_list(list_name, http):
 
 def build_thalemine(http):
     """Build Arabidopsis records from curated loss-of-function phenotype lists."""
-    essential_lists = {
-        "List Analysis for Genes with a Loss-of-Function Mutant Phenotype: Essential - Lethal": "L",
-        "Genes with a Loss-of-Function Mutant Phenotype: Essential - Embryo Seed": "L",
-        "Genes with a Loss-of-Function Mutant Phenotype: Essential - Gametophyte": "L",
-    }
-    viable_lists = {
-        "Genes with a Loss-of-Function Mutant Phenotype: Biochemical": "V",
-        "Genes with a Loss-of-Function Mutant Phenotype: Cellular": "V",
-        "Genes with a Loss-of-Function Mutant Phenotype: Conditional - Biological": "V",
-        "Genes with a Loss-of-Function Mutant Phenotype: Conditional - Chemical": "V",
-        "Genes with a Loss-of-Function Mutant Phenotype: Conditional - Physical": "V",
-        "Genes with a Loss-of-Function Mutant Phenotype: Morphological - Timing": "V",
-        "Genes with a Loss-of-Function Mutant Phenotype: Morphological - Vegetative": "V",
-    }
     calls = collections.defaultdict(list)
-    for list_name, call in {**essential_lists, **viable_lists}.items():
+    for list_name, call in THALEMINE_LIST_CALLS.items():
         text = fetch_thalemine_list(list_name, http)
         for line in text.strip().splitlines():
             parts = line.strip().split("\t")

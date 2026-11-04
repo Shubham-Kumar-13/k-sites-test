@@ -7,6 +7,8 @@ database lives in a temporary folder.
 """
 
 import importlib
+import json
+import sqlite3
 import sys
 import types
 from pathlib import Path
@@ -153,6 +155,52 @@ class TestJobs:
             job = second.AnalysisJob.query.get("stuck")
             assert job.status == "failed"
             assert "restarted" in job.error_message
+
+
+class TestEvidenceDetails:
+    def test_traceable_records_are_returned_without_changing_scoring(self, hosted, client, tmp_path):
+        directory = tmp_path / "evidence-details"
+        directory.mkdir()
+        record = {"call": "LETHAL", "conflicting": False, "sources": ["tair"], "records": [{
+            "source": "tair", "source_record_id": "SALK_052897", "call": "LETHAL",
+            "experiment_type": "mutant_not_otherwise_specified", "zygosity": "homozygous",
+            "evidence_level": "qualified", "phenotype": "Homozygotes are embryo lethal.", "references": ["26555280"],
+        }]}
+        (directory / "3702.json").write_text(json.dumps({
+            "format": 1, "built": "2026-11-04", "pilot": {"tair_gene_limit": 100}, "genes": {"AT1G02660": record},
+        }), encoding="utf-8")
+
+        response = client.get("/api/evidence/details?taxid=3702&symbol=at1g02660", headers=AUTH)
+
+        assert response.status_code == 200
+        body = response.get_json()
+        assert body["evidence"]["records"][0]["source_record_id"] == "SALK_052897"
+        assert body["evidence"]["records"][0]["references"] == ["26555280"]
+        assert body["pilot"]["tair_gene_limit"] == 100
+
+    def test_sqlite_details_are_read_by_gene(self, client, tmp_path):
+        directory = tmp_path / "evidence-details"
+        directory.mkdir()
+        with sqlite3.connect(directory / "10090.sqlite") as connection:
+            connection.execute("CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT)")
+            connection.execute("CREATE TABLE genes (symbol TEXT PRIMARY KEY, payload TEXT)")
+            connection.executemany("INSERT INTO metadata VALUES (?, ?)", [("built", "2026-11-04"), ("pilot", "{}")])
+            connection.execute("INSERT INTO genes VALUES ('TDG', ?)", (json.dumps({"call": "LETHAL", "records": []}),))
+
+        response = client.get("/api/evidence/details?taxid=10090&symbol=tdg", headers=AUTH)
+
+        assert response.status_code == 200
+        assert response.get_json()["evidence"]["call"] == "LETHAL"
+        assert response.get_json()["version"] == "2026-11-04"
+
+    def test_unknown_gene_and_invalid_request(self, client, tmp_path):
+        directory = tmp_path / "evidence-details"
+        directory.mkdir(exist_ok=True)
+        (directory / "3702.json").write_text(json.dumps({"built": "2026-11-04", "genes": {}}), encoding="utf-8")
+
+        assert client.get("/api/evidence/details?taxid=3702&symbol=UNKNOWN", headers=AUTH).status_code == 404
+        assert client.get("/api/evidence/details?taxid=plants&symbol=UNKNOWN", headers=AUTH).status_code == 400
+        assert client.get("/api/evidence/details?taxid=3702&symbol=AT1G02660").status_code == 401
 
 
 class TestLocalModeUnchanged:

@@ -260,7 +260,7 @@ function esc(value) {
 const CALL_BADGES = {
     LETHAL: ['bg-danger', 'Lethal'], SUBVIABLE: ['bg-warning text-dark', 'Subviable'], VIABLE: ['bg-success', 'Viable'],
     ESSENTIAL: ['bg-danger', 'Essential'], SELECTIVE: ['bg-warning text-dark', 'Sometimes essential'],
-    NON_ESSENTIAL: ['bg-success', 'Rarely essential'], UNKNOWN: ['bg-secondary', 'No data'],
+    NON_ESSENTIAL: ['bg-success', 'Rarely essential'], OBSERVATION: ['bg-info text-dark', 'Observation'], UNKNOWN: ['bg-secondary', 'No data'],
 };
 const BASIS_BADGES = {
     measured: ['bg-success', 'Measured'], ortholog: ['bg-info text-dark', 'Measured in the mouse ortholog'],
@@ -278,6 +278,47 @@ function referenceLinks(organism) {
     const links = (organism.references || []).map(p => `<a href="https://pubmed.ncbi.nlm.nih.gov/${Number(p)}/" target="_blank" rel="noopener">PMID ${Number(p)}</a>`);
     if (organism.mgi_id) links.push(`<a href="https://www.informatics.jax.org/marker/${esc(organism.mgi_id)}" target="_blank" rel="noopener">MGI</a>`);
     return links.length ? ` <span class="text-muted">(${links.join(', ')})</span>` : '';
+}
+
+function detailedEvidenceHtml(data) {
+    const evidence = data.evidence;
+    const records = evidence.records.map(record => {
+        const metadata = [record.experiment_type, record.zygosity, record.evidence_level,
+            record.stage ? `stage ${record.stage}` : null, ...(record.qualifiers || [])]
+            .filter(Boolean).map(value => esc(String(value).replaceAll('_', ' '))).join(' · ');
+        const references = (record.references || []).map(pmid =>
+            `<a href="https://pubmed.ncbi.nlm.nih.gov/${Number(pmid)}/" target="_blank" rel="noopener">PMID ${Number(pmid)}</a>`).join(', ');
+        const alleles = (record.alleles || []).map(allele => `${esc(allele.symbol)} (${esc(allele.class || 'unknown')})`).join(', ');
+        const impc = [record.phenotyping_center, record.parameter_stable_id,
+            record.p_value ? `p=${record.p_value}` : null].filter(Boolean).map(esc).join(' · ');
+        return `<div class="border rounded p-2 mb-2 bg-white">
+            <div class="mb-1">${callBadge(record.call)}<strong>${esc(record.source)}: ${esc(record.source_record_id)}</strong></div>
+            <div class="text-muted mb-1">${metadata}</div>
+            ${record.genotype ? `<div class="text-muted">Genotype: ${esc(record.genotype)}</div>` : ''}
+            ${alleles ? `<div class="text-muted">Alleles: ${alleles}</div>` : ''}
+            ${record.background ? `<div class="text-muted">Background: ${esc(record.background)}</div>` : ''}
+            <div>${esc(record.phenotype)}</div>
+            ${impc ? `<div class="text-muted mt-1">${impc}</div>` : ''}
+            ${references ? `<div class="text-muted mt-1">${references}</div>` : ''}
+        </div>`;
+    }).join('');
+    return `<div class="small text-muted mb-2">${esc(evidence.call)} · ${evidence.records.length} source record(s) · release ${esc(data.version)}</div>${records}`;
+}
+
+async function loadDetailedEvidence(container) {
+    const body = container.querySelector('.detailed-evidence-body');
+    if (!body || container.dataset.loaded) return;
+    container.dataset.loaded = 'loading';
+    body.textContent = 'Loading detailed source records...';
+    try {
+        const response = await ksFetch(`/api/evidence/details?taxid=${encodeURIComponent(container.dataset.taxid)}&symbol=${encodeURIComponent(container.dataset.symbol)}`);
+        const data = await response.json();
+        body.innerHTML = detailedEvidenceHtml(data);
+        container.dataset.loaded = 'true';
+    } catch (error) {
+        body.textContent = 'No detailed source records are available for this gene.';
+        delete container.dataset.loaded;
+    }
 }
 
 /** Which measurement decides the verdict (mirrors the safety recommender). */
@@ -325,8 +366,17 @@ function evidencePanel(gene) {
         const chips = evidence.organism.systems.map(sys => `<span class="badge bg-light text-dark border me-1 mb-1">${esc(sys.replace(/ phenotype$/, ''))}</span>`).join('');
         lines.push(`<details class="text-muted"><summary>Organ systems with a reported phenotype (${evidence.organism.systems.length})</summary><div class="mt-1">${chips}</div></details>`);
     }
-    return `<div class="border rounded p-2 mb-3 small bg-light">${header}${lines.join('')}</div>`;
+    const details = ['3702', '10090', '4896', '559292', '7955', '7227', '6239', '83333'].includes(String(currentJob?.taxid || '')) ? `<details class="mb-3 small detailed-evidence" data-taxid="${esc(currentJob.taxid)}" data-symbol="${esc(gene.symbol)}">
+        <summary class="text-primary cursor-pointer">Detailed source records</summary>
+        <div class="detailed-evidence-body mt-2">Expand to load detailed mutant and publication records.</div>
+    </details>` : '';
+    return `<div class="border rounded p-2 mb-3 small bg-light">${header}${lines.join('')}</div>${details}`;
 }
+
+document.addEventListener('toggle', (event) => {
+    const container = event.target.closest?.('.detailed-evidence');
+    if (container && container.open) loadDetailedEvidence(container);
+}, true);
 
 function renderExcluded(entries) {
     if (!entries || entries.length === 0) return;

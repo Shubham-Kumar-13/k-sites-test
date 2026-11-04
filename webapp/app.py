@@ -10,6 +10,7 @@ import json
 import uuid
 import logging
 import queue
+import sqlite3
 import threading
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -602,6 +603,38 @@ def evidence_coverage():
     except Exception as error:   # the note is only a courtesy
         logger.warning(f"Could not read the knockout evidence coverage: {error}")
         return jsonify({'taxid': taxid, 'available': False, 'covered': False})
+
+
+@app.route('/api/evidence/details')
+@login_required
+def evidence_details():
+    """Traceable experiment-level evidence; never used to change the scoring verdict."""
+    taxid = request.args.get('taxid', '').strip()
+    symbol = request.args.get('symbol', '').strip().upper()
+    if not taxid.isdigit() or not symbol:
+        return jsonify({'error': 'A numeric taxid and a gene symbol are required'}), 400
+    directory = Path(os.environ.get('KSITES_EVIDENCE_DETAILS_DIR', str(RESULTS_DIR / 'evidence-details')))
+    sqlite_path = directory / f'{taxid}.sqlite'
+    if sqlite_path.exists():
+        with sqlite3.connect(sqlite_path) as connection:
+            metadata = dict(connection.execute("SELECT key, value FROM metadata").fetchall())
+            row = connection.execute("SELECT payload FROM genes WHERE symbol = ?", (symbol,)).fetchone()
+        if row is None:
+            return jsonify({'available': True, 'covered': False, 'taxid': taxid, 'symbol': symbol,
+                            'version': metadata.get('built')}), 404
+        return jsonify({'available': True, 'covered': True, 'taxid': taxid, 'symbol': symbol,
+                        'version': metadata.get('built'), 'pilot': json.loads(metadata.get('pilot', '{}')),
+                        'evidence': json.loads(row[0])})
+    path = directory / f'{taxid}.json'
+    if not path.exists():
+        return jsonify({'available': False, 'covered': False, 'taxid': taxid}), 404
+    data = json.loads(path.read_text(encoding='utf-8'))
+    record = data.get('genes', {}).get(symbol)
+    if record is None:
+        return jsonify({'available': True, 'covered': False, 'taxid': taxid, 'symbol': symbol,
+                        'version': data.get('built')}), 404
+    return jsonify({'available': True, 'covered': True, 'taxid': taxid, 'symbol': symbol,
+                    'version': data.get('built'), 'pilot': data.get('pilot'), 'evidence': record})
 
 
 @app.route('/api/databases')
