@@ -4,8 +4,8 @@ Release gate for the built knockout evidence (run after tools/build_evidence_dat
 It asks, for every organism file, whether the verdicts follow the rules, and for human and mouse whether they agree with
 independent gold standards:
 
-  1. rules (all organisms, a sample of genes): a lethal result is never rated SAFE, a gene without a measurement is never
-     rated SAFE, an estimate is never rated AVOID, and every AVOID rests on a measurement;
+  1. integrity (every direct record) and rules (a sample of genes): verdicts must have valid counts and an approved source,
+     conflicts must be marked, a lethal result is never rated SAFE, and SAFE or AVOID must rest on a measurement;
   2. human, cultured cells: at least 90% of the 684 core-essential genes (CEGv2) are rated AVOID and at least 95% of the 927
      non-essential genes (NEGv1) are not;
   3. mouse, whole animal: at least 85% of the core-essential genes are rated AVOID or HIGH_CONCERN;
@@ -66,6 +66,59 @@ def rule_violations(provider, taxid, genes, context):
             broken.append("SAFE without a measurement")
         if level == "AVOID" and basis not in ("measured", "ortholog"):
             broken.append("AVOID without a measurement")
+        for text in broken:
+            problems[text] += 1
+            examples.setdefault(text, symbol)
+    return problems, examples
+
+
+DIRECT_SOURCES = {
+    "10090": {"M", "I", "MI"},
+    "559292": {"S"},
+    "7955": {"Z"},
+    "7227": {"F"},
+    "6239": {"W"},
+    "3702": {"T"},
+    "4896": {"P"},
+    "83333": {"EC"},
+}
+
+
+def record_violations(taxid, genes):
+    problems = collections.Counter()
+    examples = {}
+    allowed_sources = DIRECT_SOURCES.get(taxid, set())
+    severity = {"L": 2, "S": 1, "V": 0}
+    for symbol, record in genes.items():
+        broken = []
+        if not symbol or symbol != symbol.strip() or any(c in symbol for c in "\r\n\t"):
+            broken.append("invalid gene key")
+        cells = record.get("c")
+        if cells is not None:
+            valid = isinstance(cells, list) and len(cells) == 3
+            if valid:
+                flag, percent, lines = cells
+                valid = (flag in ("", "C", "N") and type(lines) is int and lines > 0
+                         and (percent is None or (type(percent) in (int, float) and 0 <= percent <= 100))
+                         and record.get("cs", "depmap") in {"depmap", "project_score"})
+            if not valid:
+                broken.append("invalid cell-line record")
+        if "v" in record:
+            call = record.get("v")
+            counts = record.get("n")
+            if call not in severity:
+                broken.append("invalid knockout verdict")
+            if (not isinstance(counts, list) or len(counts) != 3
+                    or any(type(value) is not int or value < 0 for value in counts) or not sum(counts)):
+                broken.append("invalid evidence counts")
+            else:
+                expected = max(severity, key=lambda value: (counts[{"L": 0, "S": 1, "V": 2}[value]], severity[value]))
+                if call in severity and call != expected:
+                    broken.append("verdict does not follow evidence counts")
+                if sum(value > 0 for value in counts) > 1 and not record.get("x"):
+                    broken.append("conflicting evidence is not marked")
+            if record.get("src") not in allowed_sources:
+                broken.append("unapproved direct-evidence source")
         for text in broken:
             problems[text] += 1
             examples.setdefault(text, symbol)
@@ -141,7 +194,9 @@ def main():
         step = max(1, len(symbols) // SAMPLE)
         sample = symbols[::step]
         context = "cells" if taxid == "9606" else "organism"
-        problems, examples = rule_violations(provider, taxid, sample, context)
+        problems, examples = record_violations(taxid, records)
+        if not problems:
+            problems, examples = rule_violations(provider, taxid, sample, context)
         text = "; ".join(f"{n} x {what} (e.g. {examples[what]})" for what, n in problems.items()) or "none"
         lines.append(f"| {info['name']} | {len(sample):,} | {text} |")
         if problems:

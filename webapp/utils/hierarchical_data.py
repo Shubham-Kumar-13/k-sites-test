@@ -42,7 +42,8 @@ KINGDOMS = {
     },
     "Fungi": {
         "icon": "fa-mushroom",
-        "description": "Fungi - yeasts, molds, mushrooms"
+        "description": "Fungi - yeasts, molds, mushrooms",
+        "svg": '<path d="M256 48c-90 0-160 62-160 144 0 26 10 50 26 68h268c16-18 26-42 26-68 0-82-70-144-160-144zm-80 224v160c0 26 21 48 48 48h64c26 0 48-21 48-48V272H176z"/>'
     },
     "Other Eukaryotes": {
         "icon": "fa-dna",
@@ -325,7 +326,8 @@ def get_kingdoms() -> List[Dict]:
         {
             "name": kingdom,
             "icon": data["icon"],
-            "description": data["description"]
+            "description": data["description"],
+            **({"svg": data["svg"]} if "svg" in data else {})
         }
         for kingdom, data in KINGDOMS.items()
     ]

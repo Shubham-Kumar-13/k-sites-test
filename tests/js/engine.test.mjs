@@ -61,9 +61,6 @@ function fakeWorld(genes) {
     };
 }
 
-const keggFor = (table) => async (taxid, symbol) => (table[symbol] === undefined ? { found: false, pathway_count: 0, pathways: [] }
-    : { found: true, pathway_count: table[symbol], pathways: [] });
-
 // ------------------------------------------------------------------ HTTP
 
 test('HttpClient retries a busy server and then succeeds', async () => {
@@ -216,6 +213,20 @@ test('the safety limit stops the read and reports it', async () => {
     assert.deepEqual(progress.at(-1), ['Reading GO annotations', 2, 2]);
 });
 
+test('a transient empty QuickGO page is retried before genes are reported missing', async () => {
+    let attempts = 0;
+    const { http, calls } = scripted(() => {
+        attempts += 1;
+        return attempts < 3 ? response(200, { numberOfHits: 0, results: [] })
+            : response(200, { numberOfHits: 1, results: [ann('A', 'UniProtKB:P00001', 'IDA')] });
+    });
+
+    const { genes } = await getGenesForGoTermWithCoverage(http, 'GO:0006281', '9606', 'all');
+
+    assert.deepEqual(genes.map((g) => g.symbol), ['A']);
+    assert.equal(calls.length, 3);
+});
+
 test('errors from QuickGO are raised, never turned into an empty gene list', async () => {
     const bad = scripted(() => response(400, 'invalid goId')).http;
     await assert.rejects(() => getGenesForGoTermWithCoverage(bad, 'GO:0000000', '9606'), GoTermNotFoundError);
@@ -288,9 +299,9 @@ const WORLD = {
     NOTHING: { acc: 'P4', quickgo: [], uniprotBp: [] },
 };
 
-test('a gene is scored from both databases and the KEGG count is carried along', async () => {
+test('a gene is scored from QuickGO and UniProt without KEGG', async () => {
     const { http } = scripted(fakeWorld(WORLD));
-    const ctx = { http, keggProvider: keggFor({ NARROW: 3 }) };
+    const ctx = { http };
 
     const narrow = await scoreGenePleiotropy(ctx, 'NARROW', '9606', 'GO:1');
     const broad = await scoreGenePleiotropy(ctx, 'BROAD', '9606', 'GO:1');
@@ -298,14 +309,14 @@ test('a gene is scored from both databases and the KEGG count is carried along',
     assert.equal(narrow.data_status, DATA_OK);
     assert.equal(narrow.pleiotropy_score, 0);
     assert.equal(narrow.specificity_score, 1);
-    assert.equal(narrow.kegg_pathway_count, 3);
+    assert.equal(narrow.kegg_pathway_count, undefined);
     assert.ok(broad.pleiotropy_score > narrow.pleiotropy_score);
     assert.equal(broad.bp_term_count, 8);
 });
 
 test('the evidence filter changes which BP terms count', async () => {
     const { http } = scripted(fakeWorld(WORLD));
-    const ctx = { http, keggProvider: keggFor({}) };
+    const ctx = { http };
 
     const experimental = await scoreGenePleiotropy(ctx, 'PREDICTED', '9606', 'GO:1', 'experimental');
     const computational = await scoreGenePleiotropy(ctx, 'PREDICTED', '9606', 'GO:1', 'computational');
@@ -319,7 +330,7 @@ test('the evidence filter changes which BP terms count', async () => {
 
 test('a gene that cannot be assessed gets no score, never a perfect one', async () => {
     const { http } = scripted(fakeWorld(WORLD));
-    const ctx = { http, keggProvider: keggFor({}) };
+    const ctx = { http };
 
     const empty = await scoreGenePleiotropy(ctx, 'NOTHING', '9606', 'GO:1');
     const unknown = await scoreGenePleiotropy(ctx, 'NOSUCHGENE', '9606', 'GO:1');
@@ -335,7 +346,7 @@ test('a gene that cannot be assessed gets no score, never a perfect one', async 
 test('a failed database is reported as a lookup failure', async () => {
     const down = scripted(() => response(503, 'unavailable'), { retries: 0 }).http;
 
-    const result = await scoreGenePleiotropy({ http: down, keggProvider: keggFor({}) }, 'ANY', '9606', 'GO:1');
+    const result = await scoreGenePleiotropy({ http: down }, 'ANY', '9606', 'GO:1');
 
     assert.equal(result.data_status, DATA_INSUFFICIENT);
     assert.equal(result.lookup_failed, true);
@@ -347,8 +358,8 @@ test('one failed source does not hide the data from the other', async () => {
     const world = fakeWorld(WORLD);
     const { http } = scripted((url) => (new URL(url).host === 'www.ebi.ac.uk' ? response(503, 'down') : world(url)), { retries: 0 });
 
-    const db = await queryGeneFromAllDatabases(http, keggFor({}), 'NARROW', '9606');
-    const scored = await scoreGenePleiotropy({ http, keggProvider: keggFor({}) }, 'NARROW', '9606', 'GO:1');
+    const db = await queryGeneFromAllDatabases(http, 'NARROW', '9606');
+    const scored = await scoreGenePleiotropy({ http }, 'NARROW', '9606', 'GO:1');
 
     assert.match(db.query_status.go, /^failed/);
     assert.equal(db.query_status.uniprot, 'success');
@@ -376,7 +387,7 @@ test('conservation counts only the species that could be queried', async () => {
 
 test('ranking puts scored genes first, by composite score, and unscored genes last', async () => {
     const { http } = scripted(fakeWorld(WORLD));
-    const ctx = { http, keggProvider: keggFor({}) };
+    const ctx = { http };
 
     const ranked = await rankGenesBySpecificity(ctx, [{ symbol: 'BROAD' }, { symbol: 'NOTHING' }, { symbol: 'NARROW' }], '9606', {
         targetGoTerm: 'GO:1', includeLiterature: false, includeCrossSpecies: false, maxPleiotropyThreshold: 9,
@@ -392,7 +403,7 @@ test('where the evidence files know a gene, conservation and literature are read
     const urls = [];
     const world = fakeWorld(WORLD);
     const { http } = scripted((url) => { urls.push(new URL(url).host); return world(url); });
-    const ctx = { http, keggProvider: keggFor({}) };
+    const ctx = { http };
     const known = { NARROW: { conservation: 0.8, literature_count: 100 }, BROAD: { conservation: null, literature_count: null } };
 
     const ranked = await rankGenesBySpecificity(ctx, [{ symbol: 'NARROW' }], '9606', {
@@ -429,7 +440,7 @@ test('ranking reports progress for every gene', async () => {
     const { http } = scripted(fakeWorld(WORLD));
     const events = [];
 
-    await rankGenesBySpecificity({ http, keggProvider: keggFor({}) }, [{ symbol: 'NARROW' }, { symbol: 'BROAD' }, { symbol: 'NOTHING' }], '9606', {
+    await rankGenesBySpecificity({ http }, [{ symbol: 'NARROW' }, { symbol: 'BROAD' }, { symbol: 'NOTHING' }], '9606', {
         includeLiterature: false, includeCrossSpecies: false, onProgress: (...args) => events.push(args),
     });
 

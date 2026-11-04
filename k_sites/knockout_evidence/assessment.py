@@ -5,9 +5,9 @@ What is known, from measurements, about losing one gene.
 four parts:
 
     organism    the knockout of the whole organism: lethal / subviable / viable, at which stage, in how many lines
-                (direct for mouse, yeast, zebrafish, fly and worm; read from the mouse ortholog for human and rat, and
-                for the genes of zebrafish, fly and worm that have no measurement of their own)
-    cells       how often losing the gene kills a human cancer cell line (DepMap CRISPR screens)
+                (direct where a community database measures it; read from the mouse ortholog for human, rat and
+                genes of more distant organisms that have no measurement of their own)
+    cells       how often losing the gene kills a human cancer cell line (DepMap or Project Score CRISPR screens)
     constraint  how rarely loss-of-function variants are seen in people (gnomAD)
     expression  how many human tissues express the gene, and which most (GTEx)
 
@@ -41,10 +41,14 @@ TAU_ENRICHED = 0.5
 CLOSE_PARALOG_IDENTITY = 40
 
 SPECIES_NOUN = {"10090": "mice", "10116": "rats", "9606": "humans", "559292": "yeast", "7955": "zebrafish", "7227": "flies",
-                "6239": "worms"}
-SOURCE_OF_LETTER = {"M": "mgi", "I": "impc", "S": "sgd", "Z": "zfin", "F": "flybase", "W": "wormbase"}
+                "6239": "worms", "3702": "Arabidopsis", "4896": "fission yeast", "83333": "E. coli"}
+SOURCE_OF_LETTER = {"M": "mgi", "I": "impc", "S": "sgd", "Z": "zfin", "F": "flybase", "W": "wormbase",
+                    "T": "thalemine", "P": "pombase"}
+SOURCE_OF_RECORD = {"EC": "ecoli_core"}
 # what the counts of knockout lines are counts of, (one, many)
-LINE_NOUN = {"7955": ("mutant line", "mutant lines"), "7227": ("allele", "alleles"), "6239": ("allele or RNAi test", "alleles or RNAi tests")}
+LINE_NOUN = {"7955": ("mutant line", "mutant lines"), "7227": ("allele", "alleles"), "6239": ("allele or RNAi test", "alleles or RNAi tests"),
+             "3702": ("curated phenotype category", "curated phenotype categories"), "4896": ("deletion record", "deletion records"),
+             "83333": ("curated essentiality record", "curated essentiality records")}
 CALL_OF_LETTER = {"L": "LETHAL", "S": "SUBVIABLE", "V": "VIABLE"}
 # the model species of the conservation score, in the order of the bits in a record's "cv" number
 CONSERVATION_SPECIES = ["human", "mouse", "rat", "fly", "worm"]
@@ -95,7 +99,8 @@ def _organism_part(index: dict, taxid: str, record: Optional[dict]) -> Dict[str,
     part["stage"] = base.get("s")
     part["stage_text"] = index.get("stages", {}).get(part["stage"]) if part["stage"] else None
     letters = base.get("src", "")
-    part["sources"] = [SOURCE_OF_LETTER[c] for c in letters if c in SOURCE_OF_LETTER]
+    part["sources"] = ([SOURCE_OF_RECORD[letters]] if letters in SOURCE_OF_RECORD
+                       else [SOURCE_OF_LETTER[c] for c in letters if c in SOURCE_OF_LETTER])
     if basis == "ortholog":
         part["sources"].append("alliance")
     part["mgi_id"] = base.get("id")
@@ -117,7 +122,7 @@ def _organism_part(index: dict, taxid: str, record: Optional[dict]) -> Dict[str,
     stage = f" ({part['stage_text']})" if part["stage"] and part["stage"] != "U" else ""
     counts = part["counts"]
     total = lethal + subviable + viable
-    if species_key == "559292":
+    if species_key in ("559292", "4896"):
         subject, lethal_word, viable_word = "Deletion", "inviable", "viable"
     else:
         subject, lethal_word, viable_word = "Knockout", "lethal", "viable"
@@ -147,6 +152,7 @@ def _cells_part(record: Optional[dict]) -> Dict[str, Any]:
         return part
     flag, percent, lines = record["c"]
     part["percent"], part["lines"] = percent, lines
+    part["source"] = record.get("cs", "depmap")
     part["common_essential"] = flag == "C"
     if percent is None:
         return part
@@ -247,7 +253,7 @@ def _sources_used(index: dict, organism: dict, cells: dict, constraint, expressi
     if estimate:
         wanted += ["mgi", "impc", "depmap", "gnomad", "gtex"]
     if cells["call"] != "UNKNOWN":
-        wanted.append("depmap")
+        wanted.append(cells["source"])
     if constraint:
         wanted.append("gnomad")
     if expression:

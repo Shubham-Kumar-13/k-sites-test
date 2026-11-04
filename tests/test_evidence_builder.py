@@ -1020,4 +1020,74 @@ class TestOwnMeasurementsBesideTheMouseHint:
     def test_the_community_databases_are_optional_and_the_licences_are_recorded(self):
         for key in ("zfin", "flybase", "wormbase"):
             assert bed.SOURCES[key]["optional"] and bed.SOURCES[key]["license"]
-        assert not any(s.get("optional") for key, s in bed.SOURCES.items() if key not in ("zfin", "flybase", "wormbase", "ncbi", "alliance_paralogy"))     # the NCBI literature counts are optional too
+        optional = {"zfin", "flybase", "wormbase", "ncbi", "alliance_paralogy", "thalemine", "pombase", "project_score", "ecoli_core"}
+        assert not any(s.get("optional") for key, s in bed.SOURCES.items() if key not in optional)
+
+
+class TestAdditionalMeasuredSources:
+    def test_unvalidated_phenotype_sources_cannot_be_reenabled_accidentally(self):
+        assert {"zmp", "tair_zenodo", "riken", "omia"}.isdisjoint(bed.SOURCES)
+
+    def test_thalemine_counts_categories_and_marks_disagreement(self, monkeypatch):
+        lethal = "List Analysis for Genes with a Loss-of-Function Mutant Phenotype: Essential - Lethal"
+        viable = "Genes with a Loss-of-Function Mutant Phenotype: Biochemical"
+        responses = {lethal: "Gene1\tAT1G01010\nGene2\tAT1G01020\n", viable: "Gene1\tAT1G01010\n"}
+        monkeypatch.setattr(bed, "fetch_thalemine_list", lambda name, http: responses.get(name, ""))
+
+        records = bed.build_thalemine(object())
+
+        assert records["AT1G01010"] == {"v": "L", "n": [1, 0, 1], "x": 1, "src": "T", "id": "AT1G01010"}
+        assert records["AT1G01020"] == {"v": "L", "n": [1, 0, 0], "src": "T", "id": "AT1G01020"}
+
+    def test_a_failed_thalemine_list_does_not_produce_a_partial_build(self, monkeypatch):
+        def fail(name, http):
+            raise RuntimeError("source unavailable")
+        monkeypatch.setattr(bed, "fetch_thalemine_list", fail)
+
+        with pytest.raises(RuntimeError, match="source unavailable"):
+            bed.build_thalemine(object())
+
+    def test_pombase_deletion_viability(self):
+        records = bed.build_pombase(
+            ["SPAC1\tviable\n", "SPAC2\tinviable\n", "SPAC3\tcondition-dependent\n"],
+            ["gene_systematic_id\tgene_name\tsynonyms\n", "SPAC1\tabc1\t\n", "SPAC2\t\t\n"])
+
+        assert records["ABC1"] == {"v": "V", "n": [0, 0, 1], "src": "P", "id": "SPAC1"}
+        assert records["SPAC2"]["v"] == "L"
+        assert records["SPAC3"]["v"] == "S"
+
+    def test_project_score_reports_the_dependent_cell_line_percentage(self):
+        records = bed.build_project_score([
+            ",A (1),B (2)\n", "cell-1,0.5,1\n", "cell-2,0.49,0.8\n"])
+
+        assert records == {
+            "A": {"c": ["", 50.0, 2], "cs": "project_score"},
+            "B": {"c": ["", 100.0, 2], "cs": "project_score"},
+        }
+
+    def test_ecoli_uses_the_curated_bw25113_essentiality_column(self, monkeypatch):
+        pd = pytest.importorskip("pandas")
+        frame = pd.DataFrame([
+            {"Keio gene name": "dnaA", "EcoGene Essentiality: Escherichia coli BW25113": 1, "Core Essentiality": 1},
+            {"Keio gene name": "lacZ", "EcoGene Essentiality: Escherichia coli BW25113": 0, "Core Essentiality": 0},
+        ])
+        monkeypatch.setattr(pd, "read_excel", lambda lines: frame)
+
+        assert bed.build_ecoli_core(object()) == {
+            "DNAA": {"v": "L", "n": [1, 0, 0], "src": "EC"},
+            "LACZ": {"v": "V", "n": [0, 0, 1], "src": "EC"},
+        }
+
+    def test_ecoli_rejects_conflicting_duplicates_and_schema_changes(self, monkeypatch):
+        pd = pytest.importorskip("pandas")
+        conflicting = pd.DataFrame([
+            {"Keio gene name": "dnaA", "EcoGene Essentiality: Escherichia coli BW25113": 1},
+            {"Keio gene name": "dnaA", "EcoGene Essentiality: Escherichia coli BW25113": 0},
+        ])
+        monkeypatch.setattr(pd, "read_excel", lambda lines: conflicting)
+        with pytest.raises(ValueError, match="Conflicting E. coli"):
+            bed.build_ecoli_core(object())
+
+        monkeypatch.setattr(pd, "read_excel", lambda lines: pd.DataFrame([{"Keio gene name": "dnaA"}]))
+        with pytest.raises(ValueError, match="missing columns"):
+            bed.build_ecoli_core(object())

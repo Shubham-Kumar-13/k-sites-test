@@ -56,6 +56,7 @@ def isolated_cache():
     """Run every test with an empty in-memory cache and no disk access."""
     with patch.object(go_gene_mapper, "_load_cache"), \
          patch.object(go_gene_mapper, "_save_cache"), \
+         patch.object(go_gene_mapper.time, "sleep"), \
          patch.dict(go_gene_mapper._go_gene_cache, {}, clear=True):
         yield
 
@@ -123,10 +124,35 @@ class TestGoGeneMapper:
         assert set(genes[0]["evidence_codes"]) == {"IDA", "IMP"}
 
     @patch.object(go_gene_mapper, "_fetch_quickgo_page")
-    def test_get_genes_empty_result(self, mock_fetch):
+    def test_empty_results_are_retried_and_not_cached(self, mock_fetch):
         mock_fetch.return_value = (0, [])
 
         assert get_genes_for_go_term("GO:0000000", "9606") == []
+        assert get_genes_for_go_term("GO:0000000", "9606") == []
+        assert mock_fetch.call_count == 6
+        assert go_gene_mapper._go_gene_cache == {}
+
+    @patch.object(go_gene_mapper, "_fetch_quickgo_page")
+    def test_a_transient_empty_response_recovers_and_valid_genes_are_cached(self, mock_fetch):
+        mock_fetch.side_effect = [(0, []), (0, []), (1, [annotation("BRCA1", "UniProtKB:P38398", "IDA")])]
+
+        first = get_genes_for_go_term("GO:0006281", "9606")
+        second = get_genes_for_go_term("GO:0006281", "9606")
+
+        assert [g["symbol"] for g in first] == ["BRCA1"]
+        assert second == first
+        assert mock_fetch.call_count == 3
+
+    @patch.object(go_gene_mapper, "_fetch_quickgo_page")
+    def test_an_empty_entry_from_the_old_cache_is_ignored(self, mock_fetch):
+        key = go_gene_mapper._get_cache_key("GO:0006281", "9606", "experimental", go_gene_mapper.DEFAULT_MAX_ANNOTATIONS)
+        go_gene_mapper._go_gene_cache[key] = {"timestamp": go_gene_mapper.time.time(), "genes": [], "total_hits": 0}
+        mock_fetch.return_value = (1, [annotation("BRCA1", "UniProtKB:P38398", "IDA")])
+
+        genes = get_genes_for_go_term("GO:0006281", "9606")
+
+        assert [g["symbol"] for g in genes] == ["BRCA1"]
+        assert mock_fetch.call_count == 1
 
     @patch.object(go_gene_mapper, "_fetch_quickgo_page")
     def test_results_are_cached(self, mock_fetch):

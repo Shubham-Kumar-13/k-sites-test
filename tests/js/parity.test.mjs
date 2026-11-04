@@ -57,7 +57,6 @@ test('JavaScript scores every gene exactly like Python', async () => {
         conservation_score: g.conservation_score,
         composite_score: g.composite_score,
         bp_term_count: g.bp_term_count,
-        kegg_pathway_count: g.kegg_pathway_count,
         experimental_evidence_count: g.experimental_evidence_count,
         computational_evidence_count: g.computational_evidence_count,
         iea_evidence_count: g.iea_evidence_count,

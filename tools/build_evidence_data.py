@@ -62,7 +62,8 @@ FORMAT_VERSION = 1
 #            "pm": [..]}         up to three PubMed ids behind the call
 #   human   {"o": [mouse symbol, relation], "m": <mouse record>,
 #            "p": [[symbol, % identity], ...],   closest paralogs (they may take over the gene's work); also on mouse records
-#            "c": [flag, % of cell lines dependent],   flag: C common essential, N non-essential control, "" neither
+#            "c": [flag, % of cell lines dependent, number of lines],   flag: C common essential, N non-essential control
+#            "cs": "project_score",   cell-line source when it is not DepMap
 #            "l": LOEUF,        gnomAD loss-of-function observed/expected upper bound (low = intolerant)
 #            "t": [tau, tissues expressed, [top tissue indexes]]}
 #   rat     {"o": [mouse symbol, relation], "m": <mouse record>}
@@ -227,44 +228,12 @@ SOURCES = {
             "project_score_gene_dependency.csv": "https://ndownloader.figshare.com/files/28340739",
         },
     },
-    "zmp": {
-        "name": "Zebrafish Mutation Project (ZMP)", "url": "https://zmp.buschlab.org/",
-        "what": "zebrafish knockout alleles with associated phenotypes",
-        "license": "CC BY 4.0", "optional": True,
-        "files": {
-            "zmp_knockout.tsv": "https://zmp.buschlab.org/gene/A/tsv",
-        },
-    },
-    "tair_zenodo": {
-        "name": "TAIR (Zenodo)", "url": "https://zenodo.org/records/15889083",
-        "what": "Arabidopsis germplasm phenotype data",
-        "license": "CC BY 4.0", "optional": True,
-        "files": {
-            "tair_phenotype.txt.gz": "https://zenodo.org/records/15889083/files/Locus_Germplasm_Phenotype_20240331.txt.gz",
-        },
-    },
-    "riken": {
-        "name": "RIKEN Arabidopsis Phenome Database", "url": "https://dbarchive.biosciencedbc.jp/en/arabidopsis-phenome/",
-        "what": "Arabidopsis mutant phenotype records",
-        "license": "CC BY 4.0", "optional": True,
-        "files": {
-            "riken_piam_main.zip": "https://dbarchive.biosciencedbc.jp/data/arabid_pheno/LATEST/riken_piam_main.zip",
-        },
-    },
     "ecoli_core": {
         "name": "E. coli Core Essentiality", "url": "https://www.biorxiv.org/content/10.1101/2022.10.20.512852v1",
-        "what": "E. coli essential genes (EcoGene and core essentiality)",
-        "license": "CC BY 4.0", "optional": True,
+        "what": "E. coli BW25113 essentiality curated by EcoGene",
+        "optional": True,
         "files": {
             "ecoli_core_essential.xlsx": "https://www.biorxiv.org/content/biorxiv/early/2022/10/20/2022.10.20.512852/DC2/embed/media-2.xlsx",
-        },
-    },
-    "omia": {
-        "name": "Online Mendelian Inheritance in Animals (OMIA)", "url": "https://omia.org/",
-        "what": "livestock phenotype data (chicken, cow, pig)",
-        "license": "CC BY 4.0", "optional": True,
-        "files": {
-            "omia.xml.gz": "https://omia.org/static/omia.xml.gz",
         },
     },
 }
@@ -1062,15 +1031,12 @@ def fetch_thalemine_list(list_name, http):
 
 
 def build_thalemine(http):
-    """Build Arabidopsis knockout records from ThaleMine phenotype lists."""
-    records = {}
-    # Essential categories: lethal at different stages
+    """Build Arabidopsis records from curated loss-of-function phenotype lists."""
     essential_lists = {
         "List Analysis for Genes with a Loss-of-Function Mutant Phenotype: Essential - Lethal": "L",
         "Genes with a Loss-of-Function Mutant Phenotype: Essential - Embryo Seed": "L",
         "Genes with a Loss-of-Function Mutant Phenotype: Essential - Gametophyte": "L",
     }
-    # Non-essential categories: viable
     viable_lists = {
         "Genes with a Loss-of-Function Mutant Phenotype: Biochemical": "V",
         "Genes with a Loss-of-Function Mutant Phenotype: Cellular": "V",
@@ -1080,25 +1046,20 @@ def build_thalemine(http):
         "Genes with a Loss-of-Function Mutant Phenotype: Morphological - Timing": "V",
         "Genes with a Loss-of-Function Mutant Phenotype: Morphological - Vegetative": "V",
     }
+    calls = collections.defaultdict(list)
     for list_name, call in {**essential_lists, **viable_lists}.items():
-        try:
-            text = fetch_thalemine_list(list_name, http)
-            for line in text.strip().splitlines():
-                parts = line.strip().split("\t")
-                if len(parts) < 2:
-                    continue
-                symbol, identifier = parts[0].strip().upper(), parts[1].strip()
-                if not symbol:
-                    continue
-                key = identifier or symbol
-                if key not in records:
-                    records[key] = {"v": call, "n": [1 if call == "L" else 0, 0, 1 if call == "V" else 0],
-                                    "src": "T", "id": identifier}
-                elif records[key]["v"] != call:
-                    records[key]["x"] = 1
-        except Exception as error:
-            print(f"  WARNING: could not fetch ThaleMine list {list_name}: {error}", flush=True)
-    return records
+        text = fetch_thalemine_list(list_name, http)
+        for line in text.strip().splitlines():
+            parts = line.strip().split("\t")
+            if len(parts) < 2:
+                continue
+            symbol, identifier = parts[0].strip().upper(), parts[1].strip()
+            key = identifier or symbol
+            if key:
+                calls[key].append(call)
+    stages = {"L": set(), "S": set()}
+    return {key: tally_calls(found, stages, collections.Counter(), "T", {"id": key})
+            for key, found in calls.items()}
 
 
 # --------------------------------------------------------------------------------------------------
@@ -1156,125 +1117,35 @@ def build_project_score(lines, threshold=0.5):
     for i, symbol in enumerate(genes):
         if total:
             percent = counts[i] / total * 100
-            records[symbol] = {"c": ["", round(percent, 1)]}
-    return records
-
-
-def build_zmp(lines):
-    """Build zebrafish knockout records from the Zebrafish Mutation Project TSV."""
-    records = {}
-    for line in lines:
-        parts = line.rstrip("\r\n").split("\t")
-        if len(parts) < 6 or parts[0] == "Gene Name":
-            continue
-        symbol, ensembl, human, mouse, alleles, phenotype = parts[:6]
-        if not symbol:
-            continue
-        call = "L" if phenotype and phenotype != "-" else "V"
-        records[symbol.upper()] = {
-            "v": call,
-            "n": [1 if call == "L" else 0, 0, 1 if call == "V" else 0],
-            "src": "ZMP",
-            "id": ensembl,
-        }
-    return records
-
-
-def build_tair_zenodo(lines):
-    """Build Arabidopsis knockout records from TAIR Zenodo phenotype data."""
-    records = {}
-    for line in lines:
-        if line.startswith("LOCUS_NAME"):
-            continue
-        parts = line.rstrip("\r\n").split("\t")
-        if len(parts) < 3:
-            continue
-        locus, germplasm, phenotype = parts[0], parts[1], parts[2]
-        if not locus:
-            continue
-        call = "L" if any(word in phenotype.lower() for word in ("lethal", "lethality", "embryo lethal", "death", "die")) else "V"
-        records[locus.upper()] = {
-            "v": call,
-            "n": [1 if call == "L" else 0, 0, 1 if call == "V" else 0],
-            "src": "TZ",
-            "id": germplasm,
-        }
-    return records
-
-
-def build_riken(lines):
-    """Build Arabidopsis knockout records from RIKEN Phenome Database."""
-    import csv
-    import zipfile
-    import io
-    records = {}
-    if isinstance(lines, (str, bytes)):
-        with zipfile.ZipFile(io.BytesIO(lines if isinstance(lines, bytes) else lines.encode())) as z:
-            with z.open("riken_piam_main.csv") as f:
-                text = io.TextIOWrapper(f, encoding="utf-8")
-                for row in csv.reader(text):
-                    if len(row) < 8 or row[0] == "id":
-                        continue
-                    phenotype, gene = row[5], row[7]
-                    if not gene:
-                        continue
-                    call = "L" if any(word in phenotype.lower() for word in ("lethal", "death", "die", "lethality")) else "V"
-                    records[gene.upper()] = {
-                        "v": call,
-                        "n": [1 if call == "L" else 0, 0, 1 if call == "V" else 0],
-                        "src": "R",
-                    }
-    else:
-        for row in csv.reader(lines):
-            if len(row) < 8 or row[0] == "id":
-                continue
-            phenotype, gene = row[5], row[7]
-            if not gene:
-                continue
-            call = "L" if any(word in phenotype.lower() for word in ("lethal", "death", "die", "lethality")) else "V"
-            records[gene.upper()] = {
-                "v": call,
-                "n": [1 if call == "L" else 0, 0, 1 if call == "V" else 0],
-                "src": "R",
-            }
+            records[symbol] = {"c": ["", round(percent, 1), total], "cs": "project_score"}
     return records
 
 
 def build_ecoli_core(lines):
-    """Build E. coli essentiality records from the core essentiality XLSX."""
+    """Build E. coli BW25113 records from EcoGene's curated essentiality column."""
     import pandas as pd
     records = {}
     df = pd.read_excel(lines)
+    gene_column = "Keio gene name"
+    essential_column = "EcoGene Essentiality: Escherichia coli BW25113"
+    missing = {gene_column, essential_column} - set(df.columns)
+    if missing:
+        raise ValueError(f"E. coli source is missing columns: {', '.join(sorted(missing))}")
     for _, row in df.iterrows():
-        symbol = row.get("Keio gene name")
+        symbol = row[gene_column]
         if not symbol or pd.isna(symbol):
             continue
-        essential = row.get("EcoGene Essentiality: Escherichia coli BW25113", 0)
-        core = row.get("Core Essentiality", 0)
-        call = "L" if essential == 1 or core == 1 else "V"
-        records[str(symbol).upper()] = {
+        essential = row[essential_column]
+        if essential not in (0, 1):
+            raise ValueError(f"Unexpected E. coli essentiality value for {symbol}: {essential!r}")
+        symbol = str(symbol).strip().upper()
+        call = "L" if essential == 1 else "V"
+        if symbol in records and records[symbol]["v"] != call:
+            raise ValueError(f"Conflicting E. coli essentiality rows for {symbol}")
+        records[symbol] = {
             "v": call,
             "n": [1 if call == "L" else 0, 0, 1 if call == "V" else 0],
             "src": "EC",
-        }
-    return records
-
-
-def build_omia(lines):
-    """Build livestock knockout records from OMIA phenotype data."""
-    records = {}
-    for line in lines:
-        parts = line.rstrip("\r\n").split("\t")
-        if len(parts) < 3:
-            continue
-        phene_id, phene_name, species = parts[0], parts[1], parts[2]
-        if not phene_id:
-            continue
-        call = "L" if any(word in phene_name.lower() for word in ("lethal", "lethality", "death", "die", "fatal")) else "V"
-        records[phene_id] = {
-            "v": call,
-            "n": [1 if call == "L" else 0, 0, 1 if call == "V" else 0],
-            "src": "O",
         }
     return records
 
@@ -2309,35 +2180,11 @@ def build_all(out, cache, refresh=False, depmap_path=DEPMAP_SUMMARY, organisms=(
             for symbol, record in project_score.items():
                 if symbol in organism_files["9606"]["genes"]:
                     organism_files["9606"]["genes"][symbol].update(record)
-    if "zmp" in organisms:
-        with open_text(files["zmp_knockout.tsv"]) as handle:
-            zmp = build_zmp(handle)
-        organism_files["7955"] = {"genes": zmp, "aliases": {}}
-        index_organisms["7955"] = {"name": "Danio rerio", "layers": ["knockout", "ortholog-knockout"]}
-    if "tair_zenodo" in organisms:
-        with open_text(files["tair_phenotype.txt.gz"]) as handle:
-            tair = build_tair_zenodo(handle)
-        organism_files["3702"] = {"genes": tair, "aliases": {}}
-        index_organisms["3702"] = {"name": "Arabidopsis thaliana", "layers": ["knockout"]}
-    if "riken" in organisms:
-        with open_text(files["riken_piam_main.zip"]) as handle:
-            riken = build_riken(handle)
-        organism_files["3702"] = {"genes": riken, "aliases": {}}
-        index_organisms["3702"] = {"name": "Arabidopsis thaliana", "layers": ["knockout"]}
     if "ecoli_core" in organisms:
         with open_text(files["ecoli_core_essential.xlsx"]) as handle:
             ecoli = build_ecoli_core(handle)
         organism_files["83333"] = {"genes": ecoli, "aliases": {}}
         index_organisms["83333"] = {"name": "Escherichia coli", "layers": ["knockout"]}
-    if "omia" in organisms:
-        with open_text(files["omia.xml.gz"]) as handle:
-            omia = build_omia(handle)
-        organism_files["9913"] = {"genes": omia, "aliases": {}}
-        index_organisms["9913"] = {"name": "Bos taurus", "layers": ["knockout"]}
-        organism_files["9823"] = {"genes": omia, "aliases": {}}
-        index_organisms["9823"] = {"name": "Sus scrofa", "layers": ["knockout"]}
-        organism_files["9031"] = {"genes": omia, "aliases": {}}
-        index_organisms["9031"] = {"name": "Gallus gallus", "layers": ["knockout"]}
 
     if "mouse" in organisms and "human" in organisms:
         model = add_lethality_estimates(human, human_aliases, mouse_records, mouse_paralogs, pairs)
@@ -2394,7 +2241,8 @@ def main():
     parser.add_argument("--cache", default=str(DEFAULT_CACHE), help="Folder for the downloaded sources")
     parser.add_argument("--refresh", action="store_true", help="Download the sources again")
     parser.add_argument("--depmap-summary", default=str(DEPMAP_SUMMARY))
-    parser.add_argument("--organisms", nargs="*", default=["mouse", "human", "rat", "yeast", "distant", "arabidopsis", "pombe", "project_score", "zmp", "tair_zenodo", "riken", "ecoli_core", "omia"])
+    parser.add_argument("--organisms", nargs="*", default=["mouse", "human", "rat", "yeast", "distant", "arabidopsis",
+                                                            "pombe", "project_score", "ecoli_core"])
     parser.add_argument("--no-paralogs", action="store_true", help="Skip the paralog download (about 5 minutes)")
     args = parser.parse_args()
     if not Path(args.depmap_summary).exists():

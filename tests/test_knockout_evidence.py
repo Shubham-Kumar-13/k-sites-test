@@ -277,6 +277,32 @@ class TestCellsWithoutACellLineResult:
         assert any("cells were not screened" in c for c in recommendation.concerns)
         assert any("not a one-to-one match" in c for c in recommendation.concerns)
 
+    def test_project_score_has_its_own_cell_count_and_source(self):
+        index = {"format": 1, "built": "2026-01-01", "stages": {}, "systems": [],
+                 "organisms": {"9606": {"name": "Homo sapiens", "file": "9606.json", "layers": []}},
+                 "sources": [{"id": "project_score", "name": "Project Score", "url": "https://example.org/score"}]}
+        files = {"index.json": index, "9606.json": {"genes": {"RPS26": {"c": ["", 75.0, 318], "cs": "project_score"}}, "aliases": {}}}
+        evidence = assess_gene(EvidenceProvider(DictSource(files)), "9606", "RPS26", "cells")
+
+        assert evidence["cells"]["call"] == "ESSENTIAL"
+        assert evidence["cells"]["lines"] == 318 and evidence["cells"]["source"] == "project_score"
+        assert evidence["cells"]["text"] == "Essential in 75% of 318 human cancer cell lines"
+        assert [s["id"] for s in evidence["sources"]] == ["project_score"]
+
+
+class TestAdditionalOrganismSources:
+    def test_arabidopsis_pombe_and_ecoli_have_named_sources(self):
+        for taxid, src, source in (("3702", "T", "thalemine"), ("4896", "P", "pombase"), ("83333", "EC", "ecoli_core")):
+            index = {"format": 1, "built": "2026-01-01", "stages": {}, "systems": [],
+                     "organisms": {taxid: {"name": taxid, "file": f"{taxid}.json", "layers": []}},
+                     "sources": [{"id": source, "name": source, "url": "https://example.org"}]}
+            files = {"index.json": index, f"{taxid}.json": {"genes": {"GENE": {"v": "L", "n": [1, 0, 0], "src": src}}, "aliases": {}}}
+            evidence = assess_gene(EvidenceProvider(DictSource(files)), taxid, "GENE", "organism")
+
+            assert evidence["organism"]["call"] == "LETHAL"
+            assert evidence["organism"]["sources"] == [source]
+            assert [s["id"] for s in evidence["sources"]] == [source]
+
 
 class TestLethalMouseOrthologWithoutACellLineResult(TestCellsWithoutACellLineResult):
     def verdict_for(self, record):

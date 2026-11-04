@@ -30,6 +30,7 @@ _evidence_classifier = MultiDatabaseClient()
 
 # QuickGO returns at most this many annotations per page
 QUICKGO_PAGE_SIZE = 200
+EMPTY_FIRST_PAGE_ATTEMPTS = 3
 
 # Safety limit on annotations read for one GO term (10 pages of 200). Very large GO terms
 # are cut off here and the user is warned how much was read.
@@ -236,8 +237,8 @@ def get_genes_for_go_term_with_coverage(
     if cache_key in _go_gene_cache:
         cached = _go_gene_cache[cache_key]
         cache_time = cached.get("timestamp", 0)
-        # Cache valid for 24 hours
-        if time.time() - cache_time < 86400:
+        # Non-empty cache entries are valid for 24 hours; older empty entries are fetched again.
+        if cached.get("genes") and time.time() - cache_time < 86400:
             logger.info(f"Using cached results for {go_term} in {taxid}")
             coverage = cached.get("coverage") or _coverage_info(
                 cached.get("total_hits", 0), cached.get("total_hits", 0), max_annotations
@@ -256,8 +257,13 @@ def get_genes_for_go_term_with_coverage(
         headers = {"Accept": "application/json"}
         page_size = QUICKGO_PAGE_SIZE
 
-        # First request to get total count
-        total_hits, first_results = _fetch_quickgo_page(go_term, taxid, 1, page_size, headers)
+        # A transient empty first page must not become a cached "no genes" answer.
+        for attempt in range(EMPTY_FIRST_PAGE_ATTEMPTS):
+            total_hits, first_results = _fetch_quickgo_page(go_term, taxid, 1, page_size, headers)
+            if first_results or total_hits:
+                break
+            if attempt + 1 < EMPTY_FIRST_PAGE_ATTEMPTS:
+                time.sleep(1)
 
         if not first_results and total_hits == 0:
             logger.warning(f"No results found for GO term {go_term} in organism {taxid}")
@@ -302,14 +308,15 @@ def get_genes_for_go_term_with_coverage(
         # Process the results
         gene_list = _process_annotations(all_results, evidence_filter)
 
-        # Cache results
-        _go_gene_cache[cache_key] = {
-            "timestamp": time.time(),
-            "genes": gene_list,
-            "total_hits": total_hits,
-            "coverage": coverage,
-        }
-        _save_cache()
+        # Empty results are retried on the next request instead of being cached for 24 hours.
+        if gene_list:
+            _go_gene_cache[cache_key] = {
+                "timestamp": time.time(),
+                "genes": gene_list,
+                "total_hits": total_hits,
+                "coverage": coverage,
+            }
+            _save_cache()
 
         logger.info(f"Retrieved {len(gene_list)} genes for GO term {go_term} in organism {taxid} with {evidence_filter} evidence")
 

@@ -232,6 +232,36 @@ test('a lethal mouse ortholog without a cell-line result gives MODERATE_CONCERN;
     assert.equal((await level({ v: 'L', n: [2, 0, 1], s: 'E', x: 1 })).safety_level, 'CAUTION');
 });
 
+test('Project Score has its own cell count and source', async () => {
+    const files = {
+        'index.json': { format: 1, built: '2026-01-01', stages: {}, systems: [], organisms: { 9606: { name: 'Homo sapiens', file: '9606.json', layers: [] } },
+            sources: [{ id: 'project_score', name: 'Project Score', url: 'https://example.org/score' }] },
+        '9606.json': { genes: { RPS26: { c: ['', 75.0, 318], cs: 'project_score' } }, aliases: {} },
+    };
+    const evidence = await assessGene(new EvidenceProvider(async (name) => files[name]), '9606', 'RPS26', 'cells');
+
+    assert.equal(evidence.cells.call, 'ESSENTIAL');
+    assert.equal(evidence.cells.lines, 318);
+    assert.equal(evidence.cells.source, 'project_score');
+    assert.equal(evidence.cells.text, 'Essential in 75% of 318 human cancer cell lines');
+    assert.deepEqual(evidence.sources.map((s) => s.id), ['project_score']);
+});
+
+test('Arabidopsis, PomBase and E. coli have named sources', async () => {
+    for (const [taxid, src, source] of [['3702', 'T', 'thalemine'], ['4896', 'P', 'pombase'], ['83333', 'EC', 'ecoli_core']]) {
+        const files = {
+            'index.json': { format: 1, built: '2026-01-01', stages: {}, systems: [], organisms: { [taxid]: { name: taxid, file: `${taxid}.json`, layers: [] } },
+                sources: [{ id: source, name: source, url: 'https://example.org' }] },
+            [`${taxid}.json`]: { genes: { GENE: { v: 'L', n: [1, 0, 0], src } }, aliases: {} },
+        };
+        const evidence = await assessGene(new EvidenceProvider(async (name) => files[name]), taxid, 'GENE', 'organism');
+
+        assert.equal(evidence.organism.call, 'LETHAL');
+        assert.deepEqual(evidence.organism.sources, [source]);
+        assert.deepEqual(evidence.sources.map((s) => s.id), [source]);
+    }
+});
+
 test('an essential call for a gene no tissue expresses and people lose without harm is MODERATE_CONCERN, not AVOID', async () => {
     const level = async (record) => {
         const files = {

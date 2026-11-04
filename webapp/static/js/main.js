@@ -8,6 +8,7 @@ let selectedKingdom = null;
 let selectedOrganism = null;
 let selectedCategory = null;
 let selectedGoTerm = null;
+let kingdomOptions = [];
 let geneCountCheckTimeout = null;
 
 // DOM Ready
@@ -44,6 +45,7 @@ async function loadKingdoms() {
 }
 
 function renderKingdoms(kingdoms) {
+    kingdomOptions = kingdoms;
     const container = document.getElementById('kingdomContainer');
     
     container.innerHTML = kingdoms.map(k => {
@@ -68,52 +70,43 @@ function renderKingdoms(kingdoms) {
 
 async function selectKingdom(kingdom) {
     selectedKingdom = kingdom;
-    
-    // Show loading state on the clicked card
+
     const cards = document.querySelectorAll('.kingdom-card');
     cards.forEach(card => {
         if (card.dataset.kingdom === kingdom) {
             card.classList.add('loading');
-            card.innerHTML = `
-                <div class="card-body text-center">
-                    <div class="spinner-border text-primary mb-2" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <h6 class="card-title mb-1">Loading ${kingdom}...</h6>
-                </div>
-            `;
+            card.setAttribute('aria-busy', 'true');
         } else {
             card.style.opacity = '0.5';
             card.style.pointerEvents = 'none';
         }
     });
-    
-    // Update UI
+
     document.getElementById('selectedKingdomName').textContent = kingdom;
     document.getElementById('kingdomContainer').style.display = 'none';
     document.getElementById('speciesSection').style.display = 'block';
-    
-    // Reset cards state
+
     cards.forEach(card => {
         card.classList.remove('loading');
+        card.removeAttribute('aria-busy');
         card.style.opacity = '1';
         card.style.pointerEvents = 'auto';
     });
-    
-    // Clear search and show prompt to search
+
     document.getElementById('speciesSearch').value = '';
     await loadSpecies(kingdom, '');
-    
-    // Focus on search input
     document.getElementById('speciesSearch').focus();
 }
 
 function resetKingdomSelection() {
     selectedKingdom = null;
     selectedOrganism = null;
+    renderKingdoms(kingdomOptions);
     document.getElementById('kingdomContainer').style.display = 'flex';
     document.getElementById('speciesSection').style.display = 'none';
     document.getElementById('selectedOrganismDisplay').style.display = 'none';
+    document.getElementById('organismDirectSection').style.display = 'block';
+    document.getElementById('evidenceCoverageNote').style.display = 'none';
     document.getElementById('organism').value = '';
     document.getElementById('taxid').value = '';
 }
@@ -156,7 +149,7 @@ function renderSpecies(species) {
     
     list.innerHTML = species.map(s => `
         <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-             onclick="selectOrganism('${s.name}', '${s.taxid}', '${s.common_name || ''}')"
+             onclick="selectOrganism('${s.name}', '${s.taxid}', '${s.common_name || ''}', true)"
              style="cursor: pointer;">
             <div>
                 <strong>${s.name}</strong>
@@ -167,7 +160,8 @@ function renderSpecies(species) {
     `).join('');
 }
 
-function selectOrganism(name, taxid, commonName) {
+function selectOrganism(name, taxid, commonName, fromCategory = false) {
+    if (!fromCategory) selectedKingdom = null;
     selectedOrganism = { name, taxid, commonName };
 
     // Update hidden fields
@@ -238,19 +232,28 @@ async function showEvidenceCoverage(taxid) {
     }
 }
 
-function resetOrganismSelection() {
+async function resetOrganismSelection() {
     selectedOrganism = null;
-    selectedKingdom = null;
     const coverageNote = document.getElementById('evidenceCoverageNote');
     if (coverageNote) coverageNote.style.display = 'none';
     document.getElementById('selectedOrganismDisplay').style.display = 'none';
-    document.getElementById('speciesSection').style.display = 'none';
     document.getElementById('organismDirectSection').style.display = 'block';
-    document.getElementById('kingdomContainer').style.display = 'flex';
     document.getElementById('organismDirectSearch').value = '';
     document.getElementById('organismDirectResults').innerHTML = '';
     document.getElementById('organism').value = '';
     document.getElementById('taxid').value = '';
+
+    if (selectedKingdom) {
+        document.getElementById('kingdomContainer').style.display = 'none';
+        document.getElementById('speciesSection').style.display = 'block';
+        document.getElementById('speciesSearch').value = '';
+        await loadSpecies(selectedKingdom, '');
+        document.getElementById('speciesSearch').focus();
+    } else {
+        renderKingdoms(kingdomOptions);
+        document.getElementById('speciesSection').style.display = 'none';
+        document.getElementById('kingdomContainer').style.display = 'flex';
+    }
 }
 
 async function searchOrganismDirect(query) {

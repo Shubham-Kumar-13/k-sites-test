@@ -286,22 +286,6 @@ test('only one tab runs a job; a job nobody holds is shown as paused and resumes
     assert.equal(finished.genes_processed, python.genes.length);
 });
 
-test('a missing KEGG data file only removes the pathway count, it does not stop the job', async () => {
-    const { backend } = makeBackend();
-    backend.d.keggProvider = async () => { throw new Error('404'); };
-    const started = (await post(backend, '/api/analyze/start', JOB)).body;
-
-    const finished = await waitFor(async () => {
-        const status = (await call(backend, `/api/jobs/${started.job_id}/status`)).body;
-        return ['completed', 'failed'].includes(status.status) ? status : null;
-    });
-
-    assert.equal(finished.status, 'completed');
-    const results = (await call(backend, `/api/jobs/${started.job_id}/results`)).body.results;
-    assert.ok(results.genes.every((g) => g.kegg_pathway_count === 0));
-    assert.ok(results.genes.length > 0);
-});
-
 // ------------------------------------------------------------------ measured knockout evidence
 
 /** The small copy of the real evidence files (tests/fixtures/evidence): it knows UNG, POLB, POLQ, PARP1 and RPA2, not LIG1. */

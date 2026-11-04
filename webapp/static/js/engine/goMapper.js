@@ -181,7 +181,11 @@ export async function getGenesForGoTermWithCoverage(http, goTerm, taxid, evidenc
         throw new Error(`Invalid GO term format: ${goTerm}. Expected format: GO:0000000`);
     }
 
-    const first = await fetchQuickGoPage(http, goTerm, taxid, 1);
+    let first;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        first = await fetchQuickGoPage(http, goTerm, taxid, 1);
+        if (first.results.length > 0 || first.total > 0) break;
+    }
     if (first.results.length === 0 && first.total === 0) {
         return { genes: [], coverage: coverageInfo(0, 0, maxAnnotations) };
     }

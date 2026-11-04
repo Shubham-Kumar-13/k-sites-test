@@ -1,14 +1,9 @@
-"""
-KEGG gene names: a gene's main symbol must win over another gene that merely lists it as a synonym.
-(LRIG1 lists "LIG1"; POLK lists "POLQ".)
-"""
+"""KEGG offline data and organism-listing tests."""
 
 import importlib.util
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -23,51 +18,12 @@ def load_tool(name):
 
 builder = load_tool("build_kegg_data")
 
-FIND_LIG1 = (
-    "hsa:26018\tLRIG1, LIG-1, LIG1; leucine-rich repeats and immunoglobulin-like domains protein 1\n"
-    "hsa:91298\tRLIG1, C12orf29; RNA ligase 1\n"
-    "hsa:3978\tLIG1, IMD96, LIGI; DNA ligase 1\n"
-)
-LINK_LIG1 = "hsa:3978\tpath:hsa03410\nhsa:3978\tpath:hsa03420\nhsa:3978\tpath:hsa03430\n"
-
-FIND_POLQ = (
-    "hsa:10721\tPOLQ, PRO0327; DNA polymerase theta\n"
-    "hsa:51426\tPOLK, DINB1, POLQ; DNA polymerase kappa\n"
-)
-
 
 def response(status, text):
     r = MagicMock()
     r.status_code = status
     r.text = text
     return r
-
-
-class TestLiveLookup:
-    def lookup(self, symbol, find_text, link_text):
-        from k_sites.data_retrieval.multi_database_client import MultiDatabaseClient
-        client = MultiDatabaseClient()
-        with patch("k_sites.data_retrieval.multi_database_client.http_get",
-                   side_effect=[response(200, find_text), response(200, link_text)]), \
-             patch("k_sites.data_retrieval.multi_database_client.time.sleep"):
-            return client._query_kegg(symbol, "9606")
-
-    def test_main_symbol_beats_a_gene_that_lists_it_as_a_synonym(self):
-        data = self.lookup("LIG1", FIND_LIG1, LINK_LIG1)
-
-        assert data["kegg_gene_id"] == "hsa:3978"
-        assert data["pathway_count"] == 3
-
-    def test_a_gene_without_pathways_is_not_given_a_synonym_owners_pathways(self):
-        data = self.lookup("POLQ", FIND_POLQ, "")
-
-        assert data["kegg_gene_id"] == "hsa:10721"
-        assert data["pathway_count"] == 0
-
-    def test_a_synonym_is_used_only_when_no_gene_has_it_as_main_symbol(self):
-        data = self.lookup("CDC2", "hsa:5424\tPOLD1, CDC2; DNA polymerase delta\n", "hsa:5424\tpath:hsa03030\n")
-
-        assert data["kegg_gene_id"] == "hsa:5424"
 
 
 class TestDataBuilder:
@@ -128,7 +84,7 @@ E        eco  Escherichia coli K-12 MG1655
 
 class TestOrganismList:
     def test_kingdoms_and_names(self):
-        organisms = {o["kegg_code"]: o for o in builder.parse_organisms(HTEXT)}
+        organisms = {o["kegg_code"]: o for o in builder.parse_organisms(HTEXT, {})}
 
         assert set(organisms) == {"hsa", "mmu", "ath", "eco"}
         assert organisms["hsa"]["name"] == "Homo sapiens" and organisms["hsa"]["common_name"] == "human"

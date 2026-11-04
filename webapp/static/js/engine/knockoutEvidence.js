@@ -4,9 +4,8 @@
  *
  * `assessGene` returns a plain object with up to four parts:
  *   organism    knockout of the whole organism: lethal / subviable / viable, stage, number of knockout lines
- *               (direct for mouse, yeast, zebrafish, fly and worm; read from the mouse ortholog for human and rat, and
- *               for the genes of zebrafish, fly and worm that have no measurement of their own)
- *   cells       how often losing the gene kills a human cancer cell line (DepMap CRISPR screens)
+ *               (direct where a community database measures it; otherwise read from the mouse ortholog when available)
+ *   cells       how often losing the gene kills a human cancer cell line (DepMap or Project Score CRISPR screens)
  *   constraint  how rarely loss-of-function variants are seen in people (gnomAD)
  *   expression  how many human tissues express the gene, and which most (GTEx)
  *   paralogs    the closest paralogs, which may take over the gene's work and hide the effect of a knockout (Ensembl)
@@ -23,10 +22,14 @@ export const TAU_ENRICHED = 0.5;
 export const CLOSE_PARALOG_IDENTITY = 40;
 export const FORMAT_VERSION = 1;
 
-const SPECIES_NOUN = { 10090: 'mice', 10116: 'rats', 9606: 'humans', 559292: 'yeast', 7955: 'zebrafish', 7227: 'flies', 6239: 'worms' };
-const SOURCE_OF_LETTER = { M: 'mgi', I: 'impc', S: 'sgd', Z: 'zfin', F: 'flybase', W: 'wormbase' };
+const SPECIES_NOUN = { 10090: 'mice', 10116: 'rats', 9606: 'humans', 559292: 'yeast', 7955: 'zebrafish', 7227: 'flies', 6239: 'worms',
+    3702: 'Arabidopsis', 4896: 'fission yeast', 83333: 'E. coli' };
+const SOURCE_OF_LETTER = { M: 'mgi', I: 'impc', S: 'sgd', Z: 'zfin', F: 'flybase', W: 'wormbase', T: 'thalemine', P: 'pombase' };
+const SOURCE_OF_RECORD = { EC: 'ecoli_core' };
 /** What the counts of knockout lines are counts of: [one, many]. */
-const LINE_NOUN = { 7955: ['mutant line', 'mutant lines'], 7227: ['allele', 'alleles'], 6239: ['allele or RNAi test', 'alleles or RNAi tests'] };
+const LINE_NOUN = { 7955: ['mutant line', 'mutant lines'], 7227: ['allele', 'alleles'], 6239: ['allele or RNAi test', 'alleles or RNAi tests'],
+    3702: ['curated phenotype category', 'curated phenotype categories'], 4896: ['deletion record', 'deletion records'],
+    83333: ['curated essentiality record', 'curated essentiality records'] };
 const CALL_OF_LETTER = { L: 'LETHAL', S: 'SUBVIABLE', V: 'VIABLE' };
 const TAXID_ALIASES = { 4932: '559292' };
 
@@ -150,7 +153,8 @@ function organismPart(index, taxid, record) {
     part.mixed = !!base.x;
     part.stage = base.s ?? null;
     part.stage_text = part.stage ? ((index.stages || {})[part.stage] ?? null) : null;
-    part.sources = [...(base.src || '')].filter((c) => SOURCE_OF_LETTER[c]).map((c) => SOURCE_OF_LETTER[c]);
+    part.sources = SOURCE_OF_RECORD[base.src] ? [SOURCE_OF_RECORD[base.src]]
+        : [...(base.src || '')].filter((c) => SOURCE_OF_LETTER[c]).map((c) => SOURCE_OF_LETTER[c]);
     if (basis === 'ortholog') part.sources.push('alliance');
     part.mgi_id = base.id ?? null;
     part.references = [...(base.pm || [])];
@@ -168,7 +172,7 @@ function organismPart(index, taxid, record) {
     else where = `${noun} (mouse ortholog ${part.ortholog.symbol}, ${part.ortholog.relation})`;
     const stage = part.stage && part.stage !== 'U' ? ` (${part.stage_text})` : '';
     const total = lethal + subviable + viable;
-    const yeast = speciesKey === '559292';
+    const yeast = speciesKey === '559292' || speciesKey === '4896';
     const subject = yeast ? 'Deletion' : 'Knockout';
     const lethalWord = yeast ? 'inviable' : 'lethal';
     const linesTaxid = basis === 'direct' ? taxid : '';
@@ -198,6 +202,7 @@ function cellsPart(record) {
     const [flag, percent, lines] = record.c;
     part.percent = percent;
     part.lines = lines;
+    part.source = record.cs ?? 'depmap';
     part.common_essential = flag === 'C';
     if (percent === null || percent === undefined) return part;
     const count = Number(lines).toLocaleString('en-US');
@@ -296,7 +301,7 @@ function paralogsPart(record) {
 function sourcesUsed(index, organism, cells, constraint, expression, paralogs, estimate) {
     const wanted = [...organism.sources];
     if (estimate) wanted.push('mgi', 'impc', 'depmap', 'gnomad', 'gtex');
-    if (cells.call !== 'UNKNOWN') wanted.push('depmap');
+    if (cells.call !== 'UNKNOWN') wanted.push(cells.source);
     if (constraint) wanted.push('gnomad');
     if (expression) wanted.push('gtex');
     if (paralogs) wanted.push('ensembl');
