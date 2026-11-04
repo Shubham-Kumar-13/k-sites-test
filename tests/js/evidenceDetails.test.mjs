@@ -71,6 +71,19 @@ test('expanding details loads the API record once', async () => {
     assert.ok(container.innerHTML.includes('SALK_052897'));
 });
 
+test('lookup failure explanation is collapsed behind a question mark', () => {
+    const { context, document } = setup();
+    context.genes = [{ symbol: 'Pv_tr_11548.t1', reasons: ['No Biological Process annotations found'], lookup_failed: false }];
+
+    vm.runInContext('renderInsufficientData(genes)', context);
+
+    const html = document.getElementById('genesContainer').innerHTML;
+    assert.ok(html.includes('<details'));
+    assert.ok(html.includes('aria-label="Explain lookup failed"'));
+    assert.ok(!html.includes('<details open'));
+    assert.ok(!html.includes('These genes are not ranked and have no safety level. "Lookup failed"'));
+});
+
 test('mouse observations render genotype, allele, background and IMPC metadata', () => {
     const { context } = setup();
     context.payload = {

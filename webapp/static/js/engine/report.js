@@ -289,9 +289,8 @@ export function htmlReport(results) {
     const notScoredSection = notScored.length ? `
         <div class="section">
             <h2 class="section-title">Genes Not Scored (Insufficient Data)</h2>
-            <p style="margin-bottom:15px;color:var(--muted)">These genes could not be assessed, so they are not ranked and have no safety level.
-            "Lookup failed" means a database could not be reached; the gene may be fine on retry.</p>
-            <table><thead><tr><th>Gene Symbol</th><th>Reason</th><th>Lookup Failed</th></tr></thead><tbody>
+            <p style="margin-bottom:15px;color:var(--muted)">These genes could not be assessed, so they are not ranked and have no safety level.</p>
+            <table><thead><tr><th>Gene Symbol</th><th>Reason</th><th>Lookup Failed <details class="d-inline-block"><summary class="text-primary cursor-pointer" aria-label="Explain lookup failed">?</summary><p class="small text-muted mb-0">"Lookup failed" means a database could not be reached; the gene may be fine on retry.</p></details></th></tr></thead><tbody>
             ${notScored.map((g) => `<tr><td><strong>${escapeHtml(g.symbol)}</strong></td><td>${escapeHtml((g.reasons || []).join('; ') || 'No data')}</td><td>${g.lookup_failed ? 'Yes' : 'No'}</td></tr>`).join('\n')}
             </tbody></table>
         </div>` : '';

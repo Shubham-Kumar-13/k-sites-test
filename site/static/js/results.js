@@ -533,9 +533,9 @@ function renderInsufficientData(genes) {
     container.insertAdjacentHTML('beforeend', `
         <div class="alert alert-warning mt-4">
             <h6><i class="fas fa-exclamation-triangle me-2"></i>${genes.length} gene(s) could not be scored (insufficient data)</h6>
-            <p class="small mb-2">These genes are not ranked and have no safety level. "Lookup failed" means a database could not be reached, so a retry may help.</p>
+            <p class="small mb-2">These genes are not ranked and have no safety level.</p>
             <table class="table table-sm mb-0">
-                <thead><tr><th>Gene</th><th>Reason</th><th>Lookup failed</th></tr></thead>
+                <thead><tr><th>Gene</th><th>Reason</th><th>Lookup failed <details class="d-inline-block"><summary class="text-primary cursor-pointer" aria-label="Explain lookup failed">?</summary><p class="small text-muted mb-0">"Lookup failed" means a database could not be reached, so a retry may help.</p></details></th></tr></thead>
                 <tbody>${rows}</tbody>
             </table>
         </div>

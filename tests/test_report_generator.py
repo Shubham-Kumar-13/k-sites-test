@@ -90,3 +90,11 @@ class TestHtmlReport:
 
         csv_text = (tmp_path / "report_comprehensive.csv").read_text(encoding="utf-8")
         assert "# WARNING: Only 39% of annotations were read." in csv_text
+
+    def test_lookup_failure_explanation_is_collapsed(self, tmp_path):
+        data = self.base(insufficient_data_genes=[{"symbol": "X", "reasons": [], "lookup_failed": False}])
+        html_text = self.render(tmp_path, data)
+
+        assert '<details' in html_text
+        assert 'aria-label="Explain lookup failed"' in html_text
+        assert '<details open' not in html_text

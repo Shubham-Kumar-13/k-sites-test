@@ -879,11 +879,10 @@ def _generate_report_html(
             <h2 class="section-title">⚠️ Genes Not Scored (Insufficient Data)</h2>
             <p style="margin-bottom: 15px; color: var(--text-light);">
                 These genes could not be assessed, so they are not ranked and no safety level is given.
-                "Lookup failed" means a database could not be reached; the gene may be fine on retry.
             </p>
             <table>
                 <thead>
-                    <tr><th>Gene Symbol</th><th>Reason</th><th>Lookup Failed</th></tr>
+                    <tr><th>Gene Symbol</th><th>Reason</th><th>Lookup Failed <details class="d-inline-block"><summary class="text-primary cursor-pointer" aria-label="Explain lookup failed">?</summary><p class="small text-muted mb-0">"Lookup failed" means a database could not be reached; the gene may be fine on retry.</p></details></th></tr>
                 </thead>
                 <tbody>
 """
