@@ -487,11 +487,17 @@ function evidencePanel(gene) {
         lines.push(`<div class="mb-1"><span class="badge ${cls} me-1">${esc(estimate.percent)}% lethal (estimate)</span>${esc(estimate.text)}${driver === 'estimate' ? decides : ''}</div>`);
     }
     if (!lines.length) {
-        lines.push(`<div class="mb-1 text-muted">No measured knockout data for this gene. Check MGI, IMPC or DepMap before committing to a knockout.</div>`);
+        lines.push(`<div class="mb-1 text-muted">No direct measured knockout data was found for this gene. The safety verdict is based on annotation evidence and the composite score only.</div>`);
         const phenotype = gene.phenotype_prediction;
         if (phenotype) {
             const sev = typeof phenotype.severity === 'object' ? phenotype.severity.value : phenotype.severity;
-            lines.push(`<div class="mb-1 text-muted">Predicted from abstracts (low reliability): ${esc(sev)}, confidence ${Number(phenotype.confidence_score).toFixed(2)}</div>`);
+            lines.push(`
+                <div class="mb-1 p-2 rounded border border-warning bg-warning bg-opacity-10">
+                    <span class="badge bg-warning text-dark me-1"><i class="fas fa-brain me-1"></i>RAG</span>
+                    <strong>AI phenotype prediction from abstracts:</strong>
+                    ${esc(sev)} phenotype, confidence ${Number(phenotype.confidence_score).toFixed(2)}.
+                    <span class="small text-muted" data-bs-toggle="tooltip" title="RAG scans PubMed abstracts for phenotype keywords. UNKNOWN or low-confidence predictions should not override measured knockout evidence."><i class="fas fa-info-circle"></i></span>
+                </div>`);
         }
     }
     if (evidence && evidence.constraint) lines.push(`<div class="text-muted">${esc(evidence.constraint.text)}</div>`);
