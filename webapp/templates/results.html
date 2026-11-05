@@ -172,6 +172,11 @@
         <a href="/" class="btn btn-success">
             <i class="fas fa-plus me-2"></i>New Analysis
         </a>
+        {% set rerun_databases = job.selected_databases|join(',') if job.selected_databases else 'quickgo' %}
+        <a id="rerunAnalysisButton" class="btn btn-warning"
+           href="/?rerun=1&amp;taxid={{ job.taxid|urlencode }}&amp;organism={{ job.organism|urlencode }}&amp;go_term={{ job.go_term|urlencode }}&amp;go_term_name={{ (job.go_term_name or '')|urlencode }}&amp;max_genes={{ job.max_genes }}&amp;max_pleiotropy={{ job.max_pleiotropy }}&amp;evidence_filter={{ job.evidence_filter|urlencode }}&amp;knockout_context={{ (job.knockout_context or 'auto')|urlencode }}&amp;predict_phenotypes={{ 'true' if job.predict_phenotypes else 'false' }}&amp;databases={{ rerun_databases|urlencode }}">
+            <i class="fas fa-redo me-2"></i>Rerun Analysis
+        </a>
     </div>
     
     <!-- Parameters Summary -->

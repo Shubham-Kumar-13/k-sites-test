@@ -284,9 +284,31 @@ async function loadResults(jobId) {
         renderWarnings(resultsData.warnings);
         renderSummary(resultsData);
         renderPotentialCandidates(resultsData);
+        updateRerunLink();
         
     } catch (error) {
         console.error('Error loading results:', error);
+    }
+}
+
+function updateRerunLink() {
+    if (!currentJob) return;
+    const params = new URLSearchParams();
+    params.set('rerun', '1');
+    params.set('taxid', currentJob.taxid || '');
+    params.set('organism', currentJob.organism || '');
+    params.set('go_term', currentJob.go_term || '');
+    params.set('go_term_name', currentJob.go_term_name || '');
+    params.set('max_genes', String(currentJob.max_genes ?? 10));
+    params.set('max_pleiotropy', String(currentJob.max_pleiotropy ?? 5));
+    params.set('evidence_filter', currentJob.evidence_filter || 'experimental');
+    params.set('knockout_context', currentJob.knockout_context || 'auto');
+    params.set('predict_phenotypes', currentJob.predict_phenotypes ? 'true' : 'false');
+    params.set('databases', (currentJob.selected_databases || ['quickgo']).join(','));
+    const button = document.getElementById('rerunAnalysisButton');
+    if (button) {
+        button.href = (window.KSITES && window.KSITES.page ? window.KSITES.page('home') : 'index.html') + '?' + params.toString();
+        button.style.display = '';
     }
 }
 

@@ -12,7 +12,7 @@ let kingdomOptions = [];
 let geneCountCheckTimeout = null;
 
 // DOM Ready
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     // Hosted mode remembers who is logged in; use that address for the job record
     const emailField = document.getElementById('user_email');
     if (emailField && !emailField.value && window.KSITES && window.KSITES.user().email) {
@@ -21,9 +21,57 @@ document.addEventListener('DOMContentLoaded', function() {
 
     loadKingdoms();
     loadGoCategories();
-    loadDatabases();
+    await loadDatabases();
     initializeEventListeners();
+    applyRerunParameters();
 });
+
+/** If the page was opened with ?rerun=1, pre-fill the form with the previous run's parameters. */
+function applyRerunParameters() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('rerun') !== '1') return;
+
+    const taxid = params.get('taxid');
+    const organism = params.get('organism');
+    if (taxid && organism) {
+        selectOrganism(organism, taxid, '', false);
+    }
+
+    const goTerm = params.get('go_term');
+    const goTermName = params.get('go_term_name');
+    if (goTerm) {
+        selectGoTerm(goTerm, goTermName || '');
+    }
+
+    const maxGenes = params.get('max_genes');
+    if (maxGenes) document.getElementById('max_genes').value = maxGenes;
+
+    const maxPleiotropy = params.get('max_pleiotropy');
+    if (maxPleiotropy) document.getElementById('max_pleiotropy').value = maxPleiotropy;
+
+    const evidenceFilter = params.get('evidence_filter');
+    if (evidenceFilter) document.getElementById('evidence_filter').value = evidenceFilter;
+
+    const knockoutContext = params.get('knockout_context');
+    if (knockoutContext) document.getElementById('knockout_context').value = knockoutContext;
+
+    const predictPhenotypes = params.get('predict_phenotypes') === 'true';
+    const ragCheckbox = document.getElementById('predict_phenotypes');
+    if (ragCheckbox && ragCheckbox.checked !== predictPhenotypes) {
+        ragCheckbox.checked = predictPhenotypes;
+        ragCheckbox.dispatchEvent(new Event('change'));
+    }
+
+    const databases = (params.get('databases') || '').split(',').filter(Boolean);
+    document.querySelectorAll('.database-checkbox').forEach(checkbox => {
+        if (checkbox.disabled) return;
+        const shouldCheck = databases.includes(checkbox.value);
+        if (checkbox.checked !== shouldCheck) {
+            checkbox.checked = shouldCheck;
+            updateDatabaseCard(checkbox);
+        }
+    });
+}
 
 // ============================================================================
 // Kingdom/Organism Selection
