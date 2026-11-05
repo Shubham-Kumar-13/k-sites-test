@@ -161,7 +161,9 @@ class SafetyRecommender:
                 conservation_score,
                 phenotype_confidence
             )
-            evidence_basis = "predicted" if phenotype_prediction else "none"
+            usable_prediction = phenotype_prediction and ((phenotype_risk and phenotype_risk != "UNKNOWN")
+                                                         or (phenotype_severity and phenotype_severity != "UNKNOWN"))
+            evidence_basis = "predicted" if usable_prediction else "none"
 
         # A distant relative (zebrafish, fly, worm, ...) only has its mouse ortholog's knockout as a hint. A hint of
         # lethality raises the level to MODERATE_CONCERN; nothing in it ever makes a gene safe.

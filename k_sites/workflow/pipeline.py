@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # Genes are listed safest first, then by knockout-evidence reliability and composite score.
 SAFETY_TIER = {"SAFE": 0, "CAUTION": 1, "MODERATE_CONCERN": 2, "HIGH_CONCERN": 3, "AVOID": 4}
 EVIDENCE_TIER = {"measured": 0, "essentiality": 1, "ortholog": 2, "distant": 2,
-                 "estimate": 3, "predicted": 3, "none": 4}
+                 "estimate": 3, "predicted": 4, "none": 4}
 
 
 def gene_ranking_key(gene):

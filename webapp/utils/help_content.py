@@ -190,8 +190,8 @@ ANALYTICAL_TERMS = {
                     that is impossible it says "Not verified".</li>
             </ol>
             <p>Genes are listed safest first, then by knockout-evidence reliability (direct knockout/deletion,
-            experimental essentiality, ortholog, estimate or prediction, then no measurement), and finally by composite
-            score. Each gene card says which evidence decided the verdict.</p>
+            experimental essentiality, ortholog, estimates, then unverified predictions or no measurement), and finally
+            by composite score. Each gene card says which evidence decided the verdict.</p>
         """,
         "reference": "K-Sites integrated safety assessment algorithm"
     },

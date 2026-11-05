@@ -536,7 +536,9 @@ export function getSafetyRecommendation({ symbol, pleiotropyScore, phenotypePred
         evidenceBasis = measured.basis;
     } else {
         [safetyLevel, primary, alternatives] = determineSafetyLevel(pleiotropyScore, phenotypeRisk, conservation, phenotypeConfidence);
-        evidenceBasis = phenotypePrediction ? 'predicted' : 'none';
+        const usablePrediction = !!phenotypePrediction && ((phenotypeRisk && phenotypeRisk !== 'UNKNOWN')
+            || (phenotypeSeverity && phenotypeSeverity !== 'UNKNOWN'));
+        evidenceBasis = usablePrediction ? 'predicted' : 'none';
     }
 
     // A distant relative (zebrafish, fly, worm, ...) only has its mouse ortholog's knockout as a hint. A hint of

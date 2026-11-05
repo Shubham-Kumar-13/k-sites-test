@@ -57,3 +57,22 @@ test('final ranking uses safety, then evidence reliability, then composite', () 
 
     assert.deepEqual(genes.sort(compareGeneRankings).map((g) => g.symbol), ['DIRECT', 'INSERTION', 'NONE', 'LETHAL']);
 });
+
+test('UNKNOWN RAG results stay none and predictions receive no evidence-ranking advantage', async () => {
+    const prediction = async (severity, risk) => getSafetyRecommendation({
+        symbol: 'G', pleiotropyScore: 1,
+        phenotypePrediction: { severity, risk_level: risk, confidence_score: 0.1, predicted_phenotypes: [], supporting_evidence: [] },
+        knockoutEvidence: await assessGene(null, '9606', 'G'),
+    });
+    const unknown = await prediction('UNKNOWN', 'UNKNOWN');
+    const mild = await prediction('MILD', 'LOW');
+    const entry = (result) => ({ composite_score: 0.8, safety_recommendation: {
+        safety_level: result.safety_level, evidence_basis: result.evidence_basis,
+    } });
+
+    assert.equal(unknown.evidence_basis, 'none');
+    assert.equal(unknown.safety_level, 'CAUTION');
+    assert.equal(mild.evidence_basis, 'predicted');
+    assert.equal(compareGeneRankings(entry(unknown), entry(mild)), 0);
+    assert.equal((await prediction('MILD', 'UNKNOWN')).evidence_basis, 'predicted');
+});

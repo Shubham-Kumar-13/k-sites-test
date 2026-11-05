@@ -18,7 +18,7 @@ export const DEFAULT_SPECIES_VALIDATION = ['9606', '10090', '10116', '7227', '62
 
 /** Genes are listed safest first, then by knockout-evidence reliability and composite score. */
 export const SAFETY_TIER = { SAFE: 0, CAUTION: 1, MODERATE_CONCERN: 2, HIGH_CONCERN: 3, AVOID: 4 };
-export const EVIDENCE_TIER = { measured: 0, essentiality: 1, ortholog: 2, distant: 2, estimate: 3, predicted: 3, none: 4 };
+export const EVIDENCE_TIER = { measured: 0, essentiality: 1, ortholog: 2, distant: 2, estimate: 3, predicted: 4, none: 4 };
 
 export function compareGeneRankings(a, b) {
     const tier = (gene) => SAFETY_TIER[gene.safety_recommendation.safety_level] ?? Object.keys(SAFETY_TIER).length;
