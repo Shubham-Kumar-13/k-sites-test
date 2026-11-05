@@ -415,11 +415,11 @@
                 <a class="nav-link ms-3 small" href="#knockout_context">What will you knock out?</a>
                 
                 <a class="nav-link ms-3 small" href="#phenotype_prediction">RAG Phenotype Prediction (experimental)</a>
-
+                
                 <a class="nav-link ms-3 small" href="#database_selection">Database Selection</a>
-
+                
                 <a class="nav-link ms-3 small" href="#potential_candidates">Potential Candidates</a>
-
+                
                 <a class="nav-link ms-3 small" href="#conservation_score">Cross-Species Conservation</a>
                 
                 <a class="nav-link" href="#faq">FAQ</a>
@@ -1191,92 +1191,97 @@
             of 60 mouse genes with known outcomes: it recognised 7 of 30 lethal genes, wrongly called 4 of 30 viable
             genes lethal, and gave no answer for two thirds (see the <a href="validation.html">Validation page</a>).
             Treat any prediction as a hint to read the papers, not as a result.</p>
-
+        
                     </div>
+                    
                     <div class="mt-3 text-muted small">
                         <i class="fas fa-book me-1"></i>Reference: RAG-based NLP pipeline using PubMed; optional hosted LLM fallback (Kimi, OpenAI, Anthropic, Qwen, DeepSeek, Grok)
                     </div>
                 </div>
             </div>
-
+            
             <div id="database_selection" class="card term-card mb-4">
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-3">
                         <i class="fas fa-database fa-lg text-primary me-3"></i>
                         <h4 class="card-title mb-0">Database Selection</h4>
                     </div>
-
+                    
                     <p class="lead">Choose which biological databases contribute annotations to the pleiotropy score</p>
-
+                    
                     <div class="mt-4">
-                        <p><strong>QuickGO</strong> is mandatory and is always queried. You can additionally select any
-                        combination of:</p>
-                        <ul>
-                            <li><strong>UniProt</strong> — curated protein function and GO annotations</li>
-                            <li><strong>NCBI Entrez (Gene)</strong> — gene-specific GO annotations</li>
-                            <li><strong>Alliance of Genome Resources</strong> — integrated model-organism gene data</li>
-                            <li><strong>MyGene.info</strong> — aggregations of several gene-centric sources</li>
-                            <li><strong>Ensembl</strong> — gene annotation and orthology-linked GO terms</li>
-                        </ul>
+                        
+            <p><strong>QuickGO</strong> is mandatory and is always queried. You can additionally select any
+            combination of:</p>
+            <ul>
+                <li><strong>UniProt</strong> — curated protein function and GO annotations</li>
+                <li><strong>NCBI Entrez (Gene)</strong> — gene-specific GO annotations</li>
+                <li><strong>Alliance of Genome Resources</strong> — integrated model-organism gene data</li>
+                <li><strong>MyGene.info</strong> — aggregations of several gene-centric sources</li>
+                <li><strong>Ensembl</strong> — gene annotation and orthology-linked GO terms</li>
+            </ul>
 
-                        <h6>How it affects the result:</h6>
-                        <p>More databases usually find more Biological Process terms for a gene, which raises the
-                        <a href="#pleiotropy_score">pleiotropy score</a> and can change which genes pass the max-pleiotropy
-                        filter. It can also improve the <a href="#evidence_quality">evidence quality</a> score by adding
-                        experimentally supported annotations. Each extra source adds query time.</p>
+            <h6>How it affects the result:</h6>
+            <p>More databases usually find more Biological Process terms for a gene, which raises the
+            <a href="#pleiotropy_score">pleiotropy score</a> and can change which genes pass the max-pleiotropy
+            filter. It can also improve the <a href="#evidence_quality">evidence quality</a> score by adding
+            experimentally supported annotations. Each extra source adds query time.</p>
 
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i><strong>Tip:</strong> Selecting more databases increases
-                            the pleiotropy score and search quality but takes more time. For a first quick look, use the default;
-                            for a comprehensive search, select all sources.
-                        </div>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i><strong>Tip:</strong> Selecting more databases increases
+                the pleiotropy score and search quality but takes more time. For a first quick look, use the default;
+                for a comprehensive search, select all sources.
+            </div>
+        
                     </div>
-
+                    
                     <div class="mt-3 text-muted small">
                         <i class="fas fa-book me-1"></i>Reference: QuickGO, UniProt, NCBI Entrez, Alliance of Genome Resources, MyGene.info, Ensembl
                     </div>
                 </div>
             </div>
-
+            
             <div id="potential_candidates" class="card term-card mb-4">
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-3">
                         <i class="fas fa-lightbulb fa-lg text-primary me-3"></i>
                         <h4 class="card-title mb-0">Potential Candidates</h4>
                     </div>
-
+                    
                     <p class="lead">Unverified genes that still score well and may be worth testing</p>
-
+                    
                     <div class="mt-4">
-                        <p>Next to the <strong>Gene Results</strong> and <strong>Summary</strong> tabs you may see a
-                        <strong>Potential Candidates</strong> button. It appears only when at least one unverified gene
-                        (no measured knockout, no estimate, and no usable RAG prediction) has a higher composite score than
-                        the best experimentally supported candidate in the main list.</p>
+                        
+            <p>Next to the <strong>Gene Results</strong> and <strong>Summary</strong> tabs you may see a
+            <strong>Potential Candidates</strong> button. It appears only when at least one unverified gene
+            (no measured knockout, no estimate, and no usable RAG prediction) has a higher composite score than
+            the best experimentally supported candidate in the main list.</p>
 
-                        <h6>What it shows:</h6>
-                        <p>Up to five genes with the highest composite scores among those whose evidence basis is
-                        <strong>none</strong> or <strong>predicted</strong>. These are not ranked above measured genes;
-                        they are simply highlighted as possible targets to consider if the top-ranked measured genes are
-                        unsuitable.</p>
+            <h6>What it shows:</h6>
+            <p>Up to five genes with the highest composite scores among those whose evidence basis is
+            <strong>none</strong> or <strong>predicted</strong>. These are not ranked above measured genes;
+            they are simply highlighted as possible targets to consider if the top-ranked measured genes are
+            unsuitable.</p>
 
-                        <h6>How to read it:</h6>
-                        <ul>
-                            <li>These genes have <strong>no direct knockout evidence</strong> in the database.</li>
-                            <li>Their high composite score comes from specificity, annotation quality, literature support
-                                and conservation only.</li>
-                            <li>They are suggestions for further reading, not validated safe knockouts.</li>
-                        </ul>
+            <h6>How to read it:</h6>
+            <ul>
+                <li>These genes have <strong>no direct knockout evidence</strong> in the database.</li>
+                <li>Their high composite score comes from specificity, annotation quality, literature support
+                    and conservation only.</li>
+                <li>They are suggestions for further reading, not validated safe knockouts.</li>
+            </ul>
 
-                        <p>If no unverified gene outscores the best supported candidate, the tab shows
-                        "No unverified genes outscored the best experimentally supported candidate".</p>
+            <p>If no unverified gene outscores the best supported candidate, the tab shows
+            "No unverified genes outscored the best experimentally supported candidate".</p>
+        
                     </div>
-
+                    
                     <div class="mt-3 text-muted small">
                         <i class="fas fa-book me-1"></i>Reference: Composite score tie-breaker for unmeasured genes
                     </div>
                 </div>
             </div>
-
+            
             <div id="conservation_score" class="card term-card mb-4">
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-3">
@@ -1366,51 +1371,34 @@
             
             <div class="faq-item">
                 <h5 class="text-primary">How long does an analysis take?</h5>
-                <p>Typical runtime is 2-5 minutes for 5-10 genes using the default database. Factors affecting speed:
-                number of genes, how many databases you selected (each extra source adds queries), phenotype prediction
-                (adds ~1 min/gene), and database response times.</p>
+                <p>Typical runtime is 2-5 minutes for 5-10 genes using the default database. Factors affecting speed: number of genes, how many databases you selected (each extra source adds queries), phenotype prediction (adds ~1 min/gene), and database response times.</p>
             </div>
-
+            
             <div class="faq-item">
                 <h5 class="text-primary">How do the database selection options work?</h5>
-                <p><strong>QuickGO is mandatory</strong> and always queried. You can toggle the other databases
-                (UniProt, NCBI Entrez, Alliance of Genome Resources, MyGene.info, Ensembl) on or off. More databases
-                can raise the pleiotropy score and improve annotation coverage, but each extra source makes the analysis
-                slower. The disclaimer below the database cards reminds you of this trade-off.</p>
+                <p>QuickGO is mandatory and always queried. You can toggle the other databases (UniProt, NCBI Entrez, Alliance of Genome Resources, MyGene.info, Ensembl) on or off. More databases can raise the pleiotropy score and improve annotation coverage, but each extra source makes the analysis slower. The disclaimer below the database cards reminds you of this trade-off.</p>
             </div>
-
+            
             <div class="faq-item">
                 <h5 class="text-primary">What is the Potential Candidates tab?</h5>
-                <p>It is a separate button next to "Gene Results" and "Summary". It appears only when unverified genes
-                (no measured knockout, no estimate, no usable RAG prediction) have a higher composite score than the best
-                experimentally supported candidate. It highlights up to five such genes as possible targets for further
-                reading, without changing the main ranking.</p>
+                <p>It is a separate button next to &#39;Gene Results&#39; and &#39;Summary&#39;. It appears only when unverified genes (no measured knockout, no estimate, no usable RAG prediction) have a higher composite score than the best experimentally supported candidate. It highlights up to five such genes as possible targets for further reading, without changing the main ranking.</p>
             </div>
-
+            
             <div class="faq-item">
                 <h5 class="text-primary">Why does enabling RAG with an API key not make the analysis faster?</h5>
-                <p>The API key swaps the free browser keyword model for a hosted language model. Both still have to
-                search PubMed, retrieve abstracts and process them. The hosted model is usually slower per gene but can
-                give more reliable severity calls because it reads context. RAG itself is the slowest part of the run;
-                the key changes accuracy, not speed.</p>
+                <p>The API key swaps the free browser keyword model for a hosted language model. Both still have to search PubMed, retrieve abstracts and process them. The hosted model is usually slower per gene but can give more reliable severity calls because it reads context. RAG itself is the slowest part of the run; the key changes accuracy, not speed.</p>
             </div>
-
+            
             <div class="faq-item">
                 <h5 class="text-primary">Why is a gene ranked first even though it has no measured knockout data?</h5>
-                <p>Genes are sorted first by safety level, then by evidence tier, then by composite score. An unverified
-                gene with low pleiotropy can be marked SAFE (capped at CAUTION) and therefore appear above genes with
-                measured lethal knockouts, which are placed in HIGH_CONCERN or AVOID. This is why the
-                <a href="#potential_candidates">Potential Candidates</a> tab and the evidence badges are shown:
-                they separate "looks safe on paper" from "has been tested".</p>
+                <p>Genes are sorted first by safety level, then by evidence tier, then by composite score. An unverified gene with low pleiotropy can be marked SAFE (capped at CAUTION) and therefore appear above genes with measured lethal knockouts, which are placed in HIGH_CONCERN or AVOID. This is why the Potential Candidates tab and the evidence badges are shown: they separate &#39;looks safe on paper&#39; from &#39;has been tested&#39;.</p>
             </div>
-
+            
             <div class="faq-item">
-                <h5 class="text-primary">What does "Lookup failed" mean?</h5>
-                <p>"Lookup failed" means one or more database queries could not be completed for that gene. Hover over
-                or click the <i class="fas fa-question-circle"></i> icon next to the message to see whether the failure
-                was a network/retry issue or simply that no Biological Process annotations were found.</p>
+                <h5 class="text-primary">What does &#39;Lookup failed&#39; mean?</h5>
+                <p>&#39;Lookup failed&#39; means one or more database queries could not be completed for that gene. Hover over or click the question-mark icon next to the message to see whether the failure was a network/retry issue or simply that no Biological Process annotations were found.</p>
             </div>
-
+            
         </section>
     </div>
 </div>

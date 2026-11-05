@@ -46,6 +46,7 @@
             <i class="fas fa-dna"></i>
             <h2>K-Sites</h2>
             <p class="mb-1">Suite for Knock-out/down Studies</p>
+            <p class="small text-muted">Safe Gene Selection for Knockout Studies</p>
         </div>
 
         <div id="serverStatus" class="alert alert-info small py-2">
@@ -123,10 +124,7 @@
             try {
                 await window.KSITES.ensureAwake();
                 const response = await fetch(window.KSITES.apiBase + '/api/auth/check', {
-                    headers: {
-                        'X-KSites-Token': token,
-                        'ngrok-skip-browser-warning': '1'
-                    }
+                    headers: { 'X-KSites-Token': token }
                 });
                 if (response.status === 401) {
                     throw new Error('That access code was not accepted.');

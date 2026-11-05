@@ -307,7 +307,7 @@ function updateRerunLink() {
     params.set('databases', (currentJob.selected_databases || ['quickgo']).join(','));
     const button = document.getElementById('rerunAnalysisButton');
     if (button) {
-        button.href = (window.KSITES && window.KSITES.page ? window.KSITES.page('home') : 'index.html') + '?' + params.toString();
+        button.href = (window.KSITES && window.KSITES.page ? window.KSITES.page('home') : '/') + '?' + params.toString();
         button.style.display = '';
     }
 }
