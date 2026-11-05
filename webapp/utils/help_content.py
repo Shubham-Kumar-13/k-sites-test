@@ -74,9 +74,9 @@ ANALYTICAL_TERMS = {
         "icon": "fa-star",
         "short_description": "Weighted combination of specificity, evidence quality, literature support and conservation",
         "detailed_explanation": """
-            <p>The <strong>Composite Score</strong> combines four measures into one number between 0 and 1. It orders the
-            genes that have the same safety level; the safety level itself comes from the
-            <a href="#knockout_evidence">measured knockout evidence</a>.</p>
+            <p>The <strong>Composite Score</strong> combines four measures into one number between 0 and 1. It breaks ties
+            between genes that have the same safety level and knockout-evidence tier. The safety level and evidence tier
+            come from the <a href="#knockout_evidence">measured knockout evidence</a>, not from this score.</p>
 
             <h6>Formula:</h6>
             <div class="alert alert-light">
@@ -189,8 +189,9 @@ ANALYTICAL_TERMS = {
                     and it is <strong>never better than CAUTION</strong>. The report says "Estimated from data". Where even
                     that is impossible it says "Not verified".</li>
             </ol>
-            <p>Genes are listed safest first, then by composite score. Each gene card says which measurement decided
-            the verdict.</p>
+            <p>Genes are listed safest first, then by knockout-evidence reliability (direct knockout/deletion,
+            experimental essentiality, ortholog, estimate or prediction, then no measurement), and finally by composite
+            score. Each gene card says which evidence decided the verdict.</p>
         """,
         "reference": "K-Sites integrated safety assessment algorithm"
     },
@@ -222,7 +223,8 @@ ANALYTICAL_TERMS = {
             <h6>How to read the label on each gene:</h6>
             <div class="table-responsive">
                 <table class="table table-sm">
-                    <tr><td><strong>Measured</strong></td><td>the organism or the cells were tested for this gene</td></tr>
+                    <tr><td><strong>Direct knockout/deletion</strong></td><td>the gene was knocked out or deleted in the organism</td></tr>
+                    <tr><td><strong>Experimental essentiality (not a clean knockout)</strong></td><td>a TraDIS/Tn-seq insertion screen or a cultured-cell CRISPR screen measured essentiality; insertion tolerance does not prove clean-deletion viability</td></tr>
                     <tr><td><strong>Measured in the mouse ortholog</strong></td><td>the mouse gene was tested; the result is carried over to the human or rat gene</td></tr>
                     <tr><td><strong>Estimated from data (not measured)</strong></td><td>no knockout was measured; the chance that it is lethal in mice is estimated from the human ortholog's cell-line, population and expression data (a model tested on genes with known outcomes: see the <a href="/validation">Validation page</a>)</td></tr>
                     <tr><td><strong>Predicted from the literature</strong></td><td>nothing was measured and no estimate exists; a keyword model read abstracts (experimental, see below)</td></tr>

@@ -5,8 +5,8 @@ What is known, from measurements, about losing one gene.
 four parts:
 
     organism    the knockout of the whole organism: lethal / subviable / viable, at which stage, in how many lines
-                (direct where a community database measures it; read from the mouse ortholog for human, rat and
-                genes of more distant organisms that have no measurement of their own)
+                (direct for knockout/deletion evidence, essentiality for TraDIS/Tn-seq insertion screens, or read
+                from the mouse ortholog for human, rat and genes of distant organisms without their own measurement)
     cells       how often losing the gene kills a human cancer cell line (DepMap or Project Score CRISPR screens)
     constraint  how rarely loss-of-function variants are seen in people (gnomAD)
     expression  how many human tissues express the gene, and which most (GTEx)
@@ -111,6 +111,10 @@ def _organism_part(index: dict, taxid: str, record: Optional[dict]) -> Dict[str,
                        else [SOURCE_OF_LETTER[c] for c in letters if c in SOURCE_OF_LETTER])
     if basis == "ortholog":
         part["sources"].append("alliance")
+    insertion_method = ({"tradis": "TraDIS", "pneumonia_pan_genome": "Tn-seq"}.get(part["sources"][0])
+                        if basis == "direct" and part["sources"] else None)
+    if insertion_method:
+        basis = part["basis"] = "essentiality"
     part["mgi_id"] = base.get("id")
     part["references"] = list(base.get("pm", []))
     names = index.get("systems", [])
@@ -121,7 +125,9 @@ def _organism_part(index: dict, taxid: str, record: Optional[dict]) -> Dict[str,
     part["human_essential_percent"] = base.get("hc")
 
     noun = SPECIES_NOUN.get(species_key, "the model organism")
-    if basis == "direct":
+    if basis == "essentiality":
+        where = part["species"] or noun
+    elif basis == "direct":
         where = noun
     elif part["distant"]:
         where = f"{noun} (mouse ortholog {part['ortholog']['symbol']}, {part['ortholog']['relation']}; a distant relative, so only an indication)"
@@ -130,11 +136,19 @@ def _organism_part(index: dict, taxid: str, record: Optional[dict]) -> Dict[str,
     stage = f" ({part['stage_text']})" if part["stage"] and part["stage"] != "U" else ""
     counts = part["counts"]
     total = lethal + subviable + viable
+    lines_taxid = taxid if basis in ("direct", "essentiality") else ""
+    if insertion_method:
+        outcome = {"LETHAL": "essential", "SUBVIABLE": "reduced viability", "VIABLE": "non-essential"}[part["call"]]
+        text = f"{insertion_method} insertion screen: {outcome} in {where} ({_lines(total, total, lines_taxid)})"
+        text += "; experimental insertion essentiality, not clean whole-gene deletion viability"
+        if part["mixed"]:
+            text += f"; {lethal} essential and {viable} non-essential results across study strains"
+        part["text"] = text
+        return part
     if species_key in ("559292", "4896"):
         subject, lethal_word, viable_word = "Deletion", "inviable", "viable"
     else:
         subject, lethal_word, viable_word = "Knockout", "lethal", "viable"
-    lines_taxid = taxid if basis == "direct" else ""
     if part["call"] == "LETHAL":
         text = f"{subject} is {lethal_word}{stage} in {where}: {_lines(lethal, total, lines_taxid)}"
     elif part["call"] == "SUBVIABLE":

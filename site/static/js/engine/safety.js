@@ -190,14 +190,16 @@ function tissueMitigation(evidence) {
     return `Expression is concentrated in ${expression.top_tissues.slice(0, 2).join(', ')}: a tissue-specific conditional knockout may avoid the lethal effect`;
 }
 
-const organismBasis = (organism) => (organism.basis === 'direct' ? 'measured' : 'ortholog');
+const organismBasis = (organism) => (organism.basis === 'direct' ? 'measured' : organism.basis === 'essentiality' ? 'essentiality' : 'ortholog');
 const round2 = (value) => Math.round(value * 100) / 100;
 
 function organismConfidence(organism) {
     const { lethal, subviable, viable } = organism.counts;
     const total = lethal + subviable + viable;
     let confidence;
-    if (organism.basis === 'direct') {
+    if (organism.basis === 'essentiality') {
+        confidence = organism.mixed ? 0.45 : (total >= 2 ? 0.7 : 0.6);
+    } else if (organism.basis === 'direct') {
         confidence = organism.mixed ? 0.7 : (total >= 2 ? 0.9 : 0.8);
     } else {
         confidence = organism.ortholog.relation !== '1:1' ? 0.55 : (total >= 2 ? 0.75 : 0.7);
@@ -206,9 +208,42 @@ function organismConfidence(organism) {
     return round2(confidence);
 }
 
+function essentialityVerdict(evidence, pleiotropy) {
+    const R = Recommendation;
+    const organism = evidence.organism;
+    const { call, mixed, counts } = organism;
+    const concerns = ['Keep the study strain and conditions with the result; insertion tolerance is not whole-gene deletion viability'];
+    const mitigation = ['Validate the result with a clean targeted gene deletion in your strain and experimental conditions'];
+    let level;
+    let primary;
+    let alternatives;
+    if (mixed) {
+        level = counts.lethal ? SafetyLevel.HIGH_CONCERN : SafetyLevel.CAUTION;
+        primary = counts.lethal ? R.CONDITIONAL_KO : R.VALIDATED_KO;
+        alternatives = [R.CRISPRI, R.VALIDATED_KO];
+        concerns.unshift('Insertion essentiality differs between study strains; do not treat it as universal or as clean knockout viability');
+    } else if (['LETHAL', 'SUBVIABLE'].includes(call)) {
+        level = SafetyLevel.HIGH_CONCERN;
+        primary = R.CONDITIONAL_KO;
+        alternatives = [R.CRISPRI, R.TEMPORAL_CONTROL];
+        concerns.unshift('The insertion screen indicates essentiality under the tested conditions; confirm with a clean targeted deletion');
+    } else {
+        level = SafetyLevel.CAUTION;
+        primary = R.VALIDATED_KO;
+        alternatives = [R.STANDARD_KO];
+        concerns.unshift('Non-essential transposon insertion does not prove that a clean whole-gene deletion is viable');
+    }
+    if (pleiotropy > 5) concerns.push('The gene has many annotated roles, so expect broad phenotypes');
+    const paralog = paralogConcern(evidence);
+    if (paralog) concerns.push(paralog);
+    return { level, primary, alternatives, basis: 'essentiality', justification: [organism.text, ...extraFindings(evidence)],
+        concerns, mitigation, considerations: [], confidence: organismConfidence(organism) };
+}
+
 function organismVerdict(evidence, pleiotropy) {
     const R = Recommendation;
     const organism = evidence.organism;
+    if (organism.basis === 'essentiality') return essentialityVerdict(evidence, pleiotropy);
     const { call, mixed, counts } = organism;
     const yeast = ['559292', '4932'].includes(evidence.taxid);
     const orthologNote = organism.basis === 'ortholog' && organism.ortholog.relation !== '1:1';
@@ -307,7 +342,7 @@ function organismVerdict(evidence, pleiotropy) {
 function organismVerdictFromCells(evidence) {
     const R = Recommendation;
     return {
-        level: SafetyLevel.HIGH_CONCERN, primary: R.CONDITIONAL_KO, alternatives: [R.CRISPRI, R.TEMPORAL_CONTROL], basis: 'measured',
+        level: SafetyLevel.HIGH_CONCERN, primary: R.CONDITIONAL_KO, alternatives: [R.CRISPRI, R.TEMPORAL_CONTROL], basis: 'essentiality',
         justification: [evidence.cells.text],
         concerns: ['The gene is essential in human cells, so a whole-organism knockout is likely lethal'],
         mitigation: ['Use a conditional or inducible allele instead of a complete knockout'],
@@ -371,7 +406,7 @@ function cellsVerdict(evidence, pleiotropy) {
     }
     justification.push(...extraFindings(evidence));
     const confidence = (call === 'ESSENTIAL' && cells.common_essential) || (call === 'NON_ESSENTIAL' && percent < 5) ? 0.9 : 0.75;
-    return { level, primary, alternatives, basis: 'measured', justification, concerns, mitigation, considerations, confidence };
+    return { level, primary, alternatives, basis: 'essentiality', justification, concerns, mitigation, considerations, confidence };
 }
 
 function cellsVerdictFromOrganism(evidence, pleiotropy) {

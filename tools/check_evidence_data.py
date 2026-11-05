@@ -62,9 +62,9 @@ def rule_violations(provider, taxid, genes, context):
         broken = []
         if level == "SAFE" and evidence["organism"]["call"] == "LETHAL" and context == "organism":
             broken.append("a lethal gene rated SAFE")
-        if level == "SAFE" and basis not in ("measured", "ortholog"):
+        if level == "SAFE" and basis not in ("measured", "essentiality", "ortholog"):
             broken.append("SAFE without a measurement")
-        if level == "AVOID" and basis not in ("measured", "ortholog"):
+        if level == "AVOID" and basis not in ("measured", "essentiality", "ortholog"):
             broken.append("AVOID without a measurement")
         for text in broken:
             problems[text] += 1

@@ -32,7 +32,8 @@ const num = (value, digits) => (typeof value === 'number' && Number.isFinite(val
 
 export const CONTEXT_LABELS = { cells: 'cultured cells', organism: 'whole organism' };
 export const BASIS_LABELS = {
-    measured: 'Measured', ortholog: 'Measured in the mouse ortholog', distant: 'Mouse ortholog only (distant relative)',
+    measured: 'Direct knockout/deletion', essentiality: 'Experimental essentiality (not a clean knockout)',
+    ortholog: 'Measured in the mouse ortholog', distant: 'Mouse ortholog only (distant relative)',
     predicted: 'Predicted from the literature', estimate: 'Estimated from data (not measured)', none: 'Not verified',
 };
 export const EVIDENCE_HEADERS = [
@@ -68,7 +69,9 @@ export function evidenceCells(gene) {
             values.Organism_Knockout = organism.call;
             if (organism.stage !== 'U' && organism.stage_text) values.Organism_Knockout_Stage = organism.stage_text;
             values.Organism_Knockout_Lines = `${counts.lethal} lethal, ${counts.subviable} subviable, ${counts.viable} viable`;
-            values.Organism_Knockout_Basis = organism.basis === 'direct' ? 'direct' : `ortholog ${organism.ortholog.symbol} (${organism.ortholog.relation})`;
+            values.Organism_Knockout_Basis = organism.basis === 'direct' ? 'direct'
+                : organism.basis === 'essentiality' ? 'experimental insertion essentiality'
+                : `ortholog ${organism.ortholog.symbol} (${organism.ortholog.relation})`;
             values.Organism_Knockout_Sources = evidence.sources.filter((s) => organism.sources.includes(s.id)).map((s) => s.name).join('; ');
             values.Organism_Phenotype_Systems = organism.systems.join('; ');
             values.Knockout_References = organism.references.map((p) => `PMID:${p}`).join('; ');
@@ -212,7 +215,7 @@ tr:nth-child(even){background:#f8f9fa}
 .bar{height:10px;background:#e9ecef;border-radius:5px;overflow:hidden;width:100px}.bar>div{height:100%;background:#28a745}
 .justification{background:#f8f9fa;padding:8px;border-radius:4px;font-size:.9em;margin-top:5px;border-left:3px solid var(--accent)}
 .basis{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.75em;font-weight:bold;margin-bottom:4px}
-.basis-measured{background:#d4edda;color:#155724}.basis-ortholog{background:#d1ecf1;color:#0c5460}
+.basis-measured{background:#d4edda;color:#155724}.basis-essentiality,.basis-ortholog{background:#d1ecf1;color:#0c5460}
 .basis-predicted,.basis-estimate{background:#fff3cd;color:#856404}.basis-none,.basis-distant{background:#e2e3e5;color:#41464b}
 .evidence-line{font-size:.88em;margin-top:3px}.evidence-refs{font-size:.8em;color:var(--muted);margin-top:3px}
 .sources-list{font-size:.9em;color:var(--muted)}
@@ -228,7 +231,10 @@ export function evidenceHtml(entry) {
     if ((basis === undefined || basis === null) && evidence) {
         // genes left out of the ranking carry no verdict, so the basis is read from the evidence itself
         basis = 'none';
-        if (evidence.has_measured) basis = evidence.organism.basis === 'direct' || evidence.cells.call !== 'UNKNOWN' ? 'measured' : 'ortholog';
+        if (evidence.has_measured) {
+            basis = evidence.organism.basis === 'essentiality' || evidence.cells.call !== 'UNKNOWN' ? 'essentiality'
+                : evidence.organism.basis === 'direct' ? 'measured' : 'ortholog';
+        }
         else if (evidence.organism.call !== 'UNKNOWN' && evidence.organism.distant) basis = 'distant';
         else if (evidence.estimate) basis = 'estimate';
     }

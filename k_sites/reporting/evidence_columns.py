@@ -18,7 +18,8 @@ EXCLUDED_HEADERS = ["Gene_Symbol", "Gene_Description", "Reason", "Detail", "Plei
                     "Organism_Knockout", "Organism_Knockout_Stage", "Cell_Essentiality", "Knockout_Evidence"]
 
 BASIS_LABELS = {
-    "measured": "Measured", "ortholog": "Measured in the mouse ortholog", "distant": "Mouse ortholog only (distant relative)",
+    "measured": "Direct knockout/deletion", "essentiality": "Experimental essentiality (not a clean knockout)",
+    "ortholog": "Measured in the mouse ortholog", "distant": "Mouse ortholog only (distant relative)",
     "predicted": "Predicted from the literature", "estimate": "Estimated from data (not measured)", "none": "Not verified",
 }
 
@@ -31,6 +32,8 @@ def _basis(evidence: Dict[str, Any]) -> str:
     organism = evidence["organism"]
     if organism["basis"] == "direct":
         return "direct"
+    if organism["basis"] == "essentiality":
+        return "experimental insertion essentiality"
     if organism["basis"] == "ortholog":
         return f"ortholog {organism['ortholog']['symbol']} ({organism['ortholog']['relation']})"
     return ""

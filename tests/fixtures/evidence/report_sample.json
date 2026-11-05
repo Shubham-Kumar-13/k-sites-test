@@ -270,7 +270,7 @@
    "evidence_quality": 0.65,
    "experimental_evidence_count": 1,
    "iea_evidence_count": 0,
-   "
+   "kegg_pathway_count": 2,
    "knockout_evidence": {
     "cells": {
      "call": "NON_ESSENTIAL",
@@ -390,7 +390,7 @@
     "alternative_recommendations": [],
     "concerns": [],
     "confidence_score": 0.9,
-    "evidence_basis": "measured",
+    "evidence_basis": "essentiality",
     "experimental_considerations": [
      "Include appropriate controls (wild-type and non-targeting controls)",
      "Plan for phenotypic scoring at multiple developmental stages"
@@ -418,7 +418,7 @@
    "evidence_quality": 0.65,
    "experimental_evidence_count": 1,
    "iea_evidence_count": 0,
-   "
+   "kegg_pathway_count": 2,
    "knockout_evidence": {
     "cells": {
      "call": "NON_ESSENTIAL",
@@ -547,7 +547,7 @@
     "alternative_recommendations": [],
     "concerns": [],
     "confidence_score": 0.9,
-    "evidence_basis": "measured",
+    "evidence_basis": "essentiality",
     "experimental_considerations": [
      "Include appropriate controls (wild-type and non-targeting controls)",
      "Plan for phenotypic scoring at multiple developmental stages"
@@ -575,7 +575,7 @@
    "evidence_quality": 0.65,
    "experimental_evidence_count": 1,
    "iea_evidence_count": 0,
-   "
+   "kegg_pathway_count": 2,
    "knockout_evidence": {
     "cells": {
      "call": "NON_ESSENTIAL",
@@ -708,7 +708,7 @@
      "The knockout is not viable in mice: cultured cells can tolerate it, but a whole-animal knockout cannot be made"
     ],
     "confidence_score": 0.9,
-    "evidence_basis": "measured",
+    "evidence_basis": "essentiality",
     "experimental_considerations": [
      "Include appropriate controls (wild-type and non-targeting controls)",
      "Plan for phenotypic scoring at multiple developmental stages"
@@ -737,7 +737,7 @@
    "evidence_quality": 0.65,
    "experimental_evidence_count": 1,
    "iea_evidence_count": 0,
-   "
+   "kegg_pathway_count": 2,
    "knockout_evidence": {
     "cells": {
      "call": "SELECTIVE",
@@ -863,7 +863,7 @@
      "High pleiotropy may confound phenotype interpretation"
     ],
     "confidence_score": 0.75,
-    "evidence_basis": "measured",
+    "evidence_basis": "essentiality",
     "experimental_considerations": [
      "Include appropriate controls (wild-type and non-targeting controls)",
      "Plan for phenotypic scoring at multiple developmental stages"
@@ -894,7 +894,7 @@
    "evidence_quality": 0.65,
    "experimental_evidence_count": 1,
    "iea_evidence_count": 0,
-   "
+   "kegg_pathway_count": 2,
    "knockout_evidence": {
     "cells": {
      "call": "UNKNOWN",
@@ -986,7 +986,7 @@
    "evidence_quality": 0.65,
    "experimental_evidence_count": 1,
    "iea_evidence_count": 0,
-   "
+   "kegg_pathway_count": 2,
    "knockout_evidence": {
     "cells": {
      "call": "ESSENTIAL",
@@ -1110,7 +1110,7 @@
      "High pleiotropy may confound phenotype interpretation"
     ],
     "confidence_score": 0.9,
-    "evidence_basis": "measured",
+    "evidence_basis": "essentiality",
     "experimental_considerations": [
      "Include a rescue construct to show that the phenotype comes from this gene",
      "Optimize dCas9-KRAB expression levels",
@@ -1149,7 +1149,7 @@
    "evidence_quality": 0.65,
    "experimental_evidence_count": 1,
    "iea_evidence_count": 0,
-   "
+   "kegg_pathway_count": 2,
    "knockout_evidence": {
     "cells": {
      "call": "ESSENTIAL",
@@ -1271,7 +1271,7 @@
      "High pleiotropy may confound phenotype interpretation"
     ],
     "confidence_score": 0.9,
-    "evidence_basis": "measured",
+    "evidence_basis": "essentiality",
     "experimental_considerations": [
      "Include a rescue construct to show that the phenotype comes from this gene",
      "Optimize dCas9-KRAB expression levels",

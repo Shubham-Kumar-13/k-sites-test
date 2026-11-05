@@ -105,3 +105,32 @@ test('mouse observations render genotype, allele, background and IMPC metadata',
     assert.ok(html.includes('CCP_LFO_005_001'));
     assert.ok(html.includes('p=0.0001'));
 });
+
+test('bacterial insertion evidence shows its method and source background, not a direct-knockout label', () => {
+    const { context } = setup();
+    context.gene = { symbol: 'AAAE', safety_recommendation: { evidence_basis: 'essentiality' }, knockout_evidence: {
+        context: 'organism',
+        organism: { call: 'VIABLE', basis: 'essentiality', text: 'TraDIS insertion screen: non-essential',
+            references: [], systems: [], mgi_id: null },
+        cells: { call: 'UNKNOWN' }, estimate: null, constraint: null, expression: null, paralogs: null,
+    } };
+    vm.runInContext("currentJob = { taxid: '573' }", context);
+
+    const panel = vm.runInContext('evidencePanel(gene)', context);
+    assert.ok(panel.includes('Experimental essentiality (not a clean knockout)'));
+    assert.ok(panel.includes('data-taxid="573"'));
+    assert.ok(panel.includes('Detailed source records'));
+
+    context.payload = {
+        version: '2026-11-05', evidence: { call: 'VIABLE', records: [{
+            source: 'tradis', source_record_id: 'KP1', call: 'VIABLE',
+            experiment_type: 'transposon_insertion_essentiality', zygosity: 'haploid', evidence_level: 'direct',
+            genotype: 'Tn5 transposon insertion library', background: 'Klebsiella pneumoniae Ecl8',
+            phenotype: 'non-essential', qualifiers: [], alleles: [], references: [],
+        }] },
+    };
+    const details = vm.runInContext('detailedEvidenceHtml(payload)', context);
+    assert.ok(details.includes('experimental insertion essentiality'));
+    assert.ok(details.includes('Background: Klebsiella pneumoniae Ecl8'));
+    assert.ok(!details.includes('· direct'));
+});

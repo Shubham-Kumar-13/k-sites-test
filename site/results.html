@@ -570,6 +570,11 @@
                         <i class="fas fa-chart-pie me-2"></i>Summary
                     </button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="potential-tab" data-bs-toggle="tab" data-bs-target="#potential" type="button">
+                        <i class="fas fa-lightbulb me-2"></i>Potential Candidates
+                    </button>
+                </li>
             </ul>
         </div>
         <div class="card-body">
@@ -594,6 +599,17 @@
                                 <span class="visually-hidden">Loading...</span>
                             </div>
                             <p>Loading summary...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="potential" role="tabpanel">
+                    <div id="potentialContainer">
+                        <div class="text-center py-5 text-muted">
+                            <div class="spinner-border mb-3" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p>Loading potential candidates...</p>
                         </div>
                     </div>
                 </div>

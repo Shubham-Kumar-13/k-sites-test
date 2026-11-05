@@ -38,6 +38,7 @@ from utils.hierarchical_data import (
     get_kingdoms, get_go_categories
 )
 from utils.help_content import ANALYTICAL_TERMS, METHODOLOGY_SECTIONS, FAQ_ITEMS
+from utils.potential_candidates import select_potential_candidates
 
 # Configure logging
 logging.basicConfig(
@@ -1000,6 +1001,7 @@ def _execute_analysis_job(job_id: str):
                 databases=json.loads(job.selected_databases) if job.selected_databases else None,
                 progress_callback=report_progress
             )
+            pipeline_output['potential_candidates'] = select_potential_candidates(pipeline_output.get('genes', []))
             
             # Update progress during pipeline
             job.current_step = 'Processing results'

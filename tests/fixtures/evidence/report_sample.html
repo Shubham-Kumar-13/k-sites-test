@@ -187,6 +187,7 @@
 
         .basis { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75em; font-weight: bold; margin-bottom: 4px; }
         .basis-measured { background: #d4edda; color: #155724; }
+        .basis-essentiality { background: #d1ecf1; color: #0c5460; }
         .basis-ortholog { background: #d1ecf1; color: #0c5460; }
         .basis-predicted { background: #fff3cd; color: #856404; }
         .basis-estimate { background: #fff3cd; color: #856404; }
@@ -264,7 +265,6 @@
                         <th>Composite Score</th>
                         <th>Safety Level</th>
                         <th>Measured Knockout Evidence</th>
-                        <th></th>
                         <th>Recommendation</th>
                     </tr>
                 </thead>
@@ -283,8 +283,7 @@
                         </td>
                         <td>0.667</td>
                         <td><span class="safety-level safety-safe">Safe</span></td>
-                        <td><span class="basis basis-measured">Measured</span><div class="evidence-line">Knockout is viable in mice (mouse ortholog Smug1, 1:1): 2 of 2 knockout lines</div><div class="evidence-line">Rarely essential: needed in 1.5% of 1,178 human cancer cell lines</div><div class="evidence-refs"><a href="https://pubmed.ncbi.nlm.nih.gov/22447450/">PMID 22447450</a> | <a href="https://www.informatics.jax.org/marker/MGI:1918976">MGI</a></div></td>
-                        <td>2</td>
+                        <td><span class="basis basis-essentiality">Experimental essentiality (not a clean knockout)</span><div class="evidence-line">Knockout is viable in mice (mouse ortholog Smug1, 1:1): 2 of 2 knockout lines</div><div class="evidence-line">Rarely essential: needed in 1.5% of 1,178 human cancer cell lines</div><div class="evidence-refs"><a href="https://pubmed.ncbi.nlm.nih.gov/22447450/">PMID 22447450</a> | <a href="https://www.informatics.jax.org/marker/MGI:1918976">MGI</a></div></td>
                         <td>
                             Standard Knockout
                             <div class="justification-box">Rarely essential: needed in 1.5% of 1,178 human cancer cell lines; Low pleiotropy score (2.6) indicates specific function</div>
@@ -304,8 +303,7 @@
                         </td>
                         <td>0.659</td>
                         <td><span class="safety-level safety-safe">Safe</span></td>
-                        <td><span class="basis basis-measured">Measured</span><div class="evidence-line">Knockout is viable in mice (mouse ortholog Neil2, 1:1): 3 of 3 knockout lines</div><div class="evidence-line">Rarely essential: needed in 0.1% of 1,178 human cancer cell lines</div><div class="evidence-refs"><a href="https://pubmed.ncbi.nlm.nih.gov/26245904/">PMID 26245904</a> | <a href="https://www.informatics.jax.org/marker/MGI:2686058">MGI</a></div></td>
-                        <td>2</td>
+                        <td><span class="basis basis-essentiality">Experimental essentiality (not a clean knockout)</span><div class="evidence-line">Knockout is viable in mice (mouse ortholog Neil2, 1:1): 3 of 3 knockout lines</div><div class="evidence-line">Rarely essential: needed in 0.1% of 1,178 human cancer cell lines</div><div class="evidence-refs"><a href="https://pubmed.ncbi.nlm.nih.gov/26245904/">PMID 26245904</a> | <a href="https://www.informatics.jax.org/marker/MGI:2686058">MGI</a></div></td>
                         <td>
                             Standard Knockout
                             <div class="justification-box">Rarely essential: needed in 0.1% of 1,178 human cancer cell lines; Low pleiotropy score (0.1) indicates specific function</div>
@@ -325,8 +323,7 @@
                         </td>
                         <td>0.614</td>
                         <td><span class="safety-level safety-caution">Caution</span></td>
-                        <td><span class="basis basis-measured">Measured</span><div class="evidence-line">Knockout is lethal (embryonic / prenatal) in mice (mouse ortholog Tdg, 1:1): 3 of 3 knockout lines</div><div class="evidence-line">Rarely essential: needed in 3.7% of 1,178 human cancer cell lines</div><div class="evidence-refs"><a href="https://pubmed.ncbi.nlm.nih.gov/21278727/">PMID 21278727</a> | <a href="https://pubmed.ncbi.nlm.nih.gov/21722948/">PMID 21722948</a> | <a href="https://www.informatics.jax.org/marker/MGI:108247">MGI</a></div></td>
-                        <td>2</td>
+                        <td><span class="basis basis-essentiality">Experimental essentiality (not a clean knockout)</span><div class="evidence-line">Knockout is lethal (embryonic / prenatal) in mice (mouse ortholog Tdg, 1:1): 3 of 3 knockout lines</div><div class="evidence-line">Rarely essential: needed in 3.7% of 1,178 human cancer cell lines</div><div class="evidence-refs"><a href="https://pubmed.ncbi.nlm.nih.gov/21278727/">PMID 21278727</a> | <a href="https://pubmed.ncbi.nlm.nih.gov/21722948/">PMID 21722948</a> | <a href="https://www.informatics.jax.org/marker/MGI:108247">MGI</a></div></td>
                         <td>
                             Standard KO with Validation
                             <div class="justification-box">Rarely essential: needed in 3.7% of 1,178 human cancer cell lines; Knockout is lethal (embryonic / prenatal) in mice (mouse ortholog Tdg, 1:1): 3 of 3 knockout lines; High pleiotropy score (7.0) suggests multiple roles</div>
@@ -346,8 +343,7 @@
                         </td>
                         <td>0.501</td>
                         <td><span class="safety-level safety-caution">Caution</span></td>
-                        <td><span class="basis basis-measured">Measured</span><div class="evidence-line">Knockout is lethal (embryonic / prenatal) in mice (mouse ortholog Xrcc1, 1:1): 1 of 1 knockout line</div><div class="evidence-line">Essential in 16% of 1,178 human cancer cell lines; check that your cell type is not one of them</div><div class="evidence-refs"><a href="https://pubmed.ncbi.nlm.nih.gov/10191063/">PMID 10191063</a> | <a href="https://www.informatics.jax.org/marker/MGI:99137">MGI</a></div></td>
-                        <td>2</td>
+                        <td><span class="basis basis-essentiality">Experimental essentiality (not a clean knockout)</span><div class="evidence-line">Knockout is lethal (embryonic / prenatal) in mice (mouse ortholog Xrcc1, 1:1): 1 of 1 knockout line</div><div class="evidence-line">Essential in 16% of 1,178 human cancer cell lines; check that your cell type is not one of them</div><div class="evidence-refs"><a href="https://pubmed.ncbi.nlm.nih.gov/10191063/">PMID 10191063</a> | <a href="https://www.informatics.jax.org/marker/MGI:99137">MGI</a></div></td>
                         <td>
                             Standard KO with Validation
                             <div class="justification-box">Essential in 16% of 1,178 human cancer cell lines; check that your cell type is not one of them; Knockout is lethal (embryonic / prenatal) in mice (mouse ortholog Xrcc1, 1:1): 1 of 1 knockout line; Very high pleiotropy score (9.3) indicates multiple biological functions</div>
@@ -368,7 +364,6 @@
                         <td>0.400</td>
                         <td><span class="safety-level safety-caution">Caution</span></td>
                         <td><span class="basis basis-none">Not verified</span></td>
-                        <td>2</td>
                         <td>
                             Standard KO with Validation
                             <div class="justification-box">No measured knockout data for this gene, so the safety of a knockout is unverified; Low pleiotropy score (1.1) indicates specific function</div>
@@ -388,8 +383,7 @@
                         </td>
                         <td>0.450</td>
                         <td><span class="safety-level safety-critical">Avoid</span></td>
-                        <td><span class="basis basis-measured">Measured</span><div class="evidence-line">Knockout is lethal (embryonic / prenatal) in mice (mouse ortholog Pcna, 1:1): 1 of 1 knockout line</div><div class="evidence-line">Essential in 99.9% of 1,178 human cancer cell lines; DepMap common essential</div><div class="evidence-refs"><a href="https://pubmed.ncbi.nlm.nih.gov/18854411/">PMID 18854411</a> | <a href="https://www.informatics.jax.org/marker/MGI:97503">MGI</a></div></td>
-                        <td>2</td>
+                        <td><span class="basis basis-essentiality">Experimental essentiality (not a clean knockout)</span><div class="evidence-line">Knockout is lethal (embryonic / prenatal) in mice (mouse ortholog Pcna, 1:1): 1 of 1 knockout line</div><div class="evidence-line">Essential in 99.9% of 1,178 human cancer cell lines; DepMap common essential</div><div class="evidence-refs"><a href="https://pubmed.ncbi.nlm.nih.gov/18854411/">PMID 18854411</a> | <a href="https://www.informatics.jax.org/marker/MGI:97503">MGI</a></div></td>
                         <td>
                             CRISPR Interference (CRISPRi)
                             <div class="justification-box">Essential in 99.9% of 1,178 human cancer cell lines; DepMap common essential; Knockout is lethal (embryonic / prenatal) in mice (mouse ortholog Pcna, 1:1): 1 of 1 knockout line; Very high pleiotropy score (9.9) indicates multiple biological functions</div>
@@ -409,8 +403,7 @@
                         </td>
                         <td>0.389</td>
                         <td><span class="safety-level safety-critical">Avoid</span></td>
-                        <td><span class="basis basis-measured">Measured</span><div class="evidence-line">Essential in 100% of 1,178 human cancer cell lines; DepMap common essential</div><div class="evidence-line">No measured knockout result. Estimated 93% chance that a knockout is lethal in mice (likely lethal), from its own cell-line, population and expression data (its mouse ortholog Rpa3 has no knockout result). Among tested mouse genes with such an estimate 88% were lethal (AUC 0.83). This is an estimate, not a measurement.</div></td>
-                        <td>2</td>
+                        <td><span class="basis basis-essentiality">Experimental essentiality (not a clean knockout)</span><div class="evidence-line">Essential in 100% of 1,178 human cancer cell lines; DepMap common essential</div><div class="evidence-line">No measured knockout result. Estimated 93% chance that a knockout is lethal in mice (likely lethal), from its own cell-line, population and expression data (its mouse ortholog Rpa3 has no knockout result). Among tested mouse genes with such an estimate 88% were lethal (AUC 0.83). This is an estimate, not a measurement.</div></td>
                         <td>
                             CRISPR Interference (CRISPRi)
                             <div class="justification-box">Essential in 100% of 1,178 human cancer cell lines; DepMap common essential; Very high pleiotropy score (9.1) indicates multiple biological functions</div>
@@ -437,13 +430,13 @@
                     <tr>
                         <td><strong>PARP1</strong></td>
                         <td>Pleiotropy score 9.9 is above the cutoff of 7</td>
-                        <td><span class="basis basis-measured">Measured</span><div class="evidence-line">Knockout is viable in mice (mouse ortholog Parp1, 1:1): 7 of 10 knockout lines; 3 subviable in other lines (strain or allele dependent)</div><div class="evidence-line">Rarely essential: needed in 3.9% of 1,178 human cancer cell lines</div><div class="evidence-refs"><a href="https://pubmed.ncbi.nlm.nih.gov/7698643/">PMID 7698643</a> | <a href="https://pubmed.ncbi.nlm.nih.gov/9207086/">PMID 9207086</a> | <a href="https://pubmed.ncbi.nlm.nih.gov/9922314/">PMID 9922314</a> | <a href="https://www.informatics.jax.org/marker/MGI:1340806">MGI</a></div></td>
+                        <td><span class="basis basis-essentiality">Experimental essentiality (not a clean knockout)</span><div class="evidence-line">Knockout is viable in mice (mouse ortholog Parp1, 1:1): 7 of 10 knockout lines; 3 subviable in other lines (strain or allele dependent)</div><div class="evidence-line">Rarely essential: needed in 3.9% of 1,178 human cancer cell lines</div><div class="evidence-refs"><a href="https://pubmed.ncbi.nlm.nih.gov/7698643/">PMID 7698643</a> | <a href="https://pubmed.ncbi.nlm.nih.gov/9207086/">PMID 9207086</a> | <a href="https://pubmed.ncbi.nlm.nih.gov/9922314/">PMID 9922314</a> | <a href="https://www.informatics.jax.org/marker/MGI:1340806">MGI</a></div></td>
                     </tr>
 
                     <tr>
                         <td><strong>FEN1</strong></td>
                         <td>Ranked below the 6 genes shown (AVOID)</td>
-                        <td><span class="basis basis-measured">Measured</span><div class="evidence-line">Knockout is lethal (embryonic / prenatal) in mice (mouse ortholog Fen1, 1:1): 3 of 3 knockout lines</div><div class="evidence-line">Essential in 83.5% of 1,178 human cancer cell lines; DepMap common essential</div><div class="evidence-refs"><a href="https://pubmed.ncbi.nlm.nih.gov/12119409/">PMID 12119409</a> | <a href="https://pubmed.ncbi.nlm.nih.gov/12861020/">PMID 12861020</a> | <a href="https://pubmed.ncbi.nlm.nih.gov/16978612/">PMID 16978612</a> | <a href="https://www.informatics.jax.org/marker/MGI:102779">MGI</a></div></td>
+                        <td><span class="basis basis-essentiality">Experimental essentiality (not a clean knockout)</span><div class="evidence-line">Knockout is lethal (embryonic / prenatal) in mice (mouse ortholog Fen1, 1:1): 3 of 3 knockout lines</div><div class="evidence-line">Essential in 83.5% of 1,178 human cancer cell lines; DepMap common essential</div><div class="evidence-refs"><a href="https://pubmed.ncbi.nlm.nih.gov/12119409/">PMID 12119409</a> | <a href="https://pubmed.ncbi.nlm.nih.gov/12861020/">PMID 12861020</a> | <a href="https://pubmed.ncbi.nlm.nih.gov/16978612/">PMID 16978612</a> | <a href="https://www.informatics.jax.org/marker/MGI:102779">MGI</a></div></td>
                     </tr>
 
                 </tbody>

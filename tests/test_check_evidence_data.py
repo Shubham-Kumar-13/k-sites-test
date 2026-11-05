@@ -79,3 +79,21 @@ class TestRecordIntegrity:
 
         assert problems == {"invalid cell-line record": 3}
         assert set(examples.values()) <= {"SHORT", "NO-LINES", "WRONG-SOURCE"}
+
+
+class TestRuleViolations:
+    def test_cell_essentiality_counts_as_a_measurement(self):
+        files = {
+            "index.json": {"format": 1, "built": "2026-01-01", "stages": {}, "systems": [],
+                           "organisms": {"9606": {"name": "Homo sapiens", "file": "9606.json", "layers": []}},
+                           "sources": [{"id": "depmap", "name": "DepMap", "url": "https://example.org"}]},
+            "9606.json": {"genes": {"SAFE": {"c": ["N", 1.0, 100]}, "AVOID": {"c": ["C", 99.0, 100]}}, "aliases": {}},
+        }
+
+        class Source:
+            def read(self, name):
+                return files[name]
+
+        problems, _ = check.rule_violations(check.EvidenceProvider(Source()), "9606", ["SAFE", "AVOID"], "cells")
+
+        assert not problems

@@ -83,6 +83,7 @@ def main():
     result = pipeline.run_k_sites_pipeline(
         go_term=args.go_term, organism=args.organism, max_pleiotropy=args.max_pleiotropy,
         evidence_filter=args.evidence, predict_phenotypes=False,
+        databases=["quickgo", "uniprot"], use_measured_evidence=False,
     )
 
     # keep only what is comparable and stable
@@ -97,7 +98,7 @@ def main():
     with gzip.open(FIXTURES / "recording.json.gz", "wt", encoding="utf-8") as handle:
         json.dump(recording, handle, separators=(",", ":"))
     meta = {"go_term": args.go_term, "organism": args.organism, "evidence_filter": args.evidence,
-            "genes": args.genes, "max_pleiotropy": args.max_pleiotropy}
+            "genes": args.genes, "max_pleiotropy": args.max_pleiotropy, "databases": ["quickgo", "uniprot"]}
     (FIXTURES / "python_result.json").write_text(
         json.dumps({"input": meta, "result": result}, indent=1, default=str), encoding="utf-8")
 

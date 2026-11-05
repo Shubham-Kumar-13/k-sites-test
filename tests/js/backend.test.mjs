@@ -70,7 +70,7 @@ async function waitFor(check, timeoutMs = 20000) {
 
 const JOB = {
     organism: 'Homo sapiens', taxid: '9606', go_term: 'GO:0006284', go_term_name: 'base-excision repair',
-    max_genes: 10, max_pleiotropy: 10, evidence_filter: 'experimental', predict_phenotypes: false, databases: ['quickgo', 'uniprot', 'kegg'],
+    max_genes: 10, max_pleiotropy: 10, evidence_filter: 'experimental', predict_phenotypes: false, databases: ['quickgo', 'uniprot'],
 };
 
 // ------------------------------------------------------------------ simple endpoints
@@ -79,7 +79,7 @@ test('health, databases and the pickers answer like the Flask app', async () => 
     const { backend } = makeBackend();
 
     assert.equal((await call(backend, '/api/health')).body.mode, 'browser');
-    assert.deepEqual((await call(backend, '/api/databases')).body.databases.map((d) => d.id), ['quickgo', 'uniprot', 'kegg']);
+    assert.deepEqual((await call(backend, '/api/databases')).body.databases.map((d) => d.id), ['quickgo', 'uniprot']);
     assert.equal((await call(backend, '/api/organisms/kingdoms')).body.kingdoms.length, 5);
     assert.equal((await call(backend, '/api/go-terms/categories')).body.categories.length, 3);
 
@@ -310,10 +310,10 @@ test('a job uses the measured knockout evidence, lists the safest genes first an
     const bySymbol = Object.fromEntries(results.genes.map((g) => [g.symbol, g]));
     assert.equal(bySymbol.POLB.knockout_evidence.organism.call, 'LETHAL');         // the mouse knockout dies at birth
     assert.equal(bySymbol.POLB.knockout_evidence.cells.call, 'NON_ESSENTIAL');     // but human cells do not need it
-    assert.equal(bySymbol.POLB.safety_recommendation.evidence_basis, 'measured');
+    assert.equal(bySymbol.POLB.safety_recommendation.evidence_basis, 'essentiality');
     assert.equal(bySymbol.LIG1.knockout_evidence.has_measured, false);             // not in the small test copy
     assert.equal(bySymbol.LIG1.safety_recommendation.safety_level, 'CAUTION');     // never better than CAUTION without a measurement
-    assert.deepEqual(results.statistics.by_evidence_basis, { measured: 5, none: 1 });
+    assert.deepEqual(results.statistics.by_evidence_basis, { essentiality: 5, none: 1 });
 });
 
 test('the same genes read as a whole organism follow the mouse knockout instead', async () => {

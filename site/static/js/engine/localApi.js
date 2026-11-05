@@ -10,6 +10,7 @@ import { getGenesForGoTermWithCoverage } from './goMapper.js';
 import { runKSitesPipeline } from './pipeline.js';
 import { GO_CATEGORIES, KINGDOMS, FALLBACK_ORGANISMS, resolveTaxid, searchGoTerms, searchOrganisms } from './organisms.js';
 import { comprehensiveCsv, excelWorkbook, geneSummaryCsv, htmlReport } from './report.js';
+import { selectPotentialCandidates } from './potentialCandidates.js';
 
 export const VERSION = '1.2.1';
 const EVIDENCE_FILTERS = ['experimental', 'computational', 'all'];
@@ -427,6 +428,7 @@ export class LocalBackend {
                 predictPhenotypes: job.predict_phenotypes, databases: job.selected_databases,
                 knockoutContext: job.knockout_context || 'auto', onProgress,
             });
+            results.potential_candidates = selectPotentialCandidates(results.genes);
             if (evidenceWarning) results.warnings.push(evidenceWarning);
 
             await this._update(job, { current_step: 'Generating reports', progress_percent: 90 }, true);

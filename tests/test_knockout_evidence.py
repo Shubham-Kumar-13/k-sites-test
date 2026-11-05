@@ -303,6 +303,37 @@ class TestAdditionalOrganismSources:
             assert evidence["organism"]["sources"] == [source]
             assert [s["id"] for s in evidence["sources"]] == [source]
 
+    def test_insertion_screens_are_not_clean_knockouts_and_have_conservative_verdicts(self):
+        files = {
+            "index.json": {"format": 1, "built": "2026-01-01", "stages": {}, "systems": [],
+                           "organisms": {"1313": {"name": "Streptococcus pneumoniae", "file": "1313.json", "layers": ["knockout"]}},
+                           "sources": [{"id": "pneumonia_pan_genome", "name": "Tn-seq", "url": "https://example.org"}]},
+            "1313.json": {"genes": {
+                "ESSENTIAL": {"v": "L", "n": [1, 0, 0], "src": "PN"},
+                "NONESSENTIAL": {"v": "V", "n": [0, 0, 1], "src": "PN"},
+                "CONFLICT": {"v": "V", "n": [1, 0, 2], "x": 1, "src": "PN"},
+                "DIRECT": {"v": "V", "n": [0, 0, 2], "src": "M"},
+            }, "aliases": {}},
+        }
+        provider = EvidenceProvider(DictSource(files))
+
+        essential = verdict(provider, "1313", "ESSENTIAL", 1.0)[0]
+        nonessential, evidence = verdict(provider, "1313", "NONESSENTIAL", 1.0)
+        conflict = verdict(provider, "1313", "CONFLICT", 1.0)[0]
+        direct = verdict(provider, "1313", "DIRECT", 1.0)[0]
+
+        assert essential.safety_level.value == "HIGH_CONCERN"
+        assert nonessential.safety_level.value == "CAUTION"
+        assert conflict.safety_level.value == "HIGH_CONCERN"
+        assert direct.safety_level.value == "SAFE" and direct.evidence_basis == "measured"
+        assert {essential.evidence_basis, nonessential.evidence_basis, conflict.evidence_basis} == {"essentiality"}
+        assert evidence["organism"]["basis"] == "essentiality"
+        assert evidence["organism"]["text"].startswith("Tn-seq insertion screen: non-essential")
+        assert "not clean whole-gene deletion viability" in evidence["organism"]["text"]
+        assert not evidence["organism"]["text"].startswith("Knockout")
+        assert "1 essential and 2 non-essential" in conflict.justification[0]
+        assert any("differs between study strains" in concern for concern in conflict.concerns)
+
 
 class TestLethalMouseOrthologWithoutACellLineResult(TestCellsWithoutACellLineResult):
     def verdict_for(self, record):
@@ -405,7 +436,7 @@ class TestLethalityEstimate:
         recommendation, evidence = verdict(provider, "9606", "POLE", 10.0, context="organism")
 
         assert evidence["cells"]["call"] == "ESSENTIAL" and evidence["estimate"]["band"] == "likely"
-        assert recommendation.evidence_basis == "measured" and recommendation.safety_level.value == "HIGH_CONCERN"
+        assert recommendation.evidence_basis == "essentiality" and recommendation.safety_level.value == "HIGH_CONCERN"
 
     def test_the_bands_follow_the_probability_and_nothing_is_ever_safe(self, provider):
         seen = {}
@@ -429,7 +460,7 @@ class TestLethalityEstimate:
     def test_cells_are_judged_by_the_cell_lines_not_by_the_estimate(self, provider):
         recommendation, evidence = verdict(provider, "9606", "RPA3", 9.0)             # human: cultured cells
 
-        assert evidence["cells"]["call"] == "ESSENTIAL" and recommendation.evidence_basis == "measured"
+        assert evidence["cells"]["call"] == "ESSENTIAL" and recommendation.evidence_basis == "essentiality"
 
     def test_the_estimate_adds_its_sources(self, provider):
         _, evidence = verdict(provider, "10090", "Pole", 10.0)

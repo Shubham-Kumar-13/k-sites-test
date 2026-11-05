@@ -217,6 +217,42 @@ function addLogEntry(message) {
 // Load and Display Results
 // ============================================================================
 
+function renderPotentialCandidates(data) {
+    const container = document.getElementById('potentialContainer');
+    if (!container) return;
+    const candidates = (data && data.potential_candidates) || [];
+    if (!candidates.length) {
+        container.innerHTML = '<div class="text-center py-5 text-muted">Nothing to see here</div>';
+        return;
+    }
+    const cards = candidates.map(gene => {
+        const safety = gene.safety_recommendation || {};
+        const [basisClass, basisLabel] = BASIS_BADGES[safety.evidence_basis || 'none'] || BASIS_BADGES.none;
+        return `<div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <h5>${esc(gene.symbol)}</h5>
+                        <p class="text-muted small mb-0">${esc(gene.description || 'No description available')}</p>
+                    </div>
+                    <span class="badge ${safetyBadgeClass(safety.safety_level)}">${safetyLabel(safety.safety_level)}</span>
+                </div>
+                <div class="small text-muted mb-2">
+                    Composite: <strong>${gene.composite_score.toFixed(2)}</strong> ·
+                    Specificity: ${gene.specificity_score?.toFixed(2) || 'N/A'} ·
+                    Pleiotropy: ${gene.pleiotropy_score?.toFixed(2) || 'N/A'}
+                </div>
+                <span class="badge ${basisClass}">${basisLabel}</span>
+                <p class="small text-muted mt-2 mb-0">Higher composite than the best viable experimentally supported candidate, but no direct knockout measurement for this gene.</p>
+            </div>
+        </div>`;
+    }).join('');
+    container.innerHTML = `<div class="alert alert-warning small">
+        <strong>Top ${candidates.length} promising candidates — unverified</strong><br>
+        These genes have favourable composite scores but no direct knockout measurement. They are candidates for experimental validation, not confirmed safe knockout targets.
+    </div>${cards}`;
+}
+
 async function loadResults(jobId) {
     try {
         const response = await ksFetch(`/api/jobs/${jobId}/results`);
@@ -243,6 +279,7 @@ async function loadResults(jobId) {
         renderSources(resultsData.metadata);
         renderWarnings(resultsData.warnings);
         renderSummary(resultsData);
+        renderPotentialCandidates(resultsData);
         
     } catch (error) {
         console.error('Error loading results:', error);
@@ -263,7 +300,9 @@ const CALL_BADGES = {
     NON_ESSENTIAL: ['bg-success', 'Rarely essential'], OBSERVATION: ['bg-info text-dark', 'Observation'], UNKNOWN: ['bg-secondary', 'No data'],
 };
 const BASIS_BADGES = {
-    measured: ['bg-success', 'Measured'], ortholog: ['bg-info text-dark', 'Measured in the mouse ortholog'],
+    measured: ['bg-success', 'Direct knockout/deletion'],
+    essentiality: ['bg-info text-dark', 'Experimental essentiality (not a clean knockout)'],
+    ortholog: ['bg-info text-dark', 'Measured in the mouse ortholog'],
     distant: ['bg-secondary', 'Mouse ortholog only (distant relative)'],
     predicted: ['bg-warning text-dark', 'Predicted from the literature'], none: ['bg-secondary', 'Not verified'],
     estimate: ['bg-warning text-dark', 'Estimated from data (not measured)'],
@@ -283,7 +322,9 @@ function referenceLinks(organism) {
 function detailedEvidenceHtml(data) {
     const evidence = data.evidence;
     const records = evidence.records.map(record => {
-        const metadata = [record.experiment_type, record.zygosity, record.evidence_level,
+        const insertion = record.experiment_type === 'transposon_insertion_essentiality' || record.experiment_type === 'Tn-seq essentiality';
+        const evidenceLevel = insertion ? 'experimental insertion essentiality' : record.evidence_level;
+        const metadata = [record.experiment_type, record.zygosity, evidenceLevel,
             record.stage ? `stage ${record.stage}` : null, ...(record.qualifiers || [])]
             .filter(Boolean).map(value => esc(String(value).replaceAll('_', ' '))).join(' · ');
         const references = (record.references || []).map(pmid =>
@@ -366,7 +407,8 @@ function evidencePanel(gene) {
         const chips = evidence.organism.systems.map(sys => `<span class="badge bg-light text-dark border me-1 mb-1">${esc(sys.replace(/ phenotype$/, ''))}</span>`).join('');
         lines.push(`<details class="text-muted"><summary>Organ systems with a reported phenotype (${evidence.organism.systems.length})</summary><div class="mt-1">${chips}</div></details>`);
     }
-    const details = ['3702', '10090', '4896', '559292', '7955', '7227', '6239', '83333'].includes(String(currentJob?.taxid || '')) ? `<details class="mb-3 small detailed-evidence" data-taxid="${esc(currentJob.taxid)}" data-symbol="${esc(gene.symbol)}">
+    const details = ['3702', '10090', '4896', '559292', '7955', '7227', '6239', '83333',
+        '573', '637910', '90370', '216597', '149539', '1313'].includes(String(currentJob?.taxid || '')) ? `<details class="mb-3 small detailed-evidence" data-taxid="${esc(currentJob.taxid)}" data-symbol="${esc(gene.symbol)}">
         <summary class="text-primary cursor-pointer">Detailed source records</summary>
         <div class="detailed-evidence-body mt-2">Expand to load detailed mutant and publication records.</div>
     </details>` : '';
@@ -560,7 +602,7 @@ function renderSummary(data) {
                             </tr>`).join('');
     // counted over the genes shown (the statistics cover every gene assessed, which can be more than the report shows)
     const basisOf = (g) => (g.safety_recommendation || {}).evidence_basis;
-    const measuredCount = genes.filter(g => basisOf(g) === 'measured').length;
+    const measuredCount = genes.filter(g => ['measured', 'essentiality'].includes(basisOf(g))).length;
     const orthologCount = genes.filter(g => basisOf(g) === 'ortholog').length;
     const estimateCount = genes.filter(g => basisOf(g) === 'estimate').length;
     

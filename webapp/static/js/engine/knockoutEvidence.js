@@ -3,8 +3,9 @@
  * Port of k_sites/knockout_evidence (provider.py + assessment.py); the same data files are read.
  *
  * `assessGene` returns a plain object with up to four parts:
- *   organism    knockout of the whole organism: lethal / subviable / viable, stage, number of knockout lines
- *               (direct where a community database measures it; otherwise read from the mouse ortholog when available)
+ *   organism    knockout of the whole organism: lethal / subviable / viable, stage, number of records
+ *               (direct for knockout/deletion evidence, essentiality for TraDIS/Tn-seq insertion screens,
+ *               otherwise read from the mouse ortholog when available)
  *   cells       how often losing the gene kills a human cancer cell line (DepMap or Project Score CRISPR screens)
  *   constraint  how rarely loss-of-function variants are seen in people (gnomAD)
  *   expression  how many human tissues express the gene, and which most (GTEx)
@@ -160,6 +161,8 @@ function organismPart(index, taxid, record) {
     part.sources = SOURCE_OF_RECORD[base.src] ? [SOURCE_OF_RECORD[base.src]]
         : [...(base.src || '')].filter((c) => SOURCE_OF_LETTER[c]).map((c) => SOURCE_OF_LETTER[c]);
     if (basis === 'ortholog') part.sources.push('alliance');
+    const insertionMethod = basis === 'direct' ? ({ tradis: 'TraDIS', pneumonia_pan_genome: 'Tn-seq' })[part.sources[0]] : null;
+    if (insertionMethod) basis = part.basis = 'essentiality';
     part.mgi_id = base.id ?? null;
     part.references = [...(base.pm || [])];
     const names = index.systems || [];
@@ -171,15 +174,23 @@ function organismPart(index, taxid, record) {
 
     const noun = SPECIES_NOUN[speciesKey] || 'the model organism';
     let where;
-    if (basis === 'direct') where = noun;
+    if (basis === 'essentiality') where = part.species || noun;
+    else if (basis === 'direct') where = noun;
     else if (part.distant) where = `${noun} (mouse ortholog ${part.ortholog.symbol}, ${part.ortholog.relation}; a distant relative, so only an indication)`;
     else where = `${noun} (mouse ortholog ${part.ortholog.symbol}, ${part.ortholog.relation})`;
     const stage = part.stage && part.stage !== 'U' ? ` (${part.stage_text})` : '';
     const total = lethal + subviable + viable;
+    const linesTaxid = ['direct', 'essentiality'].includes(basis) ? taxid : '';
+    if (insertionMethod) {
+        const outcome = { LETHAL: 'essential', SUBVIABLE: 'reduced viability', VIABLE: 'non-essential' }[part.call];
+        part.text = `${insertionMethod} insertion screen: ${outcome} in ${where} (${linesText(total, total, linesTaxid)})`
+            + '; experimental insertion essentiality, not clean whole-gene deletion viability';
+        if (part.mixed) part.text += `; ${lethal} essential and ${viable} non-essential results across study strains`;
+        return part;
+    }
     const yeast = speciesKey === '559292' || speciesKey === '4896';
     const subject = yeast ? 'Deletion' : 'Knockout';
     const lethalWord = yeast ? 'inviable' : 'lethal';
-    const linesTaxid = basis === 'direct' ? taxid : '';
     let text;
     if (part.call === 'LETHAL') {
         text = `${subject} is ${lethalWord}${stage} in ${where}: ${linesText(lethal, total, linesTaxid)}`;

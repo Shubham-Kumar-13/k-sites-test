@@ -50,12 +50,42 @@ class TestOrdering:
         assert [g["symbol"] for g in results["genes"]] == ["NEIL2", "SMUG1", "OGG1", "PCNA"]
         assert results["statistics"]["by_safety_level"] == {"SAFE": 2, "CAUTION": 1, "AVOID": 1}
 
+    def test_safety_then_evidence_reliability_then_composite(self):
+        files = {
+            "index.json": {"format": 1, "built": "2026-01-01", "stages": {}, "systems": [],
+                           "organisms": {"573": {"name": "Synthetic test organism", "file": "573.json", "layers": ["knockout"]}},
+                           "sources": [{"id": "mgi", "name": "Direct test source", "url": "https://example.org/direct"},
+                                       {"id": "tradis", "name": "TraDIS", "url": "https://example.org/tradis"}]},
+            "573.json": {"genes": {
+                "DIRECT_SAFE": {"v": "V", "n": [0, 0, 2], "src": "M"},
+                "DIRECT": {"v": "V", "n": [0, 0, 2], "src": "M"},
+                "INSERTION": {"v": "V", "n": [0, 0, 1], "src": "TD"},
+                "NONE": {"lc": 10},
+                "LETHAL": {"v": "L", "n": [1, 0, 0], "src": "M"},
+            }, "aliases": {}},
+        }
+
+        class Source:
+            def read(self, name):
+                return files[name]
+
+        ranked = [scored("NONE", 1.0, 0.99), scored("INSERTION", 1.0, 0.95),
+                  scored("DIRECT", 6.0, 0.70), scored("DIRECT_SAFE", 1.0, 0.10), scored("LETHAL", 1.0, 1.0)]
+        results = run(ranked, taxid="573", name="Synthetic test organism", max_pleiotropy=10,
+                      evidence_provider=EvidenceProvider(Source()))
+
+        assert [g["symbol"] for g in results["genes"]] == ["DIRECT_SAFE", "DIRECT", "INSERTION", "NONE", "LETHAL"]
+        levels = {g["symbol"]: g["safety_recommendation"]["safety_level"] for g in results["genes"]}
+        assert levels == {"DIRECT_SAFE": "SAFE", "DIRECT": "CAUTION", "INSERTION": "CAUTION",
+                          "NONE": "CAUTION", "LETHAL": "AVOID"}
+        assert results["genes"][1]["composite_score"] < results["genes"][3]["composite_score"]
+
     def test_every_gene_carries_its_measured_evidence_and_the_basis_of_the_verdict(self, provider):
         gene = run([scored("PCNA", 1.0, 0.9)], max_pleiotropy=10, evidence_provider=provider)["genes"][0]
 
         assert gene["knockout_evidence"]["cells"]["call"] == "ESSENTIAL"
         assert gene["knockout_evidence"]["organism"]["call"] == "LETHAL"
-        assert gene["safety_recommendation"]["evidence_basis"] == "measured"
+        assert gene["safety_recommendation"]["evidence_basis"] == "essentiality"
         assert gene["safety_recommendation"]["safety_level"] == "AVOID"
 
     def test_the_knockout_context_is_chosen_or_follows_the_organism(self, provider):

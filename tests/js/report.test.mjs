@@ -72,7 +72,7 @@ test('the HTML report shows the evidence, the genes not shown and the sources, l
     const python = read('report_sample.html');
     const expected = [
         'Measured Knockout Evidence', 'Genes Assessed but Not Shown', 'Data Sources', 'Knockout context: <strong>cultured cells</strong>',
-        'basis basis-measured', 'basis basis-none', 'https://pubmed.ncbi.nlm.nih.gov/', 'https://www.informatics.jax.org/marker/',
+        'basis basis-essentiality', 'basis basis-none', 'https://pubmed.ncbi.nlm.nih.gov/', 'https://www.informatics.jax.org/marker/',
         'Example warning, with a comma', 'Rarely essential: needed in',
     ];
     for (const text of expected) {

@@ -45,7 +45,7 @@ CASES = [(taxid, gene, pleiotropy, context)
 def sample_result(provider):
     """A pipeline-shaped result for a few genes (and two that are not shown), to compare the Python and browser reports."""
     from k_sites.knockout_evidence import assess_gene
-    from k_sites.workflow.pipeline import SAFETY_TIER
+    from k_sites.workflow.pipeline import gene_ranking_key
     from k_sites.workflow.safety_recommender import get_safety_recommendation
 
     def gene_entry(symbol, pleiotropy, composite):
@@ -70,7 +70,7 @@ def sample_result(provider):
 
     genes = [gene_entry(*row) for row in [("SMUG1", 2.61, 0.667), ("NEIL2", 0.05, 0.659), ("TDG", 6.99, 0.614),
                                           ("XRCC1", 9.33, 0.501), ("PCNA", 9.87, 0.45), ("RPA3", 9.09, 0.389), ("NOSUCHGENE", 1.05, 0.4)]]
-    genes.sort(key=lambda g: (SAFETY_TIER[g["safety_recommendation"]["safety_level"]], -g["composite_score"]))
+    genes.sort(key=gene_ranking_key)
     excluded = [
         {"symbol": "PARP1", "description": "PARP1 protein", "reason": "pleiotropy",
          "detail": "Pleiotropy score 9.9 is above the cutoff of 7", "pleiotropy_score": 9.93, "composite_score": 0.49,

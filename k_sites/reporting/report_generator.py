@@ -476,7 +476,10 @@ def _evidence_html(entry: dict) -> str:
         # genes left out of the ranking carry no verdict, so the basis is read from the evidence itself
         basis = "none"
         if evidence["has_measured"]:
-            basis = "measured" if evidence["organism"]["basis"] == "direct" or evidence["cells"]["call"] != "UNKNOWN" else "ortholog"
+            if evidence["organism"]["basis"] == "essentiality" or evidence["cells"]["call"] != "UNKNOWN":
+                basis = "essentiality"
+            else:
+                basis = "measured" if evidence["organism"]["basis"] == "direct" else "ortholog"
         elif evidence["organism"]["call"] != "UNKNOWN" and evidence["organism"]["distant"]:
             basis = "distant"
         elif evidence.get("estimate"):
@@ -727,6 +730,7 @@ def _generate_report_html(
 
         .basis {{ display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75em; font-weight: bold; margin-bottom: 4px; }}
         .basis-measured {{ background: #d4edda; color: #155724; }}
+        .basis-essentiality {{ background: #d1ecf1; color: #0c5460; }}
         .basis-ortholog {{ background: #d1ecf1; color: #0c5460; }}
         .basis-predicted {{ background: #fff3cd; color: #856404; }}
         .basis-estimate {{ background: #fff3cd; color: #856404; }}

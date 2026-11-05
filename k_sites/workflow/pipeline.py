@@ -17,8 +17,17 @@ import traceback
 # Set up logging
 logger = logging.getLogger(__name__)
 
-# Genes are listed safest first
+# Genes are listed safest first, then by knockout-evidence reliability and composite score.
 SAFETY_TIER = {"SAFE": 0, "CAUTION": 1, "MODERATE_CONCERN": 2, "HIGH_CONCERN": 3, "AVOID": 4}
+EVIDENCE_TIER = {"measured": 0, "essentiality": 1, "ortholog": 2, "distant": 2,
+                 "estimate": 3, "predicted": 3, "none": 4}
+
+
+def gene_ranking_key(gene):
+    recommendation = gene["safety_recommendation"]
+    return (SAFETY_TIER.get(recommendation["safety_level"], len(SAFETY_TIER)),
+            EVIDENCE_TIER.get(recommendation["evidence_basis"], len(EVIDENCE_TIER)),
+            -(gene.get("composite_score") or 0))
 
 
 def run_k_sites_pipeline(
@@ -340,9 +349,7 @@ def run_k_sites_pipeline(
                 f"{max_predictions} genes without a measured result; the other {predictions_over_limit} were rated "
                 "without it, so they are at most CAUTION.")
 
-        # Safest genes first (measured evidence decides the tier), then by composite score as before
-        processed_genes.sort(key=lambda g: (SAFETY_TIER.get(g["safety_recommendation"]["safety_level"], len(SAFETY_TIER)),
-                                            -(g.get("composite_score") or 0)))
+        processed_genes.sort(key=gene_ranking_key)
 
         # Step 5: Aggregate results
         logger.info("Step 5: Aggregating results...")

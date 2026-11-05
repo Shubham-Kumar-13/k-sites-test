@@ -56,8 +56,8 @@ class SafetyRecommendation:
     experimental_considerations: List[str]
     confidence_score: float  # 0.0-1.0
     supporting_evidence: Dict[str, Any]
-    # What the verdict rests on: "measured" (knockout / screen data for this gene), "ortholog" (measured in the mouse
-    # ortholog), "predicted" (read from the literature by keywords) or "none" (annotations only)
+    # What the verdict rests on: "measured" (direct organism knockout), "essentiality" (an insertion or cell screen),
+    # "ortholog", "estimate", "predicted" or "none" (annotations only)
     evidence_basis: str = "none"
 
 
@@ -377,13 +377,17 @@ class SafetyRecommender:
 
     @staticmethod
     def _organism_basis(organism: Dict) -> str:
-        return "measured" if organism["basis"] == "direct" else "ortholog"
+        if organism["basis"] == "direct":
+            return "measured"
+        return "essentiality" if organism["basis"] == "essentiality" else "ortholog"
 
     @staticmethod
     def _organism_confidence(organism: Dict) -> float:
         counts = organism["counts"]
         total = sum(counts.values())
-        if organism["basis"] == "direct":
+        if organism["basis"] == "essentiality":
+            confidence = 0.45 if organism["mixed"] else (0.7 if total >= 2 else 0.6)
+        elif organism["basis"] == "direct":
             confidence = 0.7 if organism["mixed"] else (0.9 if total >= 2 else 0.8)
         else:
             confidence = 0.55 if organism["ortholog"]["relation"] != "1:1" else (0.75 if total >= 2 else 0.7)
@@ -391,8 +395,38 @@ class SafetyRecommender:
                 confidence -= 0.1
         return round(confidence, 2)
 
+    def _essentiality_verdict(self, evidence: Dict, pleiotropy_score: float) -> Dict[str, Any]:
+        organism = evidence["organism"]
+        call, mixed, counts = organism["call"], organism["mixed"], organism["counts"]
+        concerns = ["Keep the study strain and conditions with the result; insertion tolerance is not whole-gene deletion viability"]
+        mitigation = ["Validate the result with a clean targeted gene deletion in your strain and experimental conditions"]
+        if mixed:
+            level = SafetyLevel.HIGH_CONCERN if counts["lethal"] else SafetyLevel.CAUTION
+            primary = RecommendationType.CONDITIONAL_KO if counts["lethal"] else RecommendationType.VALIDATED_KO
+            alternatives = [RecommendationType.CRISPRI, RecommendationType.VALIDATED_KO]
+            concerns.insert(0, "Insertion essentiality differs between study strains; do not treat it as universal or as clean knockout viability")
+        elif call in ("LETHAL", "SUBVIABLE"):
+            level, primary = SafetyLevel.HIGH_CONCERN, RecommendationType.CONDITIONAL_KO
+            alternatives = [RecommendationType.CRISPRI, RecommendationType.TEMPORAL_CONTROL]
+            concerns.insert(0, "The insertion screen indicates essentiality under the tested conditions; confirm with a clean targeted deletion")
+        else:
+            level, primary = SafetyLevel.CAUTION, RecommendationType.VALIDATED_KO
+            alternatives = [RecommendationType.STANDARD_KO]
+            concerns.insert(0, "Non-essential transposon insertion does not prove that a clean whole-gene deletion is viable")
+        if pleiotropy_score > 5:
+            concerns.append("The gene has many annotated roles, so expect broad phenotypes")
+        paralog = self._paralog_concern(evidence)
+        if paralog:
+            concerns.append(paralog)
+        justification = [organism["text"]] + self._extra_findings(evidence)
+        return {"level": level, "primary": primary, "alternatives": alternatives, "basis": "essentiality",
+                "justification": justification, "concerns": concerns, "mitigation": mitigation,
+                "considerations": [], "confidence": self._organism_confidence(organism)}
+
     def _organism_verdict(self, evidence: Dict, pleiotropy_score: float) -> Dict[str, Any]:
         organism = evidence["organism"]
+        if organism["basis"] == "essentiality":
+            return self._essentiality_verdict(evidence, pleiotropy_score)
         call, mixed, counts = organism["call"], organism["mixed"], organism["counts"]
         yeast = evidence["taxid"] in ("559292", "4932")
         ortholog_note = organism["basis"] == "ortholog" and organism["ortholog"]["relation"] != "1:1"
@@ -480,7 +514,7 @@ class SafetyRecommender:
     def _organism_verdict_from_cells(self, evidence: Dict) -> Dict[str, Any]:
         cells = evidence["cells"]
         return {"level": SafetyLevel.HIGH_CONCERN, "primary": RecommendationType.CONDITIONAL_KO,
-                "alternatives": [RecommendationType.CRISPRI, RecommendationType.TEMPORAL_CONTROL], "basis": "measured",
+                "alternatives": [RecommendationType.CRISPRI, RecommendationType.TEMPORAL_CONTROL], "basis": "essentiality",
                 "justification": [cells["text"]],
                 "concerns": ["The gene is essential in human cells, so a whole-organism knockout is likely lethal"],
                 "mitigation": ["Use a conditional or inducible allele instead of a complete knockout"],
@@ -534,7 +568,7 @@ class SafetyRecommender:
             concerns.append("The knockout is not viable in mice: cultured cells can tolerate it, but a whole-animal knockout cannot be made")
         justification += self._extra_findings(evidence)
         confidence = 0.9 if (call == "ESSENTIAL" and cells["common_essential"]) or (call == "NON_ESSENTIAL" and percent < 5) else 0.75
-        return {"level": level, "primary": primary, "alternatives": alternatives, "basis": "measured",
+        return {"level": level, "primary": primary, "alternatives": alternatives, "basis": "essentiality",
                 "justification": justification, "concerns": concerns, "mitigation": mitigation,
                 "considerations": considerations, "confidence": confidence}
 

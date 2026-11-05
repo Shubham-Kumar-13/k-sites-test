@@ -80,6 +80,13 @@ class TestStaticSite:
         assert 'data-job-field="organism"' in text
         assert 'id="downloadCsv"' in text and 'id="downloadXlsx"' in text
 
+    def test_potential_candidates_button_follows_summary(self, site):
+        text = (site / "results.html").read_text(encoding="utf-8")
+
+        assert text.index('id="summary-tab"') < text.index('id="potential-tab"')
+        assert 'data-bs-target="#potential"' in text
+        assert 'id="potentialContainer"' in text
+
     def test_help_page_carries_the_documentation(self, site):
         text = (site / "help.html").read_text(encoding="utf-8")
 

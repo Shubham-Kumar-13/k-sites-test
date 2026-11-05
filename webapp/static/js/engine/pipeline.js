@@ -16,8 +16,15 @@ export const MAX_PREDICTIONS = 25;
 
 export const DEFAULT_SPECIES_VALIDATION = ['9606', '10090', '10116', '7227', '6239'];
 
-/** Genes are listed safest first. */
+/** Genes are listed safest first, then by knockout-evidence reliability and composite score. */
 export const SAFETY_TIER = { SAFE: 0, CAUTION: 1, MODERATE_CONCERN: 2, HIGH_CONCERN: 3, AVOID: 4 };
+export const EVIDENCE_TIER = { measured: 0, essentiality: 1, ortholog: 2, distant: 2, estimate: 3, predicted: 3, none: 4 };
+
+export function compareGeneRankings(a, b) {
+    const tier = (gene) => SAFETY_TIER[gene.safety_recommendation.safety_level] ?? Object.keys(SAFETY_TIER).length;
+    const evidenceTier = (gene) => EVIDENCE_TIER[gene.safety_recommendation.evidence_basis] ?? Object.keys(EVIDENCE_TIER).length;
+    return tier(a) - tier(b) || evidenceTier(a) - evidenceTier(b) || (b.composite_score || 0) - (a.composite_score || 0);
+}
 
 /** A gene with no functional description is not a useful recommendation target. */
 function hasNoFunctionalDescription(description) {
@@ -279,9 +286,7 @@ export async function runKSitesPipeline(ctx, opts) {
             + `without a measured result; the other ${predictionsOverLimit} were rated without it, so they are at most CAUTION.`);
     }
 
-    // Safest genes first (measured evidence decides the tier), then by composite score as before
-    const tier = (gene) => SAFETY_TIER[gene.safety_recommendation.safety_level] ?? Object.keys(SAFETY_TIER).length;
-    processed.sort((a, b) => tier(a) - tier(b) || (b.composite_score || 0) - (a.composite_score || 0));
+    processed.sort(compareGeneRankings);
 
     // Step 5: aggregate
     const count = (key) => processed.reduce((acc, g) => { const k = g.safety_recommendation[key]; acc[k] = (acc[k] || 0) + 1; return acc; }, {});
