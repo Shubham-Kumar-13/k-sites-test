@@ -334,14 +334,55 @@ const BASIS_BADGES = {
     estimate: ['bg-warning text-dark', 'Estimated from data (not measured)'],
 };
 
+const SCORE_HELP = {
+    specificity: 'Specificity (0-1): how focused this gene is on the selected biological process. Higher = fewer unrelated roles = safer knockout candidate.',
+    composite: 'Composite (0-1): overall knockout suitability combining specificity, evidence quality, and literature support.',
+    evidence: 'Evidence (0-1): strength and reliability of knockout evidence. Direct clean knockouts score highest; predictions score lowest.',
+    literature: 'Literature (0-1): amount of published research about this gene. More papers = more confidence in the prediction.',
+};
+
+function scoreMetric(icon, label, value, helpKey) {
+    const v = value !== undefined && value !== null ? Number(value).toFixed(2) : 'N/A';
+    return `<div class="col-md-3" data-bs-toggle="tooltip" data-bs-placement="top" title="${esc(SCORE_HELP[helpKey])}">
+        <i class="fas ${icon} me-1"></i>${label}: ${v}
+    </div>`;
+}
+
+function initializeTooltips(root = document) {
+    root.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+        if (!bootstrap.Tooltip.getInstance(el)) {
+            new bootstrap.Tooltip(el);
+        }
+    });
+}
+
 function callBadge(call) {
     const [cls, label] = CALL_BADGES[call] || CALL_BADGES.UNKNOWN;
     return `<span class="badge ${cls} me-1">${label}</span>`;
 }
 
-function referenceLinks(organism) {
+function referenceLinks(organism, symbol = '', taxid = '') {
     const links = (organism.references || []).map(p => `<a href="https://pubmed.ncbi.nlm.nih.gov/${Number(p)}/" target="_blank" rel="noopener">PMID ${Number(p)}</a>`);
     if (organism.mgi_id) links.push(`<a href="https://www.informatics.jax.org/marker/${esc(organism.mgi_id)}" target="_blank" rel="noopener">MGI</a>`);
+
+    // Organism-specific model-organism database links when the gene symbol is known.
+    const safeSymbol = encodeURIComponent(symbol);
+    const dbLinks = {
+        '10090': [`https://www.informatics.jax.org/search?term=${safeSymbol}`, 'MGI'],
+        '10116': [`https://rgd.mcw.edu/rgdweb/elasticResults.html?term=${safeSymbol}`, 'RGD'],
+        '7227': [`https://flybase.org/reports/${safeSymbol}.html`, 'FlyBase'],
+        '6239': [`https://wormbase.org/species/c_elegans/gene/${safeSymbol}`, 'WormBase'],
+        '7955': [`https://zfin.org/search?query=${safeSymbol}`, 'ZFIN'],
+        '4932': [`https://www.yeastgenome.org/search?q=${safeSymbol}`, 'SGD'],
+        '559292': [`https://www.yeastgenome.org/search?q=${safeSymbol}`, 'SGD'],
+        '4896': [`https://www.pombase.org/search/ensembl/${safeSymbol}`, 'PomBase'],
+        '3702': [`https://www.arabidopsis.org/servlets/Search?type=general&search_action=detail&name=${safeSymbol}`, 'TAIR'],
+    };
+    if (taxid && dbLinks[taxid]) {
+        const [url, name] = dbLinks[taxid];
+        links.push(`<a href="${url}" target="_blank" rel="noopener">${name}</a>`);
+    }
+
     return links.length ? ` <span class="text-muted">(${links.join(', ')})</span>` : '';
 }
 
@@ -435,7 +476,7 @@ function evidencePanel(gene) {
     const driver = evidence ? verdictDriver(evidence) : '';
     const decides = '<span class="badge bg-light text-dark border ms-1">decides the verdict</span>';
     if (evidence && evidence.organism.call !== 'UNKNOWN') {
-        lines.push(`<div class="mb-1">${callBadge(evidence.organism.call)}${esc(evidence.organism.text)}${referenceLinks(evidence.organism)}${driver === 'organism' ? decides : ''}</div>`);
+        lines.push(`<div class="mb-1">${callBadge(evidence.organism.call)}${esc(evidence.organism.text)}${referenceLinks(evidence.organism, gene.symbol, currentJob?.taxid)}${driver === 'organism' ? decides : ''}</div>`);
     }
     if (evidence && evidence.cells.call !== 'UNKNOWN') {
         lines.push(`<div class="mb-1">${callBadge(evidence.cells.call)}${esc(evidence.cells.text)}${driver === 'cells' ? decides : ''}</div>`);
@@ -480,7 +521,7 @@ function renderExcluded(entries) {
         const evidence = entry.knockout_evidence;
         const measured = evidence && evidence.has_measured;
         const lines = [];
-        if (evidence && evidence.organism.call !== 'UNKNOWN') lines.push(`${callBadge(evidence.organism.call)}${esc(evidence.organism.text)}${referenceLinks(evidence.organism)}`);
+        if (evidence && evidence.organism.call !== 'UNKNOWN') lines.push(`${callBadge(evidence.organism.call)}${esc(evidence.organism.text)}${referenceLinks(evidence.organism, entry.symbol, currentJob?.taxid)}`);
         if (evidence && evidence.cells.call !== 'UNKNOWN') lines.push(`${callBadge(evidence.cells.call)}${esc(evidence.cells.text)}`);
         if (evidence && evidence.estimate) lines.push(`<span class="badge bg-warning text-dark me-1">${esc(evidence.estimate.percent)}% lethal (estimate)</span>${esc(evidence.estimate.text)}`);
         return `<tr><td><strong>${esc(entry.symbol)}</strong></td><td>${esc(entry.detail)}</td>
@@ -586,18 +627,10 @@ function renderGenes(genes) {
                 </div>
                 
                 <div class="row g-2 mb-3 small text-muted">
-                    <div class="col-md-3">
-                        <i class="fas fa-star me-1"></i>Specificity: ${gene.specificity_score?.toFixed(2) || 'N/A'}
-                    </div>
-                    <div class="col-md-3">
-                        <i class="fas fa-chart-line me-1"></i>Composite: ${gene.composite_score?.toFixed(2) || 'N/A'}
-                    </div>
-                    <div class="col-md-3">
-                        <i class="fas fa-check-circle me-1"></i>Evidence: ${gene.evidence_quality?.toFixed(2) || 'N/A'}
-                    </div>
-                    <div class="col-md-3">
-                        <i class="fas fa-book me-1"></i>Literature: ${gene.literature_support?.toFixed(2) || 'N/A'}
-                    </div>
+                    ${scoreMetric('fa-star', 'Specificity', gene.specificity_score, 'specificity')}
+                    ${scoreMetric('fa-chart-line', 'Composite', gene.composite_score, 'composite')}
+                    ${scoreMetric('fa-check-circle', 'Evidence', gene.evidence_quality, 'evidence')}
+                    ${scoreMetric('fa-book', 'Literature', gene.literature_support, 'literature')}
                 </div>
                 
                 ${evidencePanel(gene)}
@@ -608,6 +641,7 @@ function renderGenes(genes) {
             </div>
         </div>`;
     }).join('');
+    initializeTooltips(container);
 }
 
 function renderInsufficientData(genes) {
