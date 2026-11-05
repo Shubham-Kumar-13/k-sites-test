@@ -336,17 +336,22 @@ function renderOrganismDirectResults(results) {
         return;
     }
 
-    list.innerHTML = results.map(s => `
+    list.innerHTML = results.map(s => {
+        const rankLabel = s.rank && s.rank !== 'species' ? ` <span class="badge bg-light text-dark border">${s.rank}</span>` : '';
+        const safeName = s.name.replace(/'/g, "\\'");
+        const safeCommon = (s.common_name || '').replace(/'/g, "\\'");
+        return `
         <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-             onclick="selectOrganism('${s.name.replace(/'/g, "\\'")}', '${s.taxid}', '${(s.common_name || '').replace(/'/g, "\\'")}')"
+             onclick="selectOrganism('${safeName}', '${s.taxid}', '${safeCommon}')"
              style="cursor: pointer;">
             <div>
-                <strong>${s.name}</strong>
+                <strong>${s.name}</strong>${rankLabel}
                 ${s.common_name ? `<br><small class="text-muted">${s.common_name}</small>` : ''}
             </div>
             <span class="badge bg-secondary">TaxID: ${s.taxid}</span>
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // ============================================================================
