@@ -545,9 +545,6 @@ function renderGenes(genes) {
                     <div class="col-md-3">
                         <i class="fas fa-book me-1"></i>Literature: ${gene.literature_support?.toFixed(2) || 'N/A'}
                     </div>
-                    <div class="col-md-3">
-                        <i class="fas fa-project-diagram me-1"></i>KEGG pathways: ${gene.kegg_pathway_count ?? 'N/A'}
-                    </div>
                 </div>
                 
                 ${evidencePanel(gene)}

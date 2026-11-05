@@ -467,22 +467,6 @@ ANALYTICAL_TERMS = {
         "reference": "Composite score tie-breaker for unmeasured genes"
     },
 
-    "kegg_pathways": {
-        "title": "KEGG Pathways",
-        "icon": "fa-route",
-        "short_description": "Shown for information only; not used in the pleiotropy score",
-        "detailed_explanation": """
-            <p>Each gene card may show <strong>KEGG pathways: N/A</strong>. KEGG pathway annotations are
-            <strong>not</strong> counted in the pleiotropy score or the biological-process count. The
-            pleiotropy score uses only Gene Ontology Biological Process terms from the selected databases.</p>
-
-            <h6>What KEGG is used for:</h6>
-            <p>KEGG organism and pathway information is still used behind the scenes to build the organism
-            selection list and to map taxonomy IDs. It does not affect gene ranking.</p>
-        """,
-        "reference": "KEGG organism and pathway data"
-    },
-
     "conservation_score": {
         "title": "Cross-Species Conservation",
         "icon": "fa-globe",
