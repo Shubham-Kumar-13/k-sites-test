@@ -315,30 +315,52 @@ async function searchOrganismDirect(query) {
     list.innerHTML = `
         <div class="list-group-item text-muted">
             <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-            Searching NCBI Taxonomy...
+            Searching organisms...
         </div>
     `;
 
     try {
-        const response = await ksFetch(`/api/organisms/ncbi-search?q=${encodeURIComponent(query)}`);
-        const data = await response.json();
-        renderOrganismDirectResults(data.results || []);
+        // 1. Fast local substring search over the KEGG organism list.
+        const localResponse = await ksFetch(`/api/organisms/search?q=${encodeURIComponent(query)}`);
+        const localData = await localResponse.json();
+        const localResults = localData.results || [];
+
+        // Show local matches immediately.
+        renderOrganismDirectResults(localResults, true);
+
+        // 2. Broader NCBI search to catch organisms not in the local list.
+        const ncbiResponse = await ksFetch(`/api/organisms/ncbi-search?q=${encodeURIComponent(query)}`);
+        const ncbiData = await ncbiResponse.json();
+        const ncbiResults = ncbiData.results || [];
+
+        // Merge: local results first, then NCBI results not already shown.
+        const seen = new Set(localResults.map(r => r.taxid));
+        const merged = [
+            ...localResults,
+            ...ncbiResults.filter(r => r.taxid && !seen.has(r.taxid))
+        ];
+
+        renderOrganismDirectResults(merged, false);
     } catch (error) {
         console.error('Error searching organisms:', error);
         list.innerHTML = '<div class="list-group-item text-danger"><i class="fas fa-exclamation-circle me-2"></i>Error searching organisms.</div>';
     }
 }
 
-function renderOrganismDirectResults(results) {
+function renderOrganismDirectResults(results, isPartial) {
     const list = document.getElementById('organismDirectResults');
     if (results.length === 0) {
+        if (isPartial) return; // Wait for NCBI before showing "No organisms found".
         list.innerHTML = '<div class="list-group-item text-muted">No organisms found</div>';
         return;
     }
 
-    list.innerHTML = results.map(s => `
+    list.innerHTML = results.map(s => {
+        const safeName = String(s.name || '').replace(/'/g, "\\'");
+        const safeCommon = String(s.common_name || '').replace(/'/g, "\\'");
+        return `
         <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-             onclick="selectOrganism('${s.name.replace(/'/g, "\\'")}', '${s.taxid}', '${(s.common_name || '').replace(/'/g, "\\'")}')"
+             onclick="selectOrganism('${safeName}', '${s.taxid}', '${safeCommon}')"
              style="cursor: pointer;">
             <div>
                 <strong>${s.name}</strong>
@@ -346,7 +368,8 @@ function renderOrganismDirectResults(results) {
             </div>
             <span class="badge bg-secondary">TaxID: ${s.taxid}</span>
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // ============================================================================
