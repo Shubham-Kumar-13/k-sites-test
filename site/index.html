@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,11 +16,35 @@
             --secondary-color: #48bb78;
             --accent-color: #ed8936;
             --bg-light: #f7fafc;
+            --body-bg: #f7fafc;
+            --body-color: #212529;
+            --card-bg: #ffffff;
+            --card-border: rgba(0,0,0,0.08);
+            --muted-color: #6c757d;
+            --form-label-color: #2d3748;
+            --footer-bg: #ffffff;
+            --spinner-bg: rgba(255,255,255,0.95);
         }
-        
+
+        html[data-bs-theme="dark"] {
+            --primary-color: #63b3ed;
+            --secondary-color: #68d391;
+            --accent-color: #f6ad55;
+            --bg-light: #0f172a;
+            --body-bg: #0f172a;
+            --body-color: #e2e8f0;
+            --card-bg: #1e293b;
+            --card-border: rgba(255,255,255,0.08);
+            --muted-color: #94a3b8;
+            --form-label-color: #cbd5e1;
+            --footer-bg: #1e293b;
+            --spinner-bg: rgba(15,23,42,0.95);
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-light);
+            background-color: var(--body-bg);
+            color: var(--body-color);
         }
         
         .navbar {
@@ -265,8 +289,38 @@
         .kingdom-card.loading, .go-category-card.loading {
             animation: pulse-border 1.5s ease-in-out infinite;
         }
+
+        /* Dark mode overrides for K-Sites custom components */
+        html[data-bs-theme="dark"] .card {
+            background-color: var(--card-bg);
+            border-color: var(--card-border);
+        }
+        html[data-bs-theme="dark"] .form-label {
+            color: var(--form-label-color);
+        }
+        html[data-bs-theme="dark"] .sequence-box {
+            background-color: #334155;
+            color: #e2e8f0;
+        }
+        html[data-bs-theme="dark"] .spinner-overlay {
+            background: var(--spinner-bg);
+        }
+        html[data-bs-theme="dark"] .loading-text {
+            color: var(--primary-color);
+        }
+        html[data-bs-theme="dark"] .database-card.selected {
+            background-color: #064e3b;
+        }
+        html[data-bs-theme="dark"] footer {
+            background-color: var(--footer-bg) !important;
+            border-color: var(--card-border) !important;
+        }
+        html[data-bs-theme="dark"] .kingdom-card.loading,
+        html[data-bs-theme="dark"] .go-category-card.loading {
+            background-color: #1e293b;
+        }
     </style>
-    
+
     
 <style>
     /* RAG phenotype prediction section */
@@ -370,6 +424,11 @@
                         <a class="nav-link" href="validation.html">
                             <i class="fas fa-check-double me-1"></i>Validation
                         </a>
+                    </li>
+                    <li class="nav-item">
+                        <button type="button" class="btn btn-link nav-link" id="themeToggle" aria-label="Toggle dark mode">
+                            <i class="fas fa-sun me-1" id="themeIcon"></i><span id="themeLabel">Light</span>
+                        </button>
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
@@ -902,7 +961,37 @@
     
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+
+    <script>
+        (function () {
+            const STORAGE_KEY = 'ksites.theme';
+            const html = document.documentElement;
+            const toggle = document.getElementById('themeToggle');
+            const icon = document.getElementById('themeIcon');
+            const label = document.getElementById('themeLabel');
+
+            function applyTheme(theme) {
+                html.setAttribute('data-bs-theme', theme);
+                if (icon) icon.className = theme === 'dark' ? 'fas fa-moon me-1' : 'fas fa-sun me-1';
+                if (label) label.textContent = theme === 'dark' ? 'Dark' : 'Light';
+            }
+
+            const saved = localStorage.getItem(STORAGE_KEY);
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const initialTheme = saved || (prefersDark ? 'dark' : 'light');
+            applyTheme(initialTheme);
+
+            if (toggle) {
+                toggle.addEventListener('click', function () {
+                    const current = html.getAttribute('data-bs-theme') || 'light';
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    applyTheme(next);
+                    localStorage.setItem(STORAGE_KEY, next);
+                });
+            }
+        })();
+    </script>
+
     
 <script src="static/js/main.js"></script>
 
