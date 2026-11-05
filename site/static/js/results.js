@@ -506,7 +506,7 @@ function evidencePanel(gene) {
         <summary class="text-primary cursor-pointer">Detailed source records</summary>
         <div class="detailed-evidence-body mt-2">Expand to load detailed mutant and publication records.</div>
     </details>` : '';
-    return `<div class="border rounded p-2 mb-3 small bg-light">${header}${lines.join('')}</div>${details}`;
+    return `<div class="evidence-panel border rounded p-2 mb-3 small bg-light">${header}${lines.join('')}</div>${details}`;
 }
 
 document.addEventListener('toggle', (event) => {
