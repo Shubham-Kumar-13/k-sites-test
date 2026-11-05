@@ -302,138 +302,67 @@ def search_organisms_ncbi(query: str, limit: int = 10) -> List[Dict[str, str]]:
     """
     Search NCBI Taxonomy for organisms by scientific/common name or TaxID.
 
-    Returns a list of organisms with ``name`` (scientific name), ``common_name``,
-    ``taxid`` and ``rank``. Species-level results are preferred over genus/family
-    level entries, and well-known model organisms are boosted to the top.
-    Results are cached through the shared HTTP cache.
+    Returns a list of organisms with ``name`` (scientific name), ``common_name``
+    and ``taxid``. Results are cached through the shared HTTP cache.
     """
     query = query.strip()
     if not query or len(query) < 2:
         return []
 
-    def _esearch(term: str, retmax: int) -> List[str]:
+    tax_ids: List[str] = []
+
+    if query.isdigit():
+        tax_ids = [query]
+    else:
         try:
             response = http_get(
                 "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
                 params={
                     "db": "taxonomy",
-                    "term": term,
+                    "term": query,
                     "retmode": "json",
-                    "retmax": retmax,
+                    "retmax": limit,
                 },
                 timeout=10,
             )
-            return response.json().get("esearchresult", {}).get("idlist", [])[:retmax]
+            data = response.json()
+            tax_ids = data.get("esearchresult", {}).get("idlist", [])[:limit]
         except Exception as e:
-            logger.warning(f"NCBI organism search failed for {term!r}: {e}")
+            logger.warning(f"NCBI organism search failed for {query!r}: {e}")
             return []
-
-    def _esummary(tax_ids: List[str]) -> Dict[str, dict]:
-        if not tax_ids:
-            return {}
-        try:
-            summary_response = http_get(
-                "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi",
-                params={
-                    "db": "taxonomy",
-                    "id": ",".join(tax_ids),
-                    "retmode": "json",
-                },
-                timeout=10,
-            )
-            return summary_response.json().get("result", {})
-        except Exception as e:
-            logger.warning(f"Could not fetch organism summaries for {query!r}: {e}")
-            return {}
-
-    def _doc_to_result(taxid: str, doc: dict) -> Optional[Dict[str, str]]:
-        scientific = doc.get("scientificname") or doc.get("ScientificName", "")
-        if not scientific:
-            return None
-        return {
-            "name": scientific,
-            "common_name": doc.get("commonname") or doc.get("CommonName", ""),
-            "taxid": str(taxid),
-            "rank": (doc.get("rank") or doc.get("Rank") or "").lower(),
-        }
-
-    tax_ids: List[str] = []
-    if query.isdigit():
-        tax_ids = [query]
-    else:
-        # First try the user's query as-is.
-        tax_ids = _esearch(query, limit)
-
-        # If the broad search returns no species-level hits, try a species-ranked search.
-        # This prevents a query like "homo" from only returning the genus Homo (9605)
-        # when Homo sapiens (9606) is what users almost always mean.
-        if tax_ids:
-            docs = _esummary(tax_ids)
-            has_species = any(
-                (docs.get(str(tid), {}).get("rank") or docs.get(str(tid), {}).get("Rank", "")).lower() == "species"
-                for tid in tax_ids
-            )
-            if not has_species:
-                species_ids = _esearch(f'"{query}"[Organism] AND species[Rank]', limit)
-                tax_ids = list(dict.fromkeys(tax_ids + species_ids))[:limit]
-        else:
-            tax_ids = _esearch(f'"{query}"[Organism] AND species[Rank]', limit)
 
     if not tax_ids:
         return []
 
-    result_docs = _esummary(tax_ids)
-    by_taxid: Dict[str, Dict[str, str]] = {}
+    try:
+        summary_response = http_get(
+            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi",
+            params={
+                "db": "taxonomy",
+                "id": ",".join(tax_ids),
+                "retmode": "json",
+            },
+            timeout=10,
+        )
+        summary_data = summary_response.json()
+    except Exception as e:
+        logger.warning(f"Could not fetch organism summaries for {query!r}: {e}")
+        return []
+
+    results: List[Dict[str, str]] = []
+    result_docs = summary_data.get("result", {})
     for taxid in tax_ids:
         doc = result_docs.get(str(taxid), {})
         if not doc:
             continue
-        result = _doc_to_result(taxid, doc)
-        if result:
-            by_taxid[result["taxid"]] = result
-
-    # Inject well-known model organisms that match the query but might not be returned
-    # by NCBI's ranked search (e.g. "human" or "homo" should always offer Homo sapiens).
-    query_lower = query.lower()
-    for key, org in COMMON_ORGANISMS.items():
-        taxid = org["taxid"]
-        if taxid in by_taxid:
+        # NCBI esummary returns lowercase keys in JSON
+        scientific = doc.get("scientificname") or doc.get("ScientificName", "")
+        if not scientific:
             continue
-        if (
-            query_lower in key.lower()
-            or query_lower in org["scientific_name"].lower()
-            or query_lower in org.get("common_name", "").lower()
-            or query_lower == taxid
-        ):
-            by_taxid[taxid] = {
-                "name": org["scientific_name"],
-                "common_name": org.get("common_name", ""),
-                "taxid": taxid,
-                "rank": "species",
-            }
+        results.append({
+            "name": scientific,
+            "common_name": doc.get("commonname") or doc.get("CommonName", ""),
+            "taxid": str(taxid),
+        })
 
-    # Rank results so the most useful ones appear first.
-    # Order: exact taxid > common model organism species > exact scientific/common name > species > others.
-    def _score(result: Dict[str, str]) -> int:
-        name_lower = result["name"].lower()
-        common_lower = result.get("common_name", "").lower()
-        is_common = result["taxid"] in {o["taxid"] for o in COMMON_ORGANISMS.values()}
-        score = 0
-        if result["taxid"] == query:
-            score += 200
-        if is_common and result.get("rank") == "species":
-            score += 150
-        if name_lower == query_lower:
-            score += 80
-        if common_lower == query_lower:
-            score += 70
-        if is_common:
-            score += 20
-        if result.get("rank") == "species":
-            score += 10
-        if result["name"].startswith(query_lower.capitalize()) or result["name"].startswith(query_lower):
-            score += 5
-        return score
-
-    ranked = sorted(by_taxid.values(), key=lambda r: (-_score(r), r["name"].lower()))
-    return ranked[:limit]
+    return results
