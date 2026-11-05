@@ -36,14 +36,23 @@ export function formatDuration(seconds) {
     return `${hours} hour${hours > 1 ? 's' : ''} ${minutes} min`;
 }
 
-/** Rough run time: every gene of the GO term is scored (about 4 s each); phenotype prediction adds about 12 s each. */
-export function estimateSeconds(geneCount, predictPhenotypes, withEvidence = false) {
-    // Measured in the browser: 193 genes took 125 s (0.65 s per gene) when the evidence files supply conservation and
-    // literature counts, and 49 genes took about 3 minutes (3.7 s per gene) when those are searched for in databases.
-    // The estimate is deliberately on the slow side. The keyword predictor only runs for genes with neither a measurement
-    // nor an estimate, so it adds little per gene on average (plus a one-off model download).
-    const perGene = (withEvidence ? 1.0 : 4.0) + (predictPhenotypes ? 2 : 0);
-    return Math.round(20 + geneCount * perGene);
+/** Rough run time: every gene of the GO term is scored. */
+export function estimateSeconds(geneCount, predictPhenotypes, withEvidence = false, databaseCount = 1) {
+    // Observed in the browser (zebrafish GO:0006915, 151 genes):
+    //   - covered organism + no RAG: ~2.3 s/gene
+    //   - covered organism + RAG (25-gene cap): ~3.2 s/gene average
+    //   - uncovered organisms need more database searches: ~4 s/gene
+    // Extra annotation databases add ~0.4 s/gene each beyond the mandatory QuickGO source.
+    // RAG only runs on the first ~25 unmeasured genes, so its cost is capped.
+    const basePerGene = withEvidence ? 2.3 : 4.0;
+    const databaseOverhead = 0.4 * Math.max(0, databaseCount - 1);
+    const perGene = basePerGene + databaseOverhead;
+
+    const fixedSeconds = 20;
+    const ragGenes = predictPhenotypes ? Math.min(25, geneCount) : 0;
+    const ragSeconds = ragGenes ? 15 + 5 * ragGenes : 0;
+
+    return Math.round(fixedSeconds + geneCount * perGene + ragSeconds);
 }
 
 /** Where each pipeline stage sits on the 0-100% progress bar (same stops as the page's step list). */
@@ -199,7 +208,8 @@ export class LocalBackend {
             }
 
             const covered = !!(await this.evidenceCoverage(taxid)).covered;
-            const seconds = estimateSeconds(total, !!data.predict_phenotypes, covered);
+            const databases = data.databases || ['quickgo'];
+            const seconds = estimateSeconds(total, !!data.predict_phenotypes, covered, databases.length);
             return {
                 valid: errors.length === 0, errors, warnings, gene_count: total, organism_resolved: organism, taxid,
                 estimated_time_seconds: seconds, estimated_time_formatted: (data.predict_phenotypes ? 'up to ' : '') + formatDuration(seconds),
@@ -236,12 +246,16 @@ export class LocalBackend {
 
         const nowIso = new Date(this.d.now()).toISOString();
         const maxGenes = Math.max(1, Math.min(500, parseInt(data.max_genes ?? 10, 10) || 10));
+        const taxid = data.taxid || '';
+        let covered = false;
+        try { covered = !!(await this.evidenceCoverage(taxid)).covered; } catch (e) { covered = false; }
+        const databases = data.databases || ['quickgo'];
         const job = {
             id: this.d.newId(),
             created_at: nowIso, updated_at: nowIso,
             status: 'pending', current_step: 'Initializing', progress_percent: 0,
-            estimated_completion: new Date(this.d.now() + estimateSeconds(maxGenes, !!data.predict_phenotypes) * 1000).toISOString(),
-            organism, taxid: data.taxid || '', go_term: goTerm, go_term_name: data.go_term_name || '',
+            estimated_completion: new Date(this.d.now() + estimateSeconds(maxGenes, !!data.predict_phenotypes, covered, databases.length) * 1000).toISOString(),
+            organism, taxid, go_term: goTerm, go_term_name: data.go_term_name || '',
             max_genes: maxGenes,
             max_pleiotropy: Math.max(0, Math.min(10, parseInt(data.max_pleiotropy ?? 5, 10) || 0)),
             evidence_filter: EVIDENCE_FILTERS.includes(data.evidence_filter) ? data.evidence_filter : 'experimental',

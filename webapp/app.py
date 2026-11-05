@@ -31,6 +31,7 @@ from k_sites.data_retrieval.go_gene_mapper import get_genes_for_go_term, search_
 from k_sites.workflow.pipeline import run_k_sites_pipeline
 from k_sites.reporting.report_generator import generate_html_report
 from k_sites.reporting.csv_export import generate_comprehensive_csv_report
+from k_sites.knockout_evidence import default_provider
 
 # Import webapp utilities
 from utils.hierarchical_data import (
@@ -754,9 +755,22 @@ def validate_analysis():
                 warnings.append(f'{total_genes} genes found. All are assessed; the report shows the {max_genes} safest by measured '
                                 f'knockout evidence and composite score, and lists the rest as not shown.')
             
-            # Estimate time
-            estimated_seconds = estimate_analysis_time(total_genes, data.get('predict_phenotypes', False))
-            
+            # Estimate time with organism evidence coverage and selected databases.
+            try:
+                provider = default_provider()
+                organism_record = provider.organism(taxid) if provider else None
+                has_measured_evidence = organism_record is not None
+            except Exception:
+                has_measured_evidence = False
+
+            databases = data.get('databases') or []
+            estimated_seconds = estimate_analysis_time(
+                total_genes,
+                predict_phenotypes=data.get('predict_phenotypes', False),
+                has_measured_evidence=has_measured_evidence,
+                database_count=max(1, len(databases))
+            )
+
             return jsonify({
                 'valid': len(errors) == 0,
                 'errors': errors,
@@ -779,13 +793,33 @@ def validate_analysis():
     })
 
 
-def estimate_analysis_time(num_genes: int, predict_phenotypes: bool) -> int:
+def estimate_analysis_time(
+    num_genes: int,
+    predict_phenotypes: bool = False,
+    has_measured_evidence: bool = False,
+    database_count: int = 1
+) -> int:
     """Estimate analysis time in seconds: every gene of the GO term is analysed, whatever the report size.
 
-    Measured in the browser engine (the same steps): about 0.65 s per gene when the evidence files supply conservation and
-    literature counts and 3.7 s per gene when those are searched for in databases; the estimate is on the slow side."""
-    per_gene_time = 4 + (2 if predict_phenotypes else 0)
-    return 20 + int(num_genes * per_gene_time)
+    Timing observed on real runs (zebrafish GO:0006915, 151 genes):
+      - covered organism + no RAG: ~2.3 s/gene
+      - covered organism + RAG (25-gene cap): ~3.2 s/gene average
+      - uncovered organisms need more database searches: ~4 s/gene
+    Extra annotation databases add roughly 0.4 s/gene each beyond the mandatory QuickGO source.
+    RAG only runs on the first ~25 unmeasured genes, so its cost is capped, not per-gene."""
+    base_per_gene = 2.3 if has_measured_evidence else 4.0
+    database_overhead = 0.4 * max(0, database_count - 1)
+    per_gene_time = base_per_gene + database_overhead
+
+    # Fixed overhead for pipeline setup, GO-term lookup and report generation.
+    fixed_seconds = 20
+
+    # RAG adds a small fixed model-load/setup cost plus ~5 s per gene it actually analyses.
+    # The keyword predictor is capped at 25 genes in the pipeline.
+    rag_genes = min(25, num_genes) if predict_phenotypes else 0
+    rag_seconds = (15 + 5 * rag_genes) if rag_genes else 0
+
+    return int(fixed_seconds + num_genes * per_gene_time + rag_seconds)
 
 
 def format_duration(seconds: int) -> str:
@@ -812,9 +846,19 @@ def start_analysis():
         job_id = str(uuid.uuid4())
         
         # Estimate completion time
+        taxid = data.get('taxid')
+        try:
+            provider = default_provider()
+            organism_record = provider.organism(taxid) if provider and taxid else None
+            has_measured_evidence = organism_record is not None
+        except Exception:
+            has_measured_evidence = False
+        databases = data.get('databases') or ['quickgo']
         estimated_seconds = estimate_analysis_time(
             int(data.get('max_genes', 10)),
-            data.get('predict_phenotypes', False)
+            predict_phenotypes=data.get('predict_phenotypes', False),
+            has_measured_evidence=has_measured_evidence,
+            database_count=max(1, len(databases))
         )
         estimated_completion = datetime.utcnow() + timedelta(seconds=estimated_seconds)
         

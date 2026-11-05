@@ -10,6 +10,7 @@ let selectedCategory = null;
 let selectedGoTerm = null;
 let kingdomOptions = [];
 let geneCountCheckTimeout = null;
+let geneCountAbortController = null;
 
 // DOM Ready
 document.addEventListener('DOMContentLoaded', async function() {
@@ -619,12 +620,21 @@ function initializeEventListeners() {
         }
     }, 300));
     
-    // Parameter changes for gene count check
-    ['max_genes', 'predict_phenotypes', 'evidence_filter'].forEach(id => {
-        document.getElementById(id)?.addEventListener('change', () => {
+    // Parameter changes for gene count check — react quickly and cancel stale requests.
+    ['max_genes', 'predict_phenotypes', 'evidence_filter', 'max_pleiotropy', 'knockout_context'].forEach(id => {
+        const element = document.getElementById(id);
+        if (!element) return;
+        const eventType = element.type === 'checkbox' || element.tagName === 'SELECT' ? 'change' : 'input';
+        element.addEventListener(eventType, () => {
             clearTimeout(geneCountCheckTimeout);
-            geneCountCheckTimeout = setTimeout(checkGeneCount, 500);
+            geneCountCheckTimeout = setTimeout(checkGeneCount, 200);
         });
+    });
+
+    // Database selection also affects runtime.
+    document.getElementById('databaseContainer')?.addEventListener('change', () => {
+        clearTimeout(geneCountCheckTimeout);
+        geneCountCheckTimeout = setTimeout(checkGeneCount, 200);
     });
 
     // RAG phenotype prediction: slide-out card, brain icon highlight, provider flow
@@ -690,44 +700,61 @@ async function checkGeneCount() {
     const maxGenes = parseInt(document.getElementById('max_genes').value) || 10;
     const predictPhenotypes = document.getElementById('predict_phenotypes').checked;
     const evidenceFilter = document.getElementById('evidence_filter').value;
-    
+    const maxPleiotropy = document.getElementById('max_pleiotropy')?.value || 5;
+    const knockoutContext = document.getElementById('knockout_context')?.value || 'auto';
+    const selectedDatabases = Array.from(
+        document.querySelectorAll('.database-checkbox:checked')
+    ).map(cb => cb.value);
+
     if (!organism || !goTerm) {
         document.getElementById('geneCountPreview').style.display = 'none';
         return;
     }
-    
+
+    // Cancel any in-flight request so the UI never shows stale data.
+    if (geneCountAbortController) {
+        geneCountAbortController.abort();
+    }
+    geneCountAbortController = new AbortController();
+
     try {
         const response = await ksFetch('/api/analyze/validate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                organism, 
-                go_term: goTerm, 
+            signal: geneCountAbortController.signal,
+            body: JSON.stringify({
+                organism,
+                go_term: goTerm,
                 max_genes: maxGenes,
+                max_pleiotropy: maxPleiotropy,
                 predict_phenotypes: predictPhenotypes,
-                evidence_filter: evidenceFilter
+                evidence_filter: evidenceFilter,
+                knockout_context: knockoutContext,
+                databases: selectedDatabases
             })
         });
-        
+
         const data = await response.json();
-        
+
         const preview = document.getElementById('geneCountPreview');
         const value = document.getElementById('geneCountValue');
         const timeDiv = document.getElementById('estimatedTime');
         const timeValue = document.getElementById('estimatedTimeValue');
         const warning = document.getElementById('geneCountWarning');
         const warningText = document.getElementById('geneCountWarningText');
-        
+
         preview.style.display = 'block';
-        
+
         if (data.gene_count !== undefined) {
             value.textContent = data.gene_count;
-            
+
             if (data.estimated_time_formatted) {
                 timeValue.textContent = data.estimated_time_formatted;
                 timeDiv.style.display = 'block';
+            } else {
+                timeDiv.style.display = 'none';
             }
-            
+
             if (data.warnings && data.warnings.length > 0) {
                 warning.style.display = 'block';
                 warningText.textContent = data.warnings.join('; ');
@@ -735,9 +762,13 @@ async function checkGeneCount() {
                 warning.style.display = 'none';
             }
         }
-        
+
     } catch (error) {
-        console.error('Error checking gene count:', error);
+        if (error.name !== 'AbortError') {
+            console.error('Error checking gene count:', error);
+        }
+    } finally {
+        geneCountAbortController = null;
     }
 }
 
