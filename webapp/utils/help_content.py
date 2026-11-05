@@ -189,9 +189,27 @@ ANALYTICAL_TERMS = {
                     and it is <strong>never better than CAUTION</strong>. The report says "Estimated from data". Where even
                     that is impossible it says "Not verified".</li>
             </ol>
-            <p>Genes are listed safest first, then by knockout-evidence reliability (direct knockout/deletion,
-            experimental essentiality, ortholog, estimates, then unverified predictions or no measurement), and finally
-            by composite score. Each gene card says which evidence decided the verdict.</p>
+
+            <h6>How genes are ranked:</h6>
+            <p>The result list is sorted by three layers, in this order:</p>
+            <ol>
+                <li><strong>Safety level</strong> — SAFE, CAUTION, MODERATE_CONCERN, HIGH_CONCERN, AVOID.</li>
+                <li><strong>Evidence tier</strong> — see the table below.</li>
+                <li><strong>Composite score</strong> — used only as a tie-breaker within the same safety/evidence group.</li>
+            </ol>
+
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <tr class="table-success"><td><strong>Direct knockout/deletion</strong></td><td>A clean gene deletion with a viability call (highest reliability)</td></tr>
+                    <tr class="table-info"><td><strong>Experimental essentiality</strong></td><td>TraDIS/Tn-seq insertion screens or cell-line CRISPR screens; insertion tolerance is not the same as clean-deletion viability</td></tr>
+                    <tr class="table-info"><td><strong>Ortholog / distant hint</strong></td><td>Knockout result transferred from a related species</td></tr>
+                    <tr class="table-warning"><td><strong>Estimate</strong></td><td>Computational prediction from human cell-line, population and expression data</td></tr>
+                    <tr class="table-secondary"><td><strong>Predicted / none</strong></td><td>Literature-based RAG prediction, or no usable data (lowest reliability)</td></tr>
+                </table>
+            </div>
+
+            <p>Each gene card shows a badge such as "Direct knockout/deletion" or "Not verified" to say which evidence
+            decided the verdict. Click the gene to see the detailed source records.</p>
         """,
         "reference": "K-Sites integrated safety assessment algorithm"
     },
@@ -346,6 +364,39 @@ ANALYTICAL_TERMS = {
                 </table>
             </div>
 
+            <h6>How RAG affects ranking:</h6>
+            <p>RAG can change the <strong>safety level</strong> of an unmeasured gene, but it does not change the
+            <strong>evidence tier</strong> or the <strong>composite score</strong>. Genes are sorted in this order:</p>
+            <ol>
+                <li><strong>Safety level</strong> — <code>SAFE</code> → <code>CAUTION</code> → <code>MODERATE_CONCERN</code>
+                    → <code>HIGH_CONCERN</code> → <code>AVOID</code>.</li>
+                <li><strong>Evidence tier</strong> — direct knockout/deletion → experimental essentiality → ortholog /
+                    distant hint → estimate → predicted / none.</li>
+                <li><strong>Composite score</strong> — higher first, used only as a tie-breaker.</li>
+            </ol>
+
+            <p>RAG produces a <strong>risk level</strong> that is converted to a safety level:</p>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <tr class="table-danger"><td><strong>CRITICAL</strong></td><td>Usually <code>AVOID</code> or <code>HIGH_CONCERN</code></td></tr>
+                    <tr class="table-warning"><td><strong>HIGH</strong></td><td>Usually <code>MODERATE_CONCERN</code> or <code>HIGH_CONCERN</code></td></tr>
+                    <tr class="table-info"><td><strong>MEDIUM</strong></td><td>No safety-level change by itself</td></tr>
+                    <tr class="table-success"><td><strong>LOW</strong></td><td>No safety-level change by itself</td></tr>
+                    <tr class="table-secondary"><td><strong>UNKNOWN</strong></td><td>Treated exactly like no RAG prediction</td></tr>
+                </table>
+            </div>
+
+            <h6>Important rules:</h6>
+            <ul>
+                <li><strong>Measured evidence overrides RAG.</strong> If a gene already has a direct knockout,
+                    essentiality screen, ortholog or estimate result, RAG is ignored for that gene.</li>
+                <li><strong>RAG cannot improve rank.</strong> It can only raise the safety level (make a gene look
+                    riskier), never lower it.</li>
+                <li><strong>UNKNOWN or LOW RAG gives no advantage.</strong> After a recent fix, a prediction of
+                    <code>UNKNOWN</code> or <code>LOW</code> is placed in the same evidence tier as no prediction at all,
+                    so enabling RAG does not boost unmeasured genes unless it returns a usable, non-UNKNOWN call.</li>
+            </ul>
+
             <h6>Limitations:</h6>
             <p>It is only used for genes without a <a href="#knockout_evidence">measured knockout result</a> and
             without an estimate, and it is capped at 25 genes per job. We tested the free model on a random sample
@@ -356,6 +407,82 @@ ANALYTICAL_TERMS = {
         "reference": "RAG-based NLP pipeline using PubMed; optional hosted LLM fallback (Kimi, OpenAI, Anthropic, Qwen, DeepSeek, Grok)"
     },
     
+    "database_selection": {
+        "title": "Database Selection",
+        "icon": "fa-database",
+        "short_description": "Choose which biological databases contribute annotations to the pleiotropy score",
+        "detailed_explanation": """
+            <p><strong>QuickGO</strong> is mandatory and is always queried. You can additionally select any
+            combination of:</p>
+            <ul>
+                <li><strong>UniProt</strong> — curated protein function and GO annotations</li>
+                <li><strong>NCBI Entrez (Gene)</strong> — gene-specific GO annotations</li>
+                <li><strong>Alliance of Genome Resources</strong> — integrated model-organism gene data</li>
+                <li><strong>MyGene.info</strong> — aggregations of several gene-centric sources</li>
+                <li><strong>Ensembl</strong> — gene annotation and orthology-linked GO terms</li>
+            </ul>
+
+            <h6>How it affects the result:</h6>
+            <p>More databases usually find more Biological Process terms for a gene, which raises the
+            <a href="#pleiotropy_score">pleiotropy score</a> and can change which genes pass the max-pleiotropy
+            filter. It can also improve the <a href="#evidence_quality">evidence quality</a> score by adding
+            experimentally supported annotations. Each extra source adds query time.</p>
+
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i><strong>Tip:</strong> Selecting more databases increases
+                the pleiotropy score and search quality but takes more time. For a first quick look, use the default;
+                for a comprehensive search, select all sources.
+            </div>
+        """,
+        "reference": "QuickGO, UniProt, NCBI Entrez, Alliance of Genome Resources, MyGene.info, Ensembl"
+    },
+
+    "potential_candidates": {
+        "title": "Potential Candidates",
+        "icon": "fa-lightbulb",
+        "short_description": "Unverified genes that still score well and may be worth testing",
+        "detailed_explanation": """
+            <p>Next to the <strong>Gene Results</strong> and <strong>Summary</strong> tabs you may see a
+            <strong>Potential Candidates</strong> button. It appears only when at least one unverified gene
+            (no measured knockout, no estimate, and no usable RAG prediction) has a higher composite score than
+            the best experimentally supported candidate in the main list.</p>
+
+            <h6>What it shows:</h6>
+            <p>Up to five genes with the highest composite scores among those whose evidence basis is
+            <strong>none</strong> or <strong>predicted</strong>. These are not ranked above measured genes;
+            they are simply highlighted as possible targets to consider if the top-ranked measured genes are
+            unsuitable.</p>
+
+            <h6>How to read it:</h6>
+            <ul>
+                <li>These genes have <strong>no direct knockout evidence</strong> in the database.</li>
+                <li>Their high composite score comes from specificity, annotation quality, literature support
+                    and conservation only.</li>
+                <li>They are suggestions for further reading, not validated safe knockouts.</li>
+            </ul>
+
+            <p>If no unverified gene outscores the best supported candidate, the tab shows
+            "No unverified genes outscored the best experimentally supported candidate".</p>
+        """,
+        "reference": "Composite score tie-breaker for unmeasured genes"
+    },
+
+    "kegg_pathways": {
+        "title": "KEGG Pathways",
+        "icon": "fa-route",
+        "short_description": "Shown for information only; not used in the pleiotropy score",
+        "detailed_explanation": """
+            <p>Each gene card may show <strong>KEGG pathways: N/A</strong>. KEGG pathway annotations are
+            <strong>not</strong> counted in the pleiotropy score or the biological-process count. The
+            pleiotropy score uses only Gene Ontology Biological Process terms from the selected databases.</p>
+
+            <h6>What KEGG is used for:</h6>
+            <p>KEGG organism and pathway information is still used behind the scenes to build the organism
+            selection list and to map taxonomy IDs. It does not affect gene ranking.</p>
+        """,
+        "reference": "KEGG organism and pathway data"
+    },
+
     "conservation_score": {
         "title": "Cross-Species Conservation",
         "icon": "fa-globe",
@@ -410,15 +537,21 @@ METHODOLOGY_SECTIONS = [
         "icon": "fa-search",
         "content": """
             <p>The pipeline begins by querying the <strong>QuickGO</strong> database to retrieve all 
-            genes annotated with the selected Gene Ontology (GO) term in the specified organism.</p>
-            
-            <p>Users can filter by evidence type:</p>
+            genes annotated with the selected Gene Ontology (GO) term in the specified organism.
+            <strong>QuickGO is mandatory</strong> and is always queried.</p>
+
+            <p>You can additionally select other databases to broaden the search for biological-process annotations:
+            <strong>UniProt</strong>, <strong>NCBI Entrez</strong>, <strong>Alliance of Genome Resources</strong>,
+            <strong>MyGene.info</strong> and <strong>Ensembl</strong>. Selecting more databases usually raises the
+            pleiotropy score and improves search quality, but each extra source adds query time.</p>
+
+            <p>Users can also filter by evidence type:</p>
             <ul>
                 <li><strong>Experimental:</strong> Only experimentally validated annotations</li>
                 <li><strong>Computational:</strong> Includes computational predictions</li>
                 <li><strong>All:</strong> All available evidence types</li>
             </ul>
-            
+
             <p>This step typically returns 10-500 genes depending on the GO term specificity.</p>
         """
     },
@@ -484,7 +617,7 @@ METHODOLOGY_SECTIONS = [
         "title": "Step 6: Safety Assessment",
         "icon": "fa-shield-alt",
         "content": """
-            <p>The final step turns the evidence into a verdict and advice:</p>
+            <p>The final step turns the evidence into a verdict and advice, then ranks the genes:</p>
 
             <ul>
                 <li>The measured result for your knockout context decides the level (lethal: AVOID; reduced survival or
@@ -494,6 +627,14 @@ METHODOLOGY_SECTIONS = [
                 <li>Specific advice follows from the finding: a conditional allele for a lethal gene, a double knockout
                     where a close paralog may compensate, a tissue-specific knockout where expression is restricted</li>
             </ul>
+
+            <p>Genes are listed in this order:</p>
+            <ol>
+                <li><strong>Safety level</strong> — SAFE → CAUTION → MODERATE_CONCERN → HIGH_CONCERN → AVOID.</li>
+                <li><strong>Evidence reliability</strong> — direct knockout/deletion → experimental essentiality →
+                    ortholog / distant hint → estimate → predicted / none.</li>
+                <li><strong>Composite score</strong> — higher-scoring genes within the same safety/evidence group come first.</li>
+            </ol>
 
             <p>Safety levels range from SAFE (safe to proceed) to AVOID (a complete knockout is lethal or kills the cells).</p>
         """
@@ -548,6 +689,26 @@ FAQ_ITEMS = [
     },
     {
         "question": "How long does an analysis take?",
-        "answer": "Typical runtime is 2-5 minutes for 5-10 genes. Factors affecting speed: number of genes, phenotype prediction (adds ~1 min/gene), and database response times."
+        "answer": "Typical runtime is 2-5 minutes for 5-10 genes using the default database. Factors affecting speed: number of genes, how many databases you selected (each extra source adds queries), phenotype prediction (adds ~1 min/gene), and database response times."
+    },
+    {
+        "question": "How do the database selection options work?",
+        "answer": "QuickGO is mandatory and always queried. You can toggle the other databases (UniProt, NCBI Entrez, Alliance of Genome Resources, MyGene.info, Ensembl) on or off. More databases can raise the pleiotropy score and improve annotation coverage, but each extra source makes the analysis slower. The disclaimer below the database cards reminds you of this trade-off."
+    },
+    {
+        "question": "What is the Potential Candidates tab?",
+        "answer": "It is a separate button next to 'Gene Results' and 'Summary'. It appears only when unverified genes (no measured knockout, no estimate, no usable RAG prediction) have a higher composite score than the best experimentally supported candidate. It highlights up to five such genes as possible targets for further reading, without changing the main ranking."
+    },
+    {
+        "question": "Why does enabling RAG with an API key not make the analysis faster?",
+        "answer": "The API key swaps the free browser keyword model for a hosted language model. Both still have to search PubMed, retrieve abstracts and process them. The hosted model is usually slower per gene but can give more reliable severity calls because it reads context. RAG itself is the slowest part of the run; the key changes accuracy, not speed."
+    },
+    {
+        "question": "Why is a gene ranked first even though it has no measured knockout data?",
+        "answer": "Genes are sorted first by safety level, then by evidence tier, then by composite score. An unverified gene with low pleiotropy can be marked SAFE (capped at CAUTION) and therefore appear above genes with measured lethal knockouts, which are placed in HIGH_CONCERN or AVOID. This is why the Potential Candidates tab and the evidence badges are shown: they separate 'looks safe on paper' from 'has been tested'."
+    },
+    {
+        "question": "What does 'Lookup failed' mean?",
+        "answer": "'Lookup failed' means one or more database queries could not be completed for that gene. Hover over or click the question-mark icon next to the message to see whether the failure was a network/retry issue or simply that no Biological Process annotations were found."
     }
 ]
