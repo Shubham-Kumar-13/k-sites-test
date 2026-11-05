@@ -604,15 +604,15 @@ function renderGenes(genes) {
         return `
         <div class="card mb-3">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div>
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-3 gap-2">
+                    <div class="flex-grow-1">
                         <h5 class="mb-1">
                             <span class="badge bg-secondary me-2">#${index + 1}</span>
                             ${esc(gene.symbol)}
                         </h5>
                         <p class="text-muted mb-0 small">${esc(gene.description || 'No description available')}</p>
                     </div>
-                    <div class="text-end">
+                    <div class="text-md-end">
                         <div class="mb-1">
                             <span class="score-badge ${getPleiotropyClass(gene.pleiotropy_score)}">
                                 Pleiotropy: ${gene.pleiotropy_score?.toFixed(2) || 'N/A'}

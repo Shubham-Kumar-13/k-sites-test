@@ -319,6 +319,37 @@
         html[data-bs-theme="dark"] .go-category-card.loading {
             background-color: #1e293b;
         }
+
+        /* Mobile improvements */
+        @media (max-width: 576px) {
+            .navbar-brand {
+                font-size: 1.15rem;
+            }
+            .navbar-brand small {
+                display: none;
+            }
+            .card-body {
+                padding: 1rem;
+            }
+            .database-card .card-body {
+                padding: 0.75rem;
+            }
+            .kingdom-card .card-body,
+            .go-category-card .card-body {
+                padding: 0.75rem;
+            }
+            .list-group-item {
+                padding: 0.75rem;
+            }
+            .step-number {
+                width: 26px;
+                height: 26px;
+                font-size: 0.8rem;
+            }
+            h3, .h3 {
+                font-size: 1.25rem;
+            }
+        }
     </style>
 
     {% block extra_css %}{% endblock %}

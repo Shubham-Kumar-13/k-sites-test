@@ -409,7 +409,7 @@ function renderGoCategories(categories) {
     const container = document.getElementById('goCategoryContainer');
     
     container.innerHTML = categories.map(c => `
-        <div class="col-md-4">
+        <div class="col-12 col-md-4">
             <div class="card go-category-card h-100 cursor-pointer" 
                  data-category="${c.name}" 
                  onclick="selectGoCategory('${c.name}')"
@@ -578,7 +578,7 @@ async function loadDatabases() {
         const data = await response.json();
         
         container.innerHTML = data.databases.map(db => `
-            <div class="col-md-6 col-lg-4">
+            <div class="col-12 col-md-6 col-lg-4">
                 <div class="card database-card h-100 ${db.required ? 'selected' : ''} ${!db.enabled ? 'disabled opacity-50' : ''}"
                      data-id="${db.id}"
                      ${!db.enabled ? 'onclick="return false;" style="cursor: not-allowed;"' : 'onclick="toggleDatabase(this)" style="cursor: pointer;"'}>
