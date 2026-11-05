@@ -23,13 +23,17 @@ export const CLOSE_PARALOG_IDENTITY = 40;
 export const FORMAT_VERSION = 1;
 
 const SPECIES_NOUN = { 10090: 'mice', 10116: 'rats', 9606: 'humans', 559292: 'yeast', 7955: 'zebrafish', 7227: 'flies', 6239: 'worms',
-    3702: 'Arabidopsis', 4896: 'fission yeast', 83333: 'E. coli' };
+    3702: 'Arabidopsis', 4896: 'fission yeast', 83333: 'E. coli', 573: 'Klebsiella pneumoniae', 637910: 'Citrobacter rodentium',
+    90370: 'Salmonella Typhi', 216597: 'Salmonella Typhimurium', 149539: 'Salmonella Enteritidis', 1313: 'S. pneumoniae' };
 const SOURCE_OF_LETTER = { M: 'mgi', I: 'impc', S: 'sgd', Z: 'zfin', F: 'flybase', W: 'wormbase', T: 'thalemine', P: 'pombase' };
-const SOURCE_OF_RECORD = { EC: 'ecoli_core' };
+const SOURCE_OF_RECORD = { EC: 'ecoli_core', TD: 'tradis', PN: 'pneumonia_pan_genome' };
 /** What the counts of knockout lines are counts of: [one, many]. */
 const LINE_NOUN = { 7955: ['mutant line', 'mutant lines'], 7227: ['allele', 'alleles'], 6239: ['allele or RNAi test', 'alleles or RNAi tests'],
     3702: ['curated phenotype category', 'curated phenotype categories'], 4896: ['deletion record', 'deletion records'],
-    83333: ['curated essentiality record', 'curated essentiality records'] };
+    83333: ['curated essentiality record', 'curated essentiality records'], 573: ['TraDIS essentiality record', 'TraDIS essentiality records'],
+    637910: ['TraDIS essentiality record', 'TraDIS essentiality records'], 90370: ['TraDIS essentiality record', 'TraDIS essentiality records'],
+    216597: ['TraDIS essentiality record', 'TraDIS essentiality records'], 149539: ['TraDIS essentiality record', 'TraDIS essentiality records'],
+    1313: ['Tn-seq essentiality record', 'Tn-seq essentiality records'] };
 const CALL_OF_LETTER = { L: 'LETHAL', S: 'SUBVIABLE', V: 'VIABLE' };
 const TAXID_ALIASES = { 4932: '559292' };
 

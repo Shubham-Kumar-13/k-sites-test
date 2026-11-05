@@ -1020,7 +1020,7 @@ class TestOwnMeasurementsBesideTheMouseHint:
     def test_the_community_databases_are_optional_and_the_licences_are_recorded(self):
         for key in ("zfin", "flybase", "wormbase"):
             assert bed.SOURCES[key]["optional"] and bed.SOURCES[key]["license"]
-        optional = {"zfin", "flybase", "wormbase", "ncbi", "alliance_paralogy", "thalemine", "pombase", "project_score", "ecoli_core"}
+        optional = {"zfin", "flybase", "wormbase", "ncbi", "alliance_paralogy", "thalemine", "pombase", "project_score", "ecoli_core", "tradis", "pneumonia"}
         assert not any(s.get("optional") for key, s in bed.SOURCES.items() if key not in optional)
 
 

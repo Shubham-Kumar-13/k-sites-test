@@ -292,7 +292,7 @@ class TestCellsWithoutACellLineResult:
 
 class TestAdditionalOrganismSources:
     def test_arabidopsis_pombe_and_ecoli_have_named_sources(self):
-        for taxid, src, source in (("3702", "T", "thalemine"), ("4896", "P", "pombase"), ("83333", "EC", "ecoli_core")):
+        for taxid, src, source in (("3702", "T", "thalemine"), ("4896", "P", "pombase"), ("83333", "EC", "ecoli_core"), ("573", "TD", "tradis"), ("1313", "PN", "pneumonia_pan_genome")):
             index = {"format": 1, "built": "2026-01-01", "stages": {}, "systems": [],
                      "organisms": {taxid: {"name": taxid, "file": f"{taxid}.json", "layers": []}},
                      "sources": [{"id": source, "name": source, "url": "https://example.org"}]}

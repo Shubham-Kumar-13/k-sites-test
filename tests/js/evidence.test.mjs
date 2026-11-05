@@ -248,7 +248,7 @@ test('Project Score has its own cell count and source', async () => {
 });
 
 test('Arabidopsis, PomBase and E. coli have named sources', async () => {
-    for (const [taxid, src, source] of [['3702', 'T', 'thalemine'], ['4896', 'P', 'pombase'], ['83333', 'EC', 'ecoli_core']]) {
+    for (const [taxid, src, source] of [['3702', 'T', 'thalemine'], ['4896', 'P', 'pombase'], ['83333', 'EC', 'ecoli_core'], ['573', 'TD', 'tradis'], ['1313', 'PN', 'pneumonia_pan_genome']]) {
         const files = {
             'index.json': { format: 1, built: '2026-01-01', stages: {}, systems: [], organisms: { [taxid]: { name: taxid, file: `${taxid}.json`, layers: [] } },
                 sources: [{ id: source, name: source, url: 'https://example.org' }] },

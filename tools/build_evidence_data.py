@@ -236,6 +236,18 @@ SOURCES = {
             "ecoli_core_essential.xlsx": "https://www.biorxiv.org/content/biorxiv/early/2022/10/20/2022.10.20.512852/DC2/embed/media-2.xlsx",
         },
     },
+    "tradis": {
+        "name": "Enterobacteriaceae TraDIS essentiality", "url": "https://www.biorxiv.org/content/10.1101/2022.10.20.512852v1",
+        "what": "Tn5 transposon-insertion essentiality in Klebsiella, Citrobacter and Salmonella",
+        "optional": True,
+        "files": {},
+    },
+    "pneumonia": {
+        "name": "Streptococcus pneumoniae pan-genome Tn-seq", "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9519441/",
+        "what": "strain-resolved pneumococcal Tn-seq essentiality across 36 clinical strains",
+        "optional": True,
+        "files": {},
+    },
 }
 
 # Stages of death, earliest first. W (before weaning) and U (age not stated) say the least.
@@ -2183,6 +2195,17 @@ def build_all(out, cache, refresh=False, depmap_path=DEPMAP_SUMMARY, organisms=(
             ecoli = build_ecoli_core(handle)
         organism_files["83333"] = {"genes": ecoli, "aliases": {}}
         index_organisms["83333"] = {"name": "Escherichia coli", "layers": ["knockout"]}
+    if "tradis" in organisms:
+        from build_tradis_details import build as build_tradis_outputs, ORGANISMS as TRADIS_ORGANISMS
+        tradis, _ = build_tradis_outputs(out, Path(out).parent / "evidence-details", files["ecoli_core_essential.xlsx"])
+        for taxid, genes in tradis.items():
+            organism_files[taxid] = {"genes": genes, "aliases": {}}
+            index_organisms[taxid] = {"name": TRADIS_ORGANISMS[taxid]["name"], "layers": ["knockout"]}
+    if "pneumonia" in organisms:
+        from build_pneumonia_details import build as build_pneumonia_outputs
+        pneumonia, _ = build_pneumonia_outputs(out, Path(out).parent / "evidence-details", DEFAULT_CACHE / "pneumonia_pan_genome.xlsx")
+        organism_files["1313"] = {"genes": pneumonia, "aliases": {}}
+        index_organisms["1313"] = {"name": "Streptococcus pneumoniae", "layers": ["knockout"]}
 
     if "mouse" in organisms and "human" in organisms:
         model = add_lethality_estimates(human, human_aliases, mouse_records, mouse_paralogs, pairs)
@@ -2240,7 +2263,7 @@ def main():
     parser.add_argument("--refresh", action="store_true", help="Download the sources again")
     parser.add_argument("--depmap-summary", default=str(DEPMAP_SUMMARY))
     parser.add_argument("--organisms", nargs="*", default=["mouse", "human", "rat", "yeast", "distant", "arabidopsis",
-                                                            "pombe", "project_score", "ecoli_core"])
+                                                            "pombe", "project_score", "ecoli_core", "tradis", "pneumonia"])
     parser.add_argument("--no-paralogs", action="store_true", help="Skip the paralog download (about 5 minutes)")
     args = parser.parse_args()
     if not Path(args.depmap_summary).exists():
