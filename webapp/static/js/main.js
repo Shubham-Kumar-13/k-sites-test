@@ -340,14 +340,28 @@ async function searchOrganismDirect(query) {
             ...ncbiResults.filter(r => r.taxid && !seen.has(r.taxid))
         ];
 
-        renderOrganismDirectResults(merged, false);
+        const ncbiStatus = ncbiData.external_status
+            ? formatExternalStatus(ncbiData.external_status)
+            : null;
+        renderOrganismDirectResults(merged, false, ncbiStatus);
     } catch (error) {
         console.error('Error searching organisms:', error);
         list.innerHTML = '<div class="list-group-item text-danger"><i class="fas fa-exclamation-circle me-2"></i>Error searching organisms.</div>';
     }
 }
 
-function renderOrganismDirectResults(results, isPartial) {
+function formatExternalStatus(status) {
+    if (!status) return null;
+    if (status.cache_hits > 0 && status.cache_misses === 0) {
+        return '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>cached</span>';
+    }
+    if (status.cache_hits > 0 && status.cache_misses > 0) {
+        return `<span class="badge bg-info"><i class="fas fa-bolt me-1"></i>${status.cache_hits} cached, ${status.cache_misses} live</span>`;
+    }
+    return '<span class="badge bg-light text-dark border"><i class="fas fa-globe me-1"></i>live data</span>';
+}
+
+function renderOrganismDirectResults(results, isPartial, statusHtml = null) {
     const list = document.getElementById('organismDirectResults');
     if (results.length === 0) {
         if (isPartial) return; // Wait for NCBI before showing "No organisms found".
@@ -355,7 +369,7 @@ function renderOrganismDirectResults(results, isPartial) {
         return;
     }
 
-    list.innerHTML = results.map(s => {
+    const items = results.map(s => {
         const safeName = String(s.name || '').replace(/'/g, "\\'");
         const safeCommon = String(s.common_name || '').replace(/'/g, "\\'");
         return `
@@ -370,6 +384,11 @@ function renderOrganismDirectResults(results, isPartial) {
         </div>
         `;
     }).join('');
+
+    const footer = statusHtml
+        ? `<div class="list-group-item text-end py-1">${statusHtml}</div>`
+        : '';
+    list.innerHTML = items + footer;
 }
 
 // ============================================================================
@@ -765,6 +784,8 @@ async function checkGeneCount() {
         const timeValue = document.getElementById('estimatedTimeValue');
         const warning = document.getElementById('geneCountWarning');
         const warningText = document.getElementById('geneCountWarningText');
+        const statusDiv = document.getElementById('geneCountStatus');
+        const statusText = document.getElementById('geneCountStatusText');
 
         preview.style.display = 'block';
 
@@ -783,6 +804,14 @@ async function checkGeneCount() {
                 warningText.textContent = data.warnings.join('; ');
             } else {
                 warning.style.display = 'none';
+            }
+
+            const statusHtml = data.external_status ? formatExternalStatus(data.external_status) : null;
+            if (statusHtml) {
+                statusDiv.style.display = 'block';
+                statusText.innerHTML = statusHtml;
+            } else {
+                statusDiv.style.display = 'none';
             }
         }
 

@@ -28,6 +28,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # Import K-Sites modules
 from k_sites.data_retrieval.organism_resolver import resolve_organism, search_organisms, search_organisms_ncbi
 from k_sites.data_retrieval.go_gene_mapper import get_genes_for_go_term, search_go_terms
+from k_sites.data_retrieval.cache import start_cache_tracking, get_cache_events
 from k_sites.workflow.pipeline import run_k_sites_pipeline
 from k_sites.reporting.report_generator import generate_html_report
 from k_sites.reporting.csv_export import generate_comprehensive_csv_report
@@ -343,6 +344,41 @@ def login_required(f):
     return decorated_function
 
 
+def track_cache_status(f):
+    """Decorator that records HTTP cache hit/miss events and adds them to the JSON response."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        start_cache_tracking()
+        response = f(*args, **kwargs)
+        events = get_cache_events()
+        if events and isinstance(response, tuple):
+            body, status, *rest = response
+            if hasattr(body, 'json'):
+                try:
+                    data = body.get_json()
+                    if isinstance(data, dict):
+                        data['external_status'] = {
+                            'cache_hits': sum(1 for e in events if e['type'] == 'cache_hit'),
+                            'cache_misses': sum(1 for e in events if e['type'] == 'cache_miss'),
+                        }
+                        response = (jsonify(data), status, *rest)
+                except Exception:
+                    pass
+        elif events and hasattr(response, 'json'):
+            try:
+                data = response.get_json()
+                if isinstance(data, dict):
+                    data['external_status'] = {
+                        'cache_hits': sum(1 for e in events if e['type'] == 'cache_hit'),
+                        'cache_misses': sum(1 for e in events if e['type'] == 'cache_miss'),
+                    }
+                    response = jsonify(data)
+            except Exception:
+                pass
+        return response
+    return decorated_function
+
+
 @app.before_request
 def hosted_mode_api_only():
     """In hosted mode the pages live on GitHub Pages; this server only answers API calls."""
@@ -517,6 +553,7 @@ def get_organisms_by_kingdom():
 
 @app.route('/api/organisms/ncbi-search')
 @login_required
+@track_cache_status
 def search_organisms_ncbi_api():
     """Search NCBI Taxonomy for organisms by name or TaxID."""
     query = request.args.get('q', '').strip()
@@ -555,6 +592,7 @@ def get_go_terms_by_category():
 
 @app.route('/api/organisms/search')
 @login_required
+@track_cache_status
 def search_organisms_api():
     """Search for organisms by scientific name (legacy)"""
     query = request.args.get('q', '').strip()
@@ -568,6 +606,7 @@ def search_organisms_api():
 
 @app.route('/api/go-terms/search')
 @login_required
+@track_cache_status
 def search_go_terms_api():
     """Search for GO terms by keyword or ID (legacy)"""
     query = request.args.get('q', '').strip()
@@ -696,6 +735,7 @@ def get_databases():
 
 @app.route('/api/analyze/validate', methods=['POST'])
 @login_required
+@track_cache_status
 def validate_analysis():
     """Validate analysis parameters before starting"""
     data = request.json
@@ -837,6 +877,7 @@ def format_duration(seconds: int) -> str:
 
 @app.route('/api/analyze/start', methods=['POST'])
 @login_required
+@track_cache_status
 def start_analysis():
     """Start a new analysis job"""
     data = request.json
