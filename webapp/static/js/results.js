@@ -222,7 +222,7 @@ function renderPotentialCandidates(data) {
     if (!container) return;
     const candidates = (data && data.potential_candidates) || [];
     if (!candidates.length) {
-        container.innerHTML = '<div class="text-center py-5 text-muted">Nothing to see here</div>';
+        container.innerHTML = '<div class="text-center py-5 text-muted">No unverified genes outscored the best experimentally supported candidate</div>';
         return;
     }
     const cards = candidates.map(gene => {

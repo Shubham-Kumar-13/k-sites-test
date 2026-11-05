@@ -53,7 +53,7 @@ test('the panel shows candidates or exactly the requested empty message', () => 
     vm.runInContext(source, context);
     context.data = { potential_candidates: [] };
     vm.runInContext('renderPotentialCandidates(data)', context);
-    assert.equal(document.getElementById('potentialContainer').textContent.trim(), 'Nothing to see here');
+    assert.equal(document.getElementById('potentialContainer').textContent.trim(), 'No unverified genes outscored the best experimentally supported candidate');
 
     context.data = { potential_candidates: [gene('A', 'none', 'CAUTION', 0.95, {
         description: 'Example protein', specificity_score: 0.9, pleiotropy_score: 1.0,
