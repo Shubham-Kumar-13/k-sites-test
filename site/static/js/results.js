@@ -8,6 +8,7 @@ const CONTEXT_LABELS = { auto: 'Automatic', cells: 'Cultured cells', organism: '
 let currentJob = null;
 let resultsData = null;
 let statusCheckInterval = null;
+let detailTaxids = null;   // taxids that have a built detailed-evidence file
 
 // DOM Ready
 document.addEventListener('DOMContentLoaded', function() {
@@ -23,6 +24,9 @@ document.addEventListener('DOMContentLoaded', function() {
     fillJobFields({ id: jobId });
     const cancelButton = document.getElementById('cancelJobButton');
     if (cancelButton) cancelButton.addEventListener('click', () => cancelJob(jobId));
+
+    // Load the list of organisms that have detailed source records
+    loadDetailTaxids();
 
     // Check the job right away, then keep polling while it runs
     checkJobStatus(jobId).then(() => {
@@ -346,6 +350,22 @@ function detailedEvidenceHtml(data) {
     return `<div class="small text-muted mb-2">${esc(evidence.call)} · ${evidence.records.length} source record(s) · release ${esc(data.version)}</div>${records}`;
 }
 
+async function loadDetailTaxids() {
+    try {
+        const response = await ksFetch('/api/evidence/details/available');
+        if (!response.ok) return;
+        const data = await response.json();
+        detailTaxids = new Set(data.taxids || []);
+    } catch (error) {
+        detailTaxids = new Set();
+    }
+    // If results were already rendered before the list loaded, refresh the gene cards so
+    // the "Detailed source records" button is shown or hidden accurately.
+    if (resultsData && resultsData.genes) {
+        renderGenes(resultsData.genes);
+    }
+}
+
 async function loadDetailedEvidence(container) {
     const body = container.querySelector('.detailed-evidence-body');
     if (!body || container.dataset.loaded) return;
@@ -354,6 +374,17 @@ async function loadDetailedEvidence(container) {
     try {
         const response = await ksFetch(`/api/evidence/details?taxid=${encodeURIComponent(container.dataset.taxid)}&symbol=${encodeURIComponent(container.dataset.symbol)}`);
         const data = await response.json();
+        if (!response.ok) {
+            if (data.available === false) {
+                body.innerHTML = 'Detailed source records for this organism are not built yet.';
+            } else if (data.covered === false) {
+                body.innerHTML = `This gene is not covered in the current detail build for this organism (release ${esc(data.version || 'unknown')}).`;
+            } else {
+                body.textContent = 'No detailed source records are available for this gene.';
+            }
+            delete container.dataset.loaded;
+            return;
+        }
         body.innerHTML = detailedEvidenceHtml(data);
         container.dataset.loaded = 'true';
     } catch (error) {
@@ -407,8 +438,8 @@ function evidencePanel(gene) {
         const chips = evidence.organism.systems.map(sys => `<span class="badge bg-light text-dark border me-1 mb-1">${esc(sys.replace(/ phenotype$/, ''))}</span>`).join('');
         lines.push(`<details class="text-muted"><summary>Organ systems with a reported phenotype (${evidence.organism.systems.length})</summary><div class="mt-1">${chips}</div></details>`);
     }
-    const details = ['3702', '10090', '4896', '559292', '7955', '7227', '6239', '83333',
-        '573', '637910', '90370', '216597', '149539', '1313'].includes(String(currentJob?.taxid || '')) ? `<details class="mb-3 small detailed-evidence" data-taxid="${esc(currentJob.taxid)}" data-symbol="${esc(gene.symbol)}">
+    const taxid = String(currentJob?.taxid || '');
+    const details = !detailTaxids || detailTaxids.has(taxid) ? `<details class="mb-3 small detailed-evidence" data-taxid="${esc(currentJob.taxid)}" data-symbol="${esc(gene.symbol)}">
         <summary class="text-primary cursor-pointer">Detailed source records</summary>
         <div class="detailed-evidence-body mt-2">Expand to load detailed mutant and publication records.</div>
     </details>` : '';

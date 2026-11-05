@@ -638,6 +638,19 @@ def evidence_details():
                     'version': data.get('built'), 'pilot': data.get('pilot'), 'evidence': record})
 
 
+@app.route('/api/evidence/details/available')
+@login_required
+def evidence_details_available():
+    """Return the taxids that currently have a built detailed-evidence file."""
+    directory = Path(os.environ.get('KSITES_EVIDENCE_DETAILS_DIR', str(RESULTS_DIR / 'evidence-details')))
+    taxids = set()
+    if directory.exists():
+        for path in directory.iterdir():
+            if path.suffix in ('.sqlite', '.json') and path.stem.isdigit():
+                taxids.add(path.stem)
+    return jsonify({'taxids': sorted(taxids)})
+
+
 @app.route('/api/databases')
 @login_required
 def get_databases():
