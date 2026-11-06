@@ -7,6 +7,12 @@
     <title>Sign in - K-Sites</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- K-Sites logo / favicons -->
+    <link rel="icon" type="image/png" sizes="16x16" href="static/assets/logo/favicon-16x16.png?v=1.3.0">
+    <link rel="icon" type="image/png" sizes="32x32" href="static/assets/logo/favicon-32x32.png?v=1.3.0">
+    <link rel="apple-touch-icon" sizes="180x180" href="static/assets/logo/favicon-180x180.png?v=1.3.0">
+    
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -25,7 +31,7 @@
             width: 100%;
         }
         .logo { text-align: center; margin-bottom: 24px; }
-        .logo i { font-size: 48px; color: #667eea; }
+        .logo img { height: 64px; width: auto; margin-bottom: 12px; }
         .btn-login {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
@@ -43,7 +49,7 @@
 <body>
     <div class="login-card">
         <div class="logo">
-            <i class="fas fa-dna"></i>
+            <img src="static/assets/logo/logo-dark-200.png?v=1.3.0" alt="K-Sites">
             <h2>K-Sites</h2>
             <p class="mb-1">Suite for Knock-out/down Studies</p>
             <p class="small text-muted">Safe Gene Selection for Knockout Studies</p>
