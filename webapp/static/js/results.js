@@ -341,32 +341,20 @@ const BASIS_BADGES = {
     estimate: ['bg-warning text-dark', 'Estimated from data (not measured)'],
 };
 
-const SCORE_HELP = {
-    specificity: 'Specificity (0-1): how focused this gene is on the selected biological process. Higher = fewer unrelated roles = safer knockout candidate.',
-    composite: 'Composite (0-1): weighted combination of specificity (40%), evidence quality (25%), literature support (20%), and conservation (15%).',
-    evidence: 'Evidence (0-1): strength and reliability of knockout evidence. Direct clean knockouts score highest; predictions score lowest.',
-    literature: 'Literature (0-1): amount of published research about this gene. More papers = more confidence in the prediction.',
-    conservation: 'Conservation (0-1): how widely this gene is conserved across species. More conserved genes may have more essential roles.',
-};
-
-function scoreMetric(icon, label, value, helpKey) {
-    const v = value !== undefined && value !== null ? Number(value).toFixed(2) : 'N/A';
-    return `<div class="col-md-3">
-        <span data-bs-toggle="tooltip" data-bs-placement="bottom" title="${esc(SCORE_HELP[helpKey])}">
-            <i class="fas ${icon} me-1"></i>${label}: ${v}
-        </span>
-    </div>`;
-}
-
 function compositeFormulaLine(gene) {
     const s = (gene.specificity_score ?? 0).toFixed(2);
     const e = (gene.evidence_quality ?? 0).toFixed(2);
     const l = (gene.literature_support ?? 0).toFixed(2);
     const c = (gene.conservation_score ?? 0).toFixed(2);
     const comp = (gene.composite_score ?? 0).toFixed(2);
-    return `<div class="mt-2 p-2 bg-white border rounded small shadow-sm composite-formula" data-bs-toggle="tooltip" title="Weighted formula used to compute the composite score">
+    return `<div class="mt-2 p-2 bg-white border rounded small shadow-sm composite-formula">
         <span class="fw-semibold"><i class="fas fa-chart-line me-1 text-primary"></i>Composite ${comp}</span>
-        <span class="text-muted"> = 0.40 × Specificity (${s}) + 0.25 × Evidence (${e}) + 0.20 × Literature (${l}) + 0.15 × Conservation (${c})</span>
+        <span class="text-muted"> = 
+            0.40 × <i class="fas fa-star me-1 text-warning"></i>Specificity <strong>${s}</strong> +
+            0.25 × <i class="fas fa-check-circle me-1 text-success"></i>Evidence <strong>${e}</strong> +
+            0.20 × <i class="fas fa-book me-1 text-info"></i>Literature <strong>${l}</strong> +
+            0.15 × <i class="fas fa-sitemap me-1 text-secondary"></i>Conservation <strong>${c}</strong>
+        </span>
     </div>`;
 }
 
@@ -754,12 +742,6 @@ function renderGenes(genes) {
                     </div>
                 </div>
                 
-                <div class="row g-2 mb-2 small text-muted">
-                    ${scoreMetric('fa-star', 'Specificity', gene.specificity_score, 'specificity')}
-                    ${scoreMetric('fa-check-circle', 'Evidence', gene.evidence_quality, 'evidence')}
-                    ${scoreMetric('fa-book', 'Literature', gene.literature_support, 'literature')}
-                    ${scoreMetric('fa-dna', 'Conservation', gene.conservation_score, 'conservation')}
-                </div>
                 ${compositeFormulaLine(gene)}
                 
                 ${evidencePanel(gene)}
