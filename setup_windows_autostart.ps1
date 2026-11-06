@@ -5,10 +5,22 @@ $projectDir = "C:\Users\HP\Desktop\Work\K-Sites"
 $batchFile = Join-Path $projectDir "start_ksites_windows.bat"
 $startupDir = [Environment]::GetFolderPath("Startup")
 $shortcutPath = Join-Path $startupDir "K-Sites Auto Start.lnk"
+$oldBatchFile = Join-Path $startupDir "start_ksites_backend.bat"
 
 if (-not (Test-Path $batchFile)) {
     Write-Host "ERROR: $batchFile not found" -ForegroundColor Red
     exit 1
+}
+
+# Remove the old startup script if it exists
+if (Test-Path $oldBatchFile) {
+    Remove-Item $oldBatchFile -Force
+    Write-Host "Removed old startup script: $oldBatchFile" -ForegroundColor Green
+}
+
+# Remove any old shortcut with the same name if it exists
+if (Test-Path $shortcutPath) {
+    Remove-Item $shortcutPath -Force
 }
 
 $WshShell = New-Object -ComObject WScript.Shell

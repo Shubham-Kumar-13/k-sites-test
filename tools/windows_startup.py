@@ -28,8 +28,8 @@ BACKEND_LOG = LOG_DIR / "backend.log"
 NGROK_LOG = LOG_DIR / "ngrok.log"
 WATCHDOG_LOG = LOG_DIR / "watchdog.log"
 
-NGROK_DOMAIN = "deuce-scouting-outbid.ngrok-free.dev"
-NGROK_PORT = 5000
+NGROK_DOMAIN = os.environ.get("NGROK_DOMAIN", "deuce-scouting-outbid.ngrok-free.dev")
+NGROK_PORT = int(os.environ.get("NGROK_PORT", "5000"))
 
 
 def find_ngrok():
