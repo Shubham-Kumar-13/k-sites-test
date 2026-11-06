@@ -25,12 +25,19 @@
     <div class="card">
         <div class="card-body text-center py-5">
             <div class="mb-4 transcription-animation" aria-label="Analysis in progress">
-                <svg viewBox="0 0 360 120" width="280" height="93" role="img" aria-label="RNA polymerase transcribing DNA">
+                <svg viewBox="0 0 360 140" width="300" height="117" role="img" aria-label="RNA polymerase transcribing DNA">
                     <defs>
-                        <linearGradient id="polymeraseGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
-                        </linearGradient>
+                        <!-- 3D spherical body gradient -->
+                        <radialGradient id="polymeraseBody" cx="35%" cy="30%" r="65%" fx="25%" fy="25%">
+                            <stop offset="0%" style="stop-color:#9bb3f7;stop-opacity:1" />
+                            <stop offset="45%" style="stop-color:#667eea;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#4338ca;stop-opacity:1" />
+                        </radialGradient>
+                        <radialGradient id="polymeraseLobe" cx="30%" cy="25%" r="70%" fx="20%" fy="20%">
+                            <stop offset="0%" style="stop-color:#a5b9f8;stop-opacity:1" />
+                            <stop offset="50%" style="stop-color:#6d7ee9;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#3f3fb0;stop-opacity:1" />
+                        </radialGradient>
                         <filter id="glow">
                             <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
                             <feMerge>
@@ -41,29 +48,40 @@
                     </defs>
 
                     <!-- DNA strands -->
-                    <path class="dna-strand dna-top" d="M0,45 Q45,25 90,45 T180,45 T270,45 T360,45" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-                    <path class="dna-strand dna-bottom" d="M0,75 Q45,95 90,75 T180,75 T270,75 T360,75" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                    <path class="dna-strand dna-top" d="M0,55 Q45,35 90,55 T180,55 T270,55 T360,55" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                    <path class="dna-strand dna-bottom" d="M0,85 Q45,105 90,85 T180,85 T270,85 T360,85" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
 
                     <!-- DNA base-pair rungs -->
                     <g class="dna-rungs" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                        <line x1="22" y1="45" x2="22" y2="75"/>
-                        <line x1="67" y1="45" x2="67" y2="75"/>
-                        <line x1="112" y1="45" x2="112" y2="75"/>
-                        <line x1="157" y1="45" x2="157" y2="75"/>
-                        <line x1="202" y1="45" x2="202" y2="75"/>
-                        <line x1="247" y1="45" x2="247" y2="75"/>
-                        <line x1="292" y1="45" x2="292" y2="75"/>
-                        <line x1="337" y1="45" x2="337" y2="75"/>
+                        <line x1="22" y1="55" x2="22" y2="85"/>
+                        <line x1="67" y1="55" x2="67" y2="85"/>
+                        <line x1="112" y1="55" x2="112" y2="85"/>
+                        <line x1="157" y1="55" x2="157" y2="85"/>
+                        <line x1="202" y1="55" x2="202" y2="85"/>
+                        <line x1="247" y1="55" x2="247" y2="85"/>
+                        <line x1="292" y1="55" x2="292" y2="85"/>
+                        <line x1="337" y1="55" x2="337" y2="85"/>
                     </g>
 
                     <!-- mRNA strand being synthesized -->
-                    <path class="mrna-strand" d="M0,60 Q45,40 90,60 T180,60 T270,60 T360,60" fill="none" stroke="#06b6d4" stroke-width="3" stroke-linecap="round"/>
+                    <path class="mrna-strand" d="M0,70 Q45,50 90,70 T180,70 T270,70 T360,70" fill="none" stroke="#06b6d4" stroke-width="3.5" stroke-linecap="round"/>
 
                     <!-- RNA polymerase -->
-                    <g class="polymerase">
-                        <ellipse cx="0" cy="60" rx="22" ry="32" fill="url(#polymeraseGrad)" filter="url(#glow)"/>
-                        <ellipse cx="-6" cy="48" rx="7" ry="10" fill="rgba(255,255,255,0.25)"/>
-                        <circle cx="8" cy="72" r="4" fill="rgba(255,255,255,0.35)"/>
+                    <g class="polymerase" transform="translate(0,70)">
+                        <!-- Back lobe (left / upstream jaw) -->
+                        <path d="M-30,-34 C-12,-42 18,-38 30,-24 C38,-12 36,14 28,32 C16,42 -14,42 -30,30 C-44,16 -44,-16 -30,-34 Z" fill="url(#polymeraseBody)" filter="url(#glow)"/>
+                        <!-- Front lobe (right / downstream claw) -->
+                        <path d="M-8,-40 C18,-44 44,-28 46,-2 C44,24 18,42 -8,38 C2,18 4,-2 0,-22 C-2,-30 -6,-36 -8,-40 Z" fill="url(#polymeraseLobe)" filter="url(#glow)"/>
+                        <!-- DNA/RNA exit channel (top) -->
+                        <path d="M-6,-30 C-2,-52 18,-62 30,-54 C24,-42 10,-32 4,-24 Z" fill="#06b6d4" opacity="0.5"/>
+                        <!-- Central DNA channel cutout -->
+                        <ellipse cx="2" cy="0" rx="11" ry="16" fill="var(--body-bg,#f7fafc)" opacity="0.95"/>
+                        <!-- DNA entering channel (front) -->
+                        <ellipse cx="2" cy="0" rx="7" ry="11" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="2"/>
+                        <!-- 3D highlights -->
+                        <ellipse cx="-15" cy="-18" rx="9" ry="13" fill="rgba(255,255,255,0.22)"/>
+                        <ellipse cx="18" cy="-10" rx="6" ry="9" fill="rgba(255,255,255,0.15)"/>
+                        <circle cx="22" cy="16" r="5" fill="rgba(255,255,255,0.12)"/>
                     </g>
                 </svg>
             </div>
@@ -403,29 +421,32 @@
     .transcription-animation .mrna-strand {
         stroke-dasharray: 400;
         stroke-dashoffset: 400;
-        animation: drawMrna 3.5s linear infinite;
+        animation: drawMrna 5s ease-in-out infinite;
     }
     @keyframes drawMrna {
-        0% { stroke-dashoffset: 400; }
-        85%, 100% { stroke-dashoffset: 0; }
+        0%, 100% { stroke-dashoffset: 400; }
+        50% { stroke-dashoffset: 0; }
     }
 
     .transcription-animation .polymerase {
-        animation: slidePolymerase 3.5s ease-in-out infinite;
+        animation: slidePolymerase 5s ease-in-out infinite;
     }
     @keyframes slidePolymerase {
-        0% { transform: translateX(0px); }
-        85% { transform: translateX(330px); }
-        100% { transform: translateX(330px); }
+        0%, 100% { transform: translateX(0px); }
+        50% { transform: translateX(330px); }
     }
 
-    .transcription-animation .polymerase ellipse:first-child {
-        animation: polymerasePulse 1.2s ease-in-out infinite;
-        transform-origin: center;
+    .transcription-animation .polymerase path:first-child,
+    .transcription-animation .polymerase path:nth-child(2) {
+        animation: polymerasePulse 1.4s ease-in-out infinite;
+        transform-origin: 2px 0px;
+    }
+    .transcription-animation .polymerase path:nth-child(2) {
+        animation-delay: 0.2s;
     }
     @keyframes polymerasePulse {
         0%, 100% { transform: scale(1); opacity: 0.95; }
-        50% { transform: scale(1.06); opacity: 1; }
+        50% { transform: scale(1.04); opacity: 1; }
     }
 </style>
 {% endblock %}
