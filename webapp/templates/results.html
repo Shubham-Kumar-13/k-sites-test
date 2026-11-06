@@ -24,10 +24,103 @@
 <div id="loadingState" class="py-4" style="display: {{ 'block' if job.status in ['pending', 'running'] else 'none' }};">
     <div class="card">
         <div class="card-body text-center py-5">
-            <div class="mb-4" id="analysisLoadingSpinner" aria-label="Analysis in progress">
-                <div class="spinner-border text-primary" style="width: 4rem; height: 4rem;" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
+            <div class="mb-4 crispr-animation" aria-label="Analysis in progress">
+                <svg viewBox="0 0 400 160" width="320" height="128" role="img" aria-label="CRISPR-Cas9 gene knockout animation">
+                    <defs>
+                        <linearGradient id="dnaBlue" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#60a5fa;stop-opacity:1" />
+                        </linearGradient>
+                        <linearGradient id="targetRed" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#f87171;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#ef4444;stop-opacity:1" />
+                        </linearGradient>
+                        <radialGradient id="cas9Grad" cx="30%" cy="25%" r="70%" fx="20%" fy="20%">
+                            <stop offset="0%" style="stop-color:#a5b9f8;stop-opacity:1" />
+                            <stop offset="50%" style="stop-color:#667eea;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#4338ca;stop-opacity:1" />
+                        </radialGradient>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
+
+                    <!-- Full DNA backbone (fades out after cut) -->
+                    <g class="dna-full">
+                        <path d="M0,90 L400,90" fill="none" stroke="url(#dnaBlue)" stroke-width="4" stroke-linecap="round"/>
+                        <path d="M0,110 L400,110" fill="none" stroke="url(#dnaBlue)" stroke-width="4" stroke-linecap="round"/>
+                        <!-- rungs -->
+                        <g stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round">
+                            <line x1="30" y1="90" x2="30" y2="110"/>
+                            <line x1="70" y1="90" x2="70" y2="110"/>
+                            <line x1="110" y1="90" x2="110" y2="110"/>
+                            <line x1="150" y1="90" x2="150" y2="110"/>
+                            <line x1="190" y1="90" x2="190" y2="110"/>
+                            <line x1="230" y1="90" x2="230" y2="110"/>
+                            <line x1="270" y1="90" x2="270" y2="110"/>
+                            <line x1="310" y1="90" x2="310" y2="110"/>
+                            <line x1="350" y1="90" x2="350" y2="110"/>
+                        </g>
+                    </g>
+
+                    <!-- Target gene segment (drops out after cut) -->
+                    <g class="target-segment" filter="url(#glow)">
+                        <path d="M150,90 L250,90" fill="none" stroke="url(#targetRed)" stroke-width="4" stroke-linecap="round"/>
+                        <path d="M150,110 L250,110" fill="none" stroke="url(#targetRed)" stroke-width="4" stroke-linecap="round"/>
+                        <g stroke="#ef4444" stroke-width="2.5" stroke-linecap="round">
+                            <line x1="170" y1="90" x2="170" y2="110"/>
+                            <line x1="190" y1="90" x2="190" y2="110"/>
+                            <line x1="210" y1="90" x2="210" y2="110"/>
+                            <line x1="230" y1="90" x2="230" y2="110"/>
+                        </g>
+                        <text x="200" y="130" font-size="10" font-weight="700" fill="#ef4444" text-anchor="middle">TARGET GENE</text>
+                    </g>
+
+                    <!-- Cas9 + guide RNA complex -->
+                    <g class="cas9-complex" transform="translate(200,30)">
+                        <!-- Guide RNA strand -->
+                        <path d="M-20,-35 Q0,-55 20,-35 Q35,-15 15,0" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/>
+                        <!-- Cas9 protein -->
+                        <path d="M-32,-12 C-20,-28 20,-28 32,-12 C38,8 30,28 0,30 C-30,28 -38,8 -32,-12 Z" fill="url(#cas9Grad)" filter="url(#glow)"/>
+                        <!-- Highlights -->
+                        <ellipse cx="-10" cy="-5" rx="8" ry="10" fill="rgba(255,255,255,0.25)"/>
+                        <ellipse cx="12" cy="8" rx="6" ry="8" fill="rgba(255,255,255,0.12)"/>
+                    </g>
+
+                    <!-- Cut sparks -->
+                    <g class="cut-sparks" stroke="#fbbf24" stroke-width="3" stroke-linecap="round">
+                        <line x1="150" y1="90" x2="140" y2="75"/>
+                        <line x1="150" y1="110" x2="140" y2="125"/>
+                        <line x1="250" y1="90" x2="260" y2="75"/>
+                        <line x1="250" y1="110" x2="260" y2="125"/>
+                    </g>
+
+                    <!-- Repaired DNA (appears after target removal) -->
+                    <g class="repaired-dna" opacity="0">
+                        <path d="M0,100 L400,100" fill="none" stroke="#22c55e" stroke-width="4" stroke-linecap="round"/>
+                        <g stroke="#22c55e" stroke-width="2.5" stroke-linecap="round">
+                            <line x1="30" y1="90" x2="30" y2="110"/>
+                            <line x1="70" y1="90" x2="70" y2="110"/>
+                            <line x1="110" y1="90" x2="110" y2="110"/>
+                            <line x1="150" y1="90" x2="150" y2="110"/>
+                            <line x1="190" y1="90" x2="190" y2="110"/>
+                            <line x1="230" y1="90" x2="230" y2="110"/>
+                            <line x1="270" y1="90" x2="270" y2="110"/>
+                            <line x1="310" y1="90" x2="310" y2="110"/>
+                            <line x1="350" y1="90" x2="350" y2="110"/>
+                        </g>
+                    </g>
+
+                    <!-- Success checkmark -->
+                    <g class="success-check" transform="translate(200,100)" opacity="0">
+                        <circle cx="0" cy="0" r="22" fill="#22c55e" filter="url(#glow)"/>
+                        <path d="M-8,2 L-3,7 L8,-8" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                    </g>
+                </svg>
             </div>
             
             <h4 class="text-primary mb-2">Analysis in Progress</h4>
@@ -331,6 +424,82 @@
         color: #94a3b8 !important;
     }
 
+    /* CRISPR-Cas9 gene knockout animation */
+    .crispr-animation svg {
+        overflow: visible;
+    }
+
+    .crispr-animation .target-segment {
+        animation: targetPulse 4s ease-in-out infinite;
+    }
+    @keyframes targetPulse {
+        0%, 20%, 90%, 100% { opacity: 1; filter: drop-shadow(0 0 2px #ef4444); }
+        10% { opacity: 1; filter: drop-shadow(0 0 8px #ef4444); }
+        45%, 85% { opacity: 0; }
+    }
+
+    .crispr-animation .target-segment text {
+        animation: targetText 4s ease-in-out infinite;
+    }
+    @keyframes targetText {
+        0%, 35% { opacity: 1; }
+        45%, 100% { opacity: 0; }
+    }
+
+    .crispr-animation .cas9-complex {
+        animation: cas9Strike 4s ease-in-out infinite;
+        transform-origin: center;
+    }
+    @keyframes cas9Strike {
+        0%, 15% { transform: translate(200px, -40px) scale(0.9); opacity: 0; }
+        25% { transform: translate(200px, 30px) scale(1); opacity: 1; }
+        45% { transform: translate(200px, 30px) scale(1); opacity: 1; }
+        55%, 100% { transform: translate(200px, -40px) scale(0.9); opacity: 0; }
+    }
+
+    .crispr-animation .cut-sparks line {
+        opacity: 0;
+        animation: sparkFlash 4s ease-out infinite;
+        transform-origin: center;
+    }
+    .crispr-animation .cut-sparks line:nth-child(1) { animation-delay: 0.95s; }
+    .crispr-animation .cut-sparks line:nth-child(2) { animation-delay: 1.0s; }
+    .crispr-animation .cut-sparks line:nth-child(3) { animation-delay: 1.05s; }
+    .crispr-animation .cut-sparks line:nth-child(4) { animation-delay: 1.1s; }
+    @keyframes sparkFlash {
+        0%, 100% { opacity: 0; transform: scale(0.5); }
+        5% { opacity: 1; transform: scale(1.3); }
+        20% { opacity: 0; transform: scale(1.5); }
+    }
+
+    .crispr-animation .dna-full {
+        animation: dnaFullFade 4s ease-in-out infinite;
+    }
+    @keyframes dnaFullFade {
+        0%, 40% { opacity: 1; }
+        50%, 85% { opacity: 0; }
+        95%, 100% { opacity: 1; }
+    }
+
+    .crispr-animation .repaired-dna {
+        animation: dnaRepair 4s ease-in-out infinite;
+    }
+    @keyframes dnaRepair {
+        0%, 55% { opacity: 0; }
+        65%, 90% { opacity: 1; }
+        100% { opacity: 0; }
+    }
+
+    .crispr-animation .success-check {
+        animation: checkAppear 4s ease-in-out infinite;
+        transform-origin: center;
+    }
+    @keyframes checkAppear {
+        0%, 60% { opacity: 0; transform: translate(200px, 100px) scale(0.5); }
+        70% { opacity: 1; transform: translate(200px, 100px) scale(1.1); }
+        75%, 90% { opacity: 1; transform: translate(200px, 100px) scale(1); }
+        100% { opacity: 0; transform: translate(200px, 100px) scale(0.5); }
+    }
 </style>
 {% endblock %}
 
