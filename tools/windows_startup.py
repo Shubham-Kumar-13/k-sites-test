@@ -147,13 +147,14 @@ def main():
             ngrok_restarted = False
 
             if backend is None or backend.poll() is not None:
-                if backend is not None and backend.poll() is not None:
+                if backend is not None:
                     log(f"Backend exited with code {backend.poll()}, restarting...")
                 backend = start_backend()
                 backend_restarted = True
+                time.sleep(3)  # give backend a moment before starting ngrok
 
             if ngrok is None or ngrok.poll() is not None:
-                if ngrok is None or ngrok.poll() is not None:
+                if ngrok is not None:
                     log(f"Ngrok exited with code {ngrok.poll()}, restarting...")
                 ngrok = start_ngrok(ngrok_path)
                 ngrok_restarted = True
