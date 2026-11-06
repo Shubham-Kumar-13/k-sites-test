@@ -25,33 +25,55 @@
     <div class="card">
         <div class="card-body text-center py-5">
             <div class="mb-4 transcription-animation" aria-label="Analysis in progress">
-                <svg viewBox="0 0 120 160" width="120" height="160" role="img" aria-label="Rotating DNA double helix">
+                <svg viewBox="0 0 360 120" width="300" height="100" role="img" aria-label="RNA polymerase sliding along DNA">
                     <defs>
-                        <linearGradient id="helixTop" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#22d3ee;stop-opacity:1" />
-                        </linearGradient>
-                        <linearGradient id="helixBottom" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
-                        </linearGradient>
-                        <filter id="helixGlow">
-                            <feGaussianBlur stdDeviation="2" result="blur"/>
+                        <radialGradient id="polymeraseGrad" cx="35%" cy="30%" r="65%" fx="25%" fy="25%">
+                            <stop offset="0%" style="stop-color:#8fa8f5;stop-opacity:1" />
+                            <stop offset="50%" style="stop-color:#667eea;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#4338ca;stop-opacity:1" />
+                        </radialGradient>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
                             <feMerge>
-                                <feMergeNode in="blur"/>
+                                <feMergeNode in="coloredBlur"/>
                                 <feMergeNode in="SourceGraphic"/>
                             </feMerge>
                         </filter>
                     </defs>
-                    <g class="dna-helix">
-                        <g class="base-pair"><ellipse cx="60" cy="20" rx="28" ry="5" fill="url(#helixTop)" filter="url(#helixGlow)"/><ellipse cx="60" cy="20" rx="28" ry="5" fill="url(#helixBottom)" filter="url(#helixGlow)"/></g>
-                        <g class="base-pair"><ellipse cx="60" cy="38" rx="28" ry="5" fill="url(#helixTop)" filter="url(#helixGlow)"/><ellipse cx="60" cy="38" rx="28" ry="5" fill="url(#helixBottom)" filter="url(#helixGlow)"/></g>
-                        <g class="base-pair"><ellipse cx="60" cy="56" rx="28" ry="5" fill="url(#helixTop)" filter="url(#helixGlow)"/><ellipse cx="60" cy="56" rx="28" ry="5" fill="url(#helixBottom)" filter="url(#helixGlow)"/></g>
-                        <g class="base-pair"><ellipse cx="60" cy="74" rx="28" ry="5" fill="url(#helixTop)" filter="url(#helixGlow)"/><ellipse cx="60" cy="74" rx="28" ry="5" fill="url(#helixBottom)" filter="url(#helixGlow)"/></g>
-                        <g class="base-pair"><ellipse cx="60" cy="92" rx="28" ry="5" fill="url(#helixTop)" filter="url(#helixGlow)"/><ellipse cx="60" cy="92" rx="28" ry="5" fill="url(#helixBottom)" filter="url(#helixGlow)"/></g>
-                        <g class="base-pair"><ellipse cx="60" cy="110" rx="28" ry="5" fill="url(#helixTop)" filter="url(#helixGlow)"/><ellipse cx="60" cy="110" rx="28" ry="5" fill="url(#helixBottom)" filter="url(#helixGlow)"/></g>
-                        <g class="base-pair"><ellipse cx="60" cy="128" rx="28" ry="5" fill="url(#helixTop)" filter="url(#helixGlow)"/><ellipse cx="60" cy="128" rx="28" ry="5" fill="url(#helixBottom)" filter="url(#helixGlow)"/></g>
-                        <g class="base-pair"><ellipse cx="60" cy="146" rx="28" ry="5" fill="url(#helixTop)" filter="url(#helixGlow)"/><ellipse cx="60" cy="146" rx="28" ry="5" fill="url(#helixBottom)" filter="url(#helixGlow)"/></g>
+
+                    <!-- DNA strands -->
+                    <path class="dna-strand dna-top" d="M0,55 Q45,35 90,55 T180,55 T270,55 T360,55" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                    <path class="dna-strand dna-bottom" d="M0,85 Q45,105 90,85 T180,85 T270,85 T360,85" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+
+                    <!-- DNA base-pair rungs -->
+                    <g class="dna-rungs" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <line x1="22" y1="55" x2="22" y2="85"/>
+                        <line x1="67" y1="55" x2="67" y2="85"/>
+                        <line x1="112" y1="55" x2="112" y2="85"/>
+                        <line x1="157" y1="55" x2="157" y2="85"/>
+                        <line x1="202" y1="55" x2="202" y2="85"/>
+                        <line x1="247" y1="55" x2="247" y2="85"/>
+                        <line x1="292" y1="55" x2="292" y2="85"/>
+                        <line x1="337" y1="55" x2="337" y2="85"/>
+                    </g>
+
+                    <!-- mRNA strand being synthesized -->
+                    <path class="mrna-strand" d="M0,70 Q45,50 90,70 T180,70 T270,70 T360,70" fill="none" stroke="#06b6d4" stroke-width="3.5" stroke-linecap="round"/>
+
+                    <!-- RNA polymerase -->
+                    <g class="polymerase" transform="translate(0,70)">
+                        <!-- Outer glow ring -->
+                        <circle cx="0" cy="0" r="28" fill="none" stroke="#667eea" stroke-width="2" opacity="0.35"/>
+                        <!-- Main body -->
+                        <circle cx="0" cy="0" r="24" fill="url(#polymeraseGrad)" filter="url(#glow)"/>
+                        <!-- Glossy highlight -->
+                        <ellipse cx="-7" cy="-9" rx="9" ry="7" fill="rgba(255,255,255,0.35)"/>
+                        <!-- DNA channel -->
+                        <ellipse cx="0" cy="0" rx="10" ry="14" fill="var(--body-bg,#f7fafc)" opacity="0.95"/>
+                        <!-- mRNA exit strand -->
+                        <path d="M-4,-18 C-2,-38 14,-46 26,-40" fill="none" stroke="#06b6d4" stroke-width="4" stroke-linecap="round"/>
+                        <!-- Incoming NTP dot -->
+                        <circle cx="18" cy="-46" r="4" fill="#f59e0b" opacity="0.9"/>
                     </g>
                 </svg>
             </div>
@@ -357,42 +379,62 @@
         color: #94a3b8 !important;
     }
 
-    /* DNA double helix loading animation */
+    /* RNA polymerase sliding animation */
     .transcription-animation {
+        color: var(--primary-color, #2c5282);
         display: inline-block;
+    }
+    html[data-bs-theme="dark"] .transcription-animation {
+        color: #63b3ed;
     }
     .transcription-animation svg {
         overflow: visible;
     }
-    .transcription-animation .base-pair ellipse {
-        animation: helixSpin 2s ease-in-out infinite;
+    .transcription-animation .dna-strand {
+        opacity: 0.7;
+    }
+    .transcription-animation .dna-rungs line {
+        opacity: 0.4;
+        animation: rungPulse 1.5s ease-in-out infinite;
+    }
+    .transcription-animation .dna-rungs line:nth-child(2) { animation-delay: 0.2s; }
+    .transcription-animation .dna-rungs line:nth-child(3) { animation-delay: 0.4s; }
+    .transcription-animation .dna-rungs line:nth-child(4) { animation-delay: 0.6s; }
+    .transcription-animation .dna-rungs line:nth-child(5) { animation-delay: 0.8s; }
+    .transcription-animation .dna-rungs line:nth-child(6) { animation-delay: 1.0s; }
+    .transcription-animation .dna-rungs line:nth-child(7) { animation-delay: 1.2s; }
+    .transcription-animation .dna-rungs line:nth-child(8) { animation-delay: 1.4s; }
+
+    @keyframes rungPulse {
+        0%, 100% { opacity: 0.4; }
+        50% { opacity: 0.85; }
+    }
+
+    .transcription-animation .mrna-strand {
+        stroke-dasharray: 400;
+        stroke-dashoffset: 400;
+        animation: drawMrna 5s ease-in-out infinite;
+    }
+    @keyframes drawMrna {
+        0%, 100% { stroke-dashoffset: 400; }
+        50% { stroke-dashoffset: 0; }
+    }
+
+    .transcription-animation .polymerase {
+        animation: slidePolymerase 5s ease-in-out infinite;
+    }
+    @keyframes slidePolymerase {
+        0%, 100% { transform: translateX(0px); }
+        50% { transform: translateX(330px); }
+    }
+
+    .transcription-animation .polymerase circle:nth-child(2) {
+        animation: polymerasePulse 1.4s ease-in-out infinite;
         transform-origin: center;
     }
-    .transcription-animation .base-pair ellipse:nth-child(2) {
-        animation-delay: -1s;
-    }
-    .transcription-animation .base-pair:nth-child(1) ellipse:first-child { animation-delay: 0s; }
-    .transcription-animation .base-pair:nth-child(1) ellipse:nth-child(2) { animation-delay: -1s; }
-    .transcription-animation .base-pair:nth-child(2) ellipse:first-child { animation-delay: -0.25s; }
-    .transcription-animation .base-pair:nth-child(2) ellipse:nth-child(2) { animation-delay: -1.25s; }
-    .transcription-animation .base-pair:nth-child(3) ellipse:first-child { animation-delay: -0.5s; }
-    .transcription-animation .base-pair:nth-child(3) ellipse:nth-child(2) { animation-delay: -1.5s; }
-    .transcription-animation .base-pair:nth-child(4) ellipse:first-child { animation-delay: -0.75s; }
-    .transcription-animation .base-pair:nth-child(4) ellipse:nth-child(2) { animation-delay: -1.75s; }
-    .transcription-animation .base-pair:nth-child(5) ellipse:first-child { animation-delay: -1s; }
-    .transcription-animation .base-pair:nth-child(5) ellipse:nth-child(2) { animation-delay: -2s; }
-    .transcription-animation .base-pair:nth-child(6) ellipse:first-child { animation-delay: -1.25s; }
-    .transcription-animation .base-pair:nth-child(6) ellipse:nth-child(2) { animation-delay: -2.25s; }
-    .transcription-animation .base-pair:nth-child(7) ellipse:first-child { animation-delay: -1.5s; }
-    .transcription-animation .base-pair:nth-child(7) ellipse:nth-child(2) { animation-delay: -2.5s; }
-    .transcription-animation .base-pair:nth-child(8) ellipse:first-child { animation-delay: -1.75s; }
-    .transcription-animation .base-pair:nth-child(8) ellipse:nth-child(2) { animation-delay: -2.75s; }
-
-    @keyframes helixSpin {
-        0%, 100% { transform: scaleX(1); opacity: 1; }
-        25% { transform: scaleX(0.15); opacity: 0.35; }
-        50% { transform: scaleX(1); opacity: 1; }
-        75% { transform: scaleX(0.15); opacity: 0.35; }
+    @keyframes polymerasePulse {
+        0%, 100% { transform: scale(1); opacity: 0.95; }
+        50% { transform: scale(1.05); opacity: 1; }
     }
 </style>
 {% endblock %}
