@@ -306,6 +306,22 @@
 
 {% endblock %}
 
+{% block extra_css %}
+<style>
+    .ring-warning {
+        box-shadow: 0 0 0 2px #f59e0b;
+    }
+    html[data-bs-theme="dark"] .evidence-panel .bg-white {
+        background-color: #334155 !important;
+        color: #e2e8f0 !important;
+        border-color: rgba(255,255,255,0.15) !important;
+    }
+    html[data-bs-theme="dark"] .evidence-panel .text-muted {
+        color: #94a3b8 !important;
+    }
+</style>
+{% endblock %}
+
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/results.js') }}?v=1.2.3"></script>
+<script src="{{ url_for('static', filename='js/results.js') }}?v=1.2.4"></script>
 {% endblock %}

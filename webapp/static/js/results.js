@@ -321,9 +321,16 @@ function esc(value) {
 }
 
 const CALL_BADGES = {
-    LETHAL: ['bg-danger', 'Lethal'], SUBVIABLE: ['bg-warning text-dark', 'Subviable'], VIABLE: ['bg-success', 'Viable'],
-    ESSENTIAL: ['bg-danger', 'Essential'], SELECTIVE: ['bg-warning text-dark', 'Sometimes essential'],
-    NON_ESSENTIAL: ['bg-success', 'Rarely essential'], OBSERVATION: ['bg-info text-dark', 'Observation'], UNKNOWN: ['bg-secondary', 'No data'],
+    // Whole-animal context: is the gene required for survival/development?
+    LETHAL: ['bg-danger', '<i class="fas fa-skull-crossbones me-1"></i>Essential for survival'],
+    SUBVIABLE: ['bg-warning text-dark', '<i class="fas fa-exclamation-triangle me-1"></i>Partially essential'],
+    VIABLE: ['bg-success', '<i class="fas fa-check-circle me-1"></i>Non-essential'],
+    // Cell-line context: is the gene required for cell proliferation?
+    ESSENTIAL: ['bg-danger', '<i class="fas fa-skull-crossbones me-1"></i>Essential in cells'],
+    SELECTIVE: ['bg-warning text-dark', '<i class="fas fa-adjust me-1"></i>Context-dependent essential'],
+    NON_ESSENTIAL: ['bg-success', '<i class="fas fa-check-circle me-1"></i>Non-essential in cells'],
+    OBSERVATION: ['bg-info text-dark', '<i class="fas fa-eye me-1"></i>Observation'],
+    UNKNOWN: ['bg-secondary', '<i class="fas fa-question-circle me-1"></i>No data'],
 };
 const BASIS_BADGES = {
     measured: ['bg-success', 'Direct knockout/deletion'],
@@ -359,6 +366,16 @@ function initializeTooltips(root = document) {
 function callBadge(call) {
     const [cls, label] = CALL_BADGES[call] || CALL_BADGES.UNKNOWN;
     return `<span class="badge ${cls} me-1">${label}</span>`;
+}
+
+function geneInfoChip(icon, label, value, subtext) {
+    return `<div class="d-inline-flex align-items-center bg-white border rounded px-2 py-1 me-2 mb-2 small shadow-sm">
+        <i class="fas ${icon} text-primary me-2"></i>
+        <div>
+            <div class="fw-semibold">${esc(label)}</div>
+            <div class="text-muted">${esc(value)}${subtext ? ` <span class="small">(${esc(subtext)})</span>` : ''}</div>
+        </div>
+    </div>`;
 }
 
 function referenceLinks(organism, symbol = '', taxid = '') {
@@ -469,50 +486,136 @@ function verdictDriver(evidence) {
 function evidencePanel(gene) {
     const safety = gene.safety_recommendation || {};
     const evidence = gene.knockout_evidence;
-    const [basisClass, basisLabel] = BASIS_BADGES[safety.evidence_basis || 'none'] || BASIS_BADGES.none;
-    const header = `<div class="mb-1"><span class="badge ${basisClass}">${basisLabel}</span>
-        <span class="text-muted small ms-1">What the verdict rests on</span></div>`;
-    const lines = [];
     const driver = evidence ? verdictDriver(evidence) : '';
-    const decides = '<span class="badge bg-light text-dark border ms-1">decides the verdict</span>';
+    const context = currentJob?.knockout_context || 'auto';
+    const contextLabel = CONTEXT_LABELS[context] || 'Automatic';
+    const decidesIcon = '<span class="badge bg-warning text-dark border ms-1" title="This evidence decided the verdict"><i class="fas fa-crown me-1"></i>Decides verdict</span>';
+
+    // Build the two context sections
+    const sections = [];
+
+    // Whole-animal context
     if (evidence && evidence.organism.call !== 'UNKNOWN') {
-        lines.push(`<div class="mb-1">${callBadge(evidence.organism.call)}${esc(evidence.organism.text)}${referenceLinks(evidence.organism, gene.symbol, currentJob?.taxid)}${driver === 'organism' ? decides : ''}</div>`);
+        const org = evidence.organism;
+        const isDriver = driver === 'organism';
+        const organismTitle = org.species ? (org.species === 'Mus musculus' ? 'Mouse whole-animal' : org.species) : 'Whole-animal';
+        sections.push(`
+            <div class="col-md-6 mb-2">
+                <div class="card h-100 border-0 shadow-sm ${isDriver ? 'ring-warning' : ''}">
+                    <div class="card-body p-2">
+                        <div class="d-flex align-items-center mb-1 text-muted small">
+                            <i class="fas fa-mouse me-1"></i>${esc(organismTitle)}
+                            ${isDriver ? decidesIcon : ''}
+                        </div>
+                        <div>${callBadge(org.call)}${esc(org.text)}${referenceLinks(org, gene.symbol, currentJob?.taxid)}</div>
+                    </div>
+                </div>
+            </div>`);
     }
+
+    // Cell-line context
     if (evidence && evidence.cells.call !== 'UNKNOWN') {
-        lines.push(`<div class="mb-1">${callBadge(evidence.cells.call)}${esc(evidence.cells.text)}${driver === 'cells' ? decides : ''}</div>`);
+        const cells = evidence.cells;
+        const isDriver = driver === 'cells';
+        sections.push(`
+            <div class="col-md-6 mb-2">
+                <div class="card h-100 border-0 shadow-sm ${isDriver ? 'ring-warning' : ''}">
+                    <div class="card-body p-2">
+                        <div class="d-flex align-items-center mb-1 text-muted small">
+                            <i class="fas fa-flask me-1"></i>Human cell lines
+                            ${isDriver ? decidesIcon : ''}
+                        </div>
+                        <div>${callBadge(cells.call)}${esc(cells.text)}</div>
+                    </div>
+                </div>
+            </div>`);
     }
+
+    // Estimate fallback
+    let estimateSection = '';
     if (evidence && evidence.estimate) {
         const estimate = evidence.estimate;
         const cls = estimate.band === 'likely' ? 'bg-danger' : estimate.band === 'possible' ? 'bg-warning text-dark' : 'bg-secondary';
-        lines.push(`<div class="mb-1"><span class="badge ${cls} me-1">${esc(estimate.percent)}% lethal (estimate)</span>${esc(estimate.text)}${driver === 'estimate' ? decides : ''}</div>`);
+        const isDriver = driver === 'estimate';
+        estimateSection = `
+            <div class="col-md-6 mb-2">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body p-2">
+                        <div class="d-flex align-items-center mb-1 text-muted small">
+                            <i class="fas fa-calculator me-1"></i>Estimated
+                            ${isDriver ? decidesIcon : ''}
+                        </div>
+                        <div><span class="badge ${cls} me-1">${esc(estimate.percent)}% lethal chance</span>${esc(estimate.text)}</div>
+                    </div>
+                </div>
+            </div>`;
     }
-    if (!lines.length) {
-        lines.push(`<div class="mb-1 text-muted">No direct measured knockout data was found for this gene. The safety verdict is based on annotation evidence and the composite score only.</div>`);
+
+    // No data fallback
+    let noDataSection = '';
+    if (!sections.length && !estimateSection) {
+        noDataSection = `<div class="alert alert-light border mb-2 small">
+            <i class="fas fa-info-circle me-1 text-muted"></i>No direct measured knockout data was found. The verdict is based on annotation evidence and the composite score.
+        </div>`;
         const phenotype = gene.phenotype_prediction;
         if (phenotype) {
             const sev = typeof phenotype.severity === 'object' ? phenotype.severity.value : phenotype.severity;
-            lines.push(`
-                <div class="mb-1 p-2 rounded border border-warning bg-warning bg-opacity-10">
+            noDataSection += `
+                <div class="mb-2 p-2 rounded border border-warning bg-warning bg-opacity-10">
                     <span class="badge bg-warning text-dark me-1"><i class="fas fa-brain me-1"></i>RAG</span>
                     <strong>AI phenotype prediction from abstracts:</strong>
                     ${esc(sev)} phenotype, confidence ${Number(phenotype.confidence_score).toFixed(2)}.
                     <span class="small text-muted" data-bs-toggle="tooltip" title="RAG scans PubMed abstracts for phenotype keywords. UNKNOWN or low-confidence predictions should not override measured knockout evidence."><i class="fas fa-info-circle"></i></span>
-                </div>`);
+                </div>`;
         }
     }
-    if (evidence && evidence.constraint) lines.push(`<div class="text-muted">${esc(evidence.constraint.text)}</div>`);
-    if (evidence && evidence.expression) lines.push(`<div class="text-muted">${esc(evidence.expression.text)}</div>`);
-    if (evidence && evidence.paralogs) lines.push(`<div class="text-muted">${esc(evidence.paralogs.text)}</div>`);
+
+    // Gene info chips
+    const chips = [];
+    if (evidence && evidence.constraint) {
+        const parts = evidence.constraint.text.match(/^Loss-of-function variants are (.*?) in people \(gnomAD LOEUF ([0-9.]+), (.*?)\)$/);
+        if (parts) {
+            chips.push(geneInfoChip('fa-users', 'Population constraint', parts[1], `gnomAD LOEUF ${parts[2]}, ${parts[3]}`));
+        } else {
+            chips.push(geneInfoChip('fa-users', 'Population constraint', evidence.constraint.text, ''));
+        }
+    }
+    if (evidence && evidence.expression) {
+        const parts = evidence.expression.text.match(/^([^:]+): expressed in (\d+) of (\d+) tissues/);
+        if (parts) {
+            chips.push(geneInfoChip('fa-dna', 'Expression', `${parts[1]} · ${parts[2]}/${parts[3]} tissues`, evidence.expression.top_tissues?.slice(0, 3).join(', ')));
+        } else {
+            chips.push(geneInfoChip('fa-dna', 'Expression', evidence.expression.text, ''));
+        }
+    }
+    if (evidence && evidence.paralogs) {
+        chips.push(geneInfoChip('fa-clone', 'Paralogs', evidence.paralogs.text, ''));
+    }
+
+    // Organ systems
+    let systemsSection = '';
     if (evidence && evidence.organism.systems && evidence.organism.systems.length) {
         const chips = evidence.organism.systems.map(sys => `<span class="badge bg-light text-dark border me-1 mb-1">${esc(sys.replace(/ phenotype$/, ''))}</span>`).join('');
-        lines.push(`<details class="text-muted"><summary>Organ systems with a reported phenotype (${evidence.organism.systems.length})</summary><div class="mt-1">${chips}</div></details>`);
+        systemsSection = `<details class="text-muted small mt-1"><summary>Organ systems with a reported phenotype (${evidence.organism.systems.length})</summary><div class="mt-1">${chips}</div></details>`;
     }
+
     const taxid = String(currentJob?.taxid || '');
     const details = !detailTaxids || detailTaxids.has(taxid) ? `<details class="mb-3 small detailed-evidence" data-taxid="${esc(currentJob.taxid)}" data-symbol="${esc(gene.symbol)}">
         <summary class="text-primary cursor-pointer">Detailed source records</summary>
         <div class="detailed-evidence-body mt-2">Expand to load detailed mutant and publication records.</div>
     </details>` : '';
-    return `<div class="evidence-panel border rounded p-2 mb-3 small bg-light">${header}${lines.join('')}</div>${details}`;
+
+    return `
+        <div class="evidence-panel border rounded p-2 mb-3 small bg-light">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted small"><i class="fas fa-microscope me-1"></i>Evidence basis · Context: <strong>${esc(contextLabel)}</strong></span>
+                <span class="badge ${BASIS_BADGES[safety.evidence_basis || 'none'][0]}">${BASIS_BADGES[safety.evidence_basis || 'none'][1]}</span>
+            </div>
+            <div class="row g-2">${sections.join('')}${estimateSection}</div>
+            ${noDataSection}
+            ${chips.length ? `<div class="d-flex flex-wrap mt-2 pt-2 border-top">${chips.join('')}</div>` : ''}
+            ${systemsSection}
+        </div>${details}`;
 }
 
 document.addEventListener('toggle', (event) => {
@@ -559,10 +662,13 @@ function renderSources(metadata) {
         </div>`);
 }
 
-function safetyLabel(level) {
+function safetyLabel(level, context) {
     if (!level) return 'Unknown';
+    context = context || currentJob?.knockout_context || 'auto';
+    const ctx = context === 'cells' ? 'cells' : context === 'organism' ? 'organism' : '';
+    const suffix = ctx ? ` (${ctx})` : '';
     const text = String(level).replace(/_/g, ' ').toLowerCase();
-    return text.charAt(0).toUpperCase() + text.slice(1);
+    return text.charAt(0).toUpperCase() + text.slice(1) + suffix;
 }
 
 function renderWarnings(warnings) {
