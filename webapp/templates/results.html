@@ -311,6 +311,12 @@
     .ring-warning {
         box-shadow: 0 0 0 2px #f59e0b;
     }
+    .evidence-panel .d-inline-flex {
+        font-size: 0.95rem;
+    }
+    .composite-formula {
+        font-size: 0.9rem;
+    }
     html[data-bs-theme="dark"] .evidence-panel .bg-white {
         background-color: #334155 !important;
         color: #e2e8f0 !important;
@@ -323,5 +329,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/results.js') }}?v=1.2.4"></script>
+<script src="{{ url_for('static', filename='js/results.js') }}?v=1.2.5"></script>
 {% endblock %}
