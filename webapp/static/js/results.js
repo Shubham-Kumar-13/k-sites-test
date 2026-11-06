@@ -678,12 +678,18 @@ function safetyLabel(level, context) {
 function renderWarnings(warnings) {
     if (!warnings || warnings.length === 0) return;
     const container = document.getElementById('genesContainer');
-    const items = warnings.map(w => `<li>${esc(w)}</li>`).join('');
+    const items = warnings.map(w => `<li class="mb-1">${esc(w)}</li>`).join('');
     container.insertAdjacentHTML('afterbegin', `
-        <div class="alert alert-warning">
-            <strong><i class="fas fa-exclamation-triangle me-2"></i>Warning</strong>
-            <ul class="mb-0">${items}</ul>
-        </div>
+        <details class="card mb-3 border-warning bg-warning bg-opacity-10">
+            <summary class="card-header bg-transparent border-0 py-2 d-flex align-items-center cursor-pointer">
+                <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                <span class="fw-semibold small">${warnings.length} data quality note${warnings.length > 1 ? 's' : ''}</span>
+                <span class="badge bg-warning text-dark ms-2 small">Click to expand</span>
+            </summary>
+            <div class="card-body pt-0">
+                <ul class="mb-0 small text-muted">${items}</ul>
+            </div>
+        </details>
     `);
 }
 
