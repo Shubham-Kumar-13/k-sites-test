@@ -27,7 +27,7 @@ $WshShell = New-Object -ComObject WScript.Shell
 $Shortcut = $WshShell.CreateShortcut($shortcutPath)
 $Shortcut.TargetPath = $batchFile
 $Shortcut.WorkingDirectory = $projectDir
-$Shortcut.WindowStyle = 7  # Minimized
+$Shortcut.WindowStyle = 1  # Normal (visible)
 $Shortcut.Save()
 
 Write-Host "Shortcut created at: $shortcutPath" -ForegroundColor Green
