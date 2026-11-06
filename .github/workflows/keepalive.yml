@@ -1,0 +1,21 @@
+name: Keep backend alive
+
+on:
+  schedule:
+    # Ping the backend every 10 minutes so it does not idle or sleep.
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping K-Sites backend health endpoint
+        run: |
+          if [ -n "$BACKEND_URL" ]; then
+            curl -sS --max-time 30 "$BACKEND_URL/api/health" || true
+          else
+            echo "BACKEND_URL is not set; skipping ping."
+          fi
+        env:
+          BACKEND_URL: ${{ vars.BACKEND_URL }}

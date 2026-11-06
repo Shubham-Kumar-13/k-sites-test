@@ -1,6 +1,0 @@
-{
-  "name": "ksites-engine",
-  "private": true,
-  "type": "module",
-  "description": "K-Sites analysis engine that runs in the browser (and in Node for tests)."
-}

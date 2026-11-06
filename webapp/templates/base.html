@@ -436,7 +436,7 @@
     {% if hosted_build %}<meta name="robots" content="noindex, nofollow">
     <script src="config.js"></script>{% endif %}
     {% block head_scripts %}{% endblock %}
-    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/api.js') }}?v=1.2.2"></script>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark">
@@ -469,6 +469,11 @@
                         <a class="nav-link" href="/validation">
                             <i class="fas fa-check-double me-1"></i>Validation
                         </a>
+                    </li>
+                    <li class="nav-item d-flex align-items-center px-2">
+                        <span class="badge rounded-pill bg-secondary" id="backendStatus" title="Backend connection status">
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" style="width: 0.7em; height: 0.7em;"></span>Checking…
+                        </span>
                     </li>
                     <li class="nav-item d-flex align-items-center px-2">
                         <div class="form-check form-switch theme-switch">
@@ -548,6 +553,37 @@
                     localStorage.setItem(STORAGE_KEY, next);
                 });
             }
+        })();
+    </script>
+
+    <script>
+        (function () {
+            const indicator = document.getElementById('backendStatus');
+            if (!indicator || !window.KSITES || !window.KSITES.hosted) {
+                if (indicator) indicator.style.display = 'none';
+                return;
+            }
+            const apiBase = window.KSITES.apiBase || '';
+            async function check() {
+                try {
+                    const response = await fetch(apiBase + '/api/health', {
+                        method: 'GET',
+                        cache: 'no-store',
+                        headers: { 'ngrok-skip-browser-warning': '1' }
+                    });
+                    if (response.ok) {
+                        indicator.className = 'badge rounded-pill bg-success';
+                        indicator.innerHTML = '<span class="d-inline-block rounded-circle bg-white me-1" style="width:0.5em;height:0.5em;"></span>Backend online';
+                    } else {
+                        throw new Error('not ok');
+                    }
+                } catch (e) {
+                    indicator.className = 'badge rounded-pill bg-warning text-dark';
+                    indicator.innerHTML = '<span class="d-inline-block rounded-circle bg-dark me-1" style="width:0.5em;height:0.5em;"></span>Backend waking up…';
+                }
+            }
+            check();
+            setInterval(check, 30000);
         })();
     </script>
 

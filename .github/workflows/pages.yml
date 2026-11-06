@@ -1,11 +1,8 @@
 name: Deploy the K-Sites website to GitHub Pages
 
-# Demo mode: the static site is built locally and committed to the repository so it can
-# point to a temporary ngrok backend tunnel. For production, revert to building from source.
 on:
   push:
     branches: [master, main]
-    # The static site is pre-built and committed, so deploy on every push to keep it in sync.
   workflow_dispatch:
 
 permissions:
@@ -24,6 +21,17 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: actions/configure-pages@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install build dependencies
+        run: pip install jinja2
+
+      - name: Build static site
+        run: python tools/build_static_site.py --api-base "${{ vars.BACKEND_URL }}" --out site
 
       - uses: actions/upload-pages-artifact@v3
         with:
