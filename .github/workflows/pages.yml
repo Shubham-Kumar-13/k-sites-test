@@ -5,9 +5,7 @@ name: Deploy the K-Sites website to GitHub Pages
 on:
   push:
     branches: [master, main]
-    paths:
-      - "site/**"
-      - ".github/workflows/pages.yml"
+    # The static site is pre-built and committed, so deploy on every push to keep it in sync.
   workflow_dispatch:
 
 permissions:
