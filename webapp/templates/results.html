@@ -24,10 +24,48 @@
 <div id="loadingState" class="py-4" style="display: {{ 'block' if job.status in ['pending', 'running'] else 'none' }};">
     <div class="card">
         <div class="card-body text-center py-5">
-            <div class="mb-4">
-                <div class="spinner-border text-primary" style="width: 4rem; height: 4rem;" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
+            <div class="mb-4 transcription-animation" aria-label="Analysis in progress">
+                <svg viewBox="0 0 360 120" width="280" height="93" role="img" aria-label="RNA polymerase transcribing DNA">
+                    <defs>
+                        <linearGradient id="polymeraseGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+                        </linearGradient>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
+
+                    <!-- DNA strands -->
+                    <path class="dna-strand dna-top" d="M0,45 Q45,25 90,45 T180,45 T270,45 T360,45" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                    <path class="dna-strand dna-bottom" d="M0,75 Q45,95 90,75 T180,75 T270,75 T360,75" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+
+                    <!-- DNA base-pair rungs -->
+                    <g class="dna-rungs" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <line x1="22" y1="45" x2="22" y2="75"/>
+                        <line x1="67" y1="45" x2="67" y2="75"/>
+                        <line x1="112" y1="45" x2="112" y2="75"/>
+                        <line x1="157" y1="45" x2="157" y2="75"/>
+                        <line x1="202" y1="45" x2="202" y2="75"/>
+                        <line x1="247" y1="45" x2="247" y2="75"/>
+                        <line x1="292" y1="45" x2="292" y2="75"/>
+                        <line x1="337" y1="45" x2="337" y2="75"/>
+                    </g>
+
+                    <!-- mRNA strand being synthesized -->
+                    <path class="mrna-strand" d="M0,60 Q45,40 90,60 T180,60 T270,60 T360,60" fill="none" stroke="#06b6d4" stroke-width="3" stroke-linecap="round"/>
+
+                    <!-- RNA polymerase -->
+                    <g class="polymerase">
+                        <ellipse cx="0" cy="60" rx="22" ry="32" fill="url(#polymeraseGrad)" filter="url(#glow)"/>
+                        <ellipse cx="-6" cy="48" rx="7" ry="10" fill="rgba(255,255,255,0.25)"/>
+                        <circle cx="8" cy="72" r="4" fill="rgba(255,255,255,0.35)"/>
+                    </g>
+                </svg>
             </div>
             
             <h4 class="text-primary mb-2">Analysis in Progress</h4>
@@ -329,6 +367,65 @@
     }
     html[data-bs-theme="dark"] .evidence-panel .text-muted {
         color: #94a3b8 !important;
+    }
+
+    /* RNA polymerase transcription animation */
+    .transcription-animation {
+        color: var(--primary-color, #2c5282);
+        display: inline-block;
+    }
+    html[data-bs-theme="dark"] .transcription-animation {
+        color: #63b3ed;
+    }
+    .transcription-animation svg {
+        overflow: visible;
+    }
+    .transcription-animation .dna-strand {
+        opacity: 0.7;
+    }
+    .transcription-animation .dna-rungs line {
+        opacity: 0.4;
+        animation: rungPulse 1.5s ease-in-out infinite;
+    }
+    .transcription-animation .dna-rungs line:nth-child(2) { animation-delay: 0.2s; }
+    .transcription-animation .dna-rungs line:nth-child(3) { animation-delay: 0.4s; }
+    .transcription-animation .dna-rungs line:nth-child(4) { animation-delay: 0.6s; }
+    .transcription-animation .dna-rungs line:nth-child(5) { animation-delay: 0.8s; }
+    .transcription-animation .dna-rungs line:nth-child(6) { animation-delay: 1.0s; }
+    .transcription-animation .dna-rungs line:nth-child(7) { animation-delay: 1.2s; }
+    .transcription-animation .dna-rungs line:nth-child(8) { animation-delay: 1.4s; }
+
+    @keyframes rungPulse {
+        0%, 100% { opacity: 0.4; }
+        50% { opacity: 0.85; }
+    }
+
+    .transcription-animation .mrna-strand {
+        stroke-dasharray: 400;
+        stroke-dashoffset: 400;
+        animation: drawMrna 3.5s linear infinite;
+    }
+    @keyframes drawMrna {
+        0% { stroke-dashoffset: 400; }
+        85%, 100% { stroke-dashoffset: 0; }
+    }
+
+    .transcription-animation .polymerase {
+        animation: slidePolymerase 3.5s ease-in-out infinite;
+    }
+    @keyframes slidePolymerase {
+        0% { transform: translateX(0px); }
+        85% { transform: translateX(330px); }
+        100% { transform: translateX(330px); }
+    }
+
+    .transcription-animation .polymerase ellipse:first-child {
+        animation: polymerasePulse 1.2s ease-in-out infinite;
+        transform-origin: center;
+    }
+    @keyframes polymerasePulse {
+        0%, 100% { transform: scale(1); opacity: 0.95; }
+        50% { transform: scale(1.06); opacity: 1; }
     }
 </style>
 {% endblock %}
