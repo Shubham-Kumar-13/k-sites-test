@@ -122,13 +122,7 @@
             const email = document.getElementById('email').value.trim();
 
             try {
-                await window.KSITES.ensureAwake();
-                const response = await fetch(window.KSITES.apiBase + '/api/auth/check', {
-                    headers: {
-                        'X-KSites-Token': token,
-                        'ngrok-skip-browser-warning': '1'
-                    }
-                });
+                const response = await window.ksFetch('/api/auth/check', { token: token });
                 if (response.status === 401) {
                     throw new Error('That access code was not accepted.');
                 }

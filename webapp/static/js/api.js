@@ -138,15 +138,21 @@
         if (hosted) {
             await ensureAwake();
             const u = user();
+            const token = options.token || u.token;
+            const userName = options.userName || u.name;
+            const userEmail = options.userEmail || u.email;
+            delete options.token;
+            delete options.userName;
+            delete options.userEmail;
             options.headers = Object.assign({}, options.headers, {
-                'X-KSites-Token': u.token,
+                'X-KSites-Token': token,
                 'ngrok-skip-browser-warning': '1'
             });
-            if (u.name) options.headers['X-KSites-User-Name'] = u.name;
-            if (u.email) options.headers['X-KSites-User-Email'] = u.email;
+            if (userName) options.headers['X-KSites-User-Name'] = userName;
+            if (userEmail) options.headers['X-KSites-User-Email'] = userEmail;
         }
         const response = await fetch(apiBase + path, options);
-        if (hosted && response.status === 401) {
+        if (hosted && response.status === 401 && !options.token) {
             remove(KEYS.token);
             goToLogin();
         }
