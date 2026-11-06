@@ -91,7 +91,7 @@ def start_backend():
 def start_ngrok(ngrok_path):
     log(f"Starting ngrok: {ngrok_path}")
     return subprocess.Popen(
-        [ngrok_path, "http", f"--domain={NGROK_DOMAIN}", str(NGROK_PORT)],
+        [ngrok_path, "http", f"--url={NGROK_DOMAIN}", str(NGROK_PORT)],
         cwd=ROOT,
         stdout=open(NGROK_LOG, "a", encoding="utf-8"),
         stderr=subprocess.STDOUT,
