@@ -60,6 +60,35 @@
                     <!-- mRNA strand being synthesized -->
                     <path class="mrna-strand" d="M0,70 Q45,50 90,70 T180,70 T270,70 T360,70" fill="none" stroke="#06b6d4" stroke-width="3.5" stroke-linecap="round"/>
 
+                    <!-- Nucleotide letters appearing along mRNA -->
+                    <g class="mrna-bases" fill="#06b6d4" font-size="10" font-weight="700" font-family="Arial, sans-serif" text-anchor="middle" style="pointer-events: none;">
+                        <text x="20" y="58">A</text>
+                        <text x="45" y="44">U</text>
+                        <text x="70" y="58">C</text>
+                        <text x="90" y="82">G</text>
+                        <text x="112" y="82">A</text>
+                        <text x="135" y="74">U</text>
+                        <text x="157" y="58">C</text>
+                        <text x="180" y="58">G</text>
+                        <text x="202" y="82">A</text>
+                        <text x="225" y="74">U</text>
+                        <text x="247" y="58">C</text>
+                        <text x="270" y="58">G</text>
+                        <text x="292" y="82">A</text>
+                        <text x="315" y="74">U</text>
+                        <text x="337" y="58">C</text>
+                    </g>
+
+                    <!-- Incoming NTPs floating toward polymerase -->
+                    <g class="incoming-ntps">
+                        <circle cx="50" cy="15" r="4" fill="#f59e0b" opacity="0"/>
+                        <text x="50" y="18" font-size="6" font-weight="700" fill="#f59e0b" opacity="0" text-anchor="middle">A</text>
+                        <circle cx="80" cy="10" r="4" fill="#ef4444" opacity="0"/>
+                        <text x="80" y="13" font-size="6" font-weight="700" fill="#ef4444" opacity="0" text-anchor="middle">U</text>
+                        <circle cx="110" cy="18" r="4" fill="#22c55e" opacity="0"/>
+                        <text x="110" y="21" font-size="6" font-weight="700" fill="#22c55e" opacity="0" text-anchor="middle">C</text>
+                    </g>
+
                     <!-- RNA polymerase -->
                     <g class="polymerase" transform="translate(0,70)">
                         <!-- Outer glow ring -->
@@ -435,6 +464,46 @@
     @keyframes slidePolymerase {
         0%, 100% { transform: translateX(0px); }
         50% { transform: translateX(330px); }
+    }
+
+    .transcription-animation .mrna-bases text {
+        opacity: 0;
+        animation: baseAppear 5s linear infinite;
+        filter: drop-shadow(0 0 2px #06b6d4);
+    }
+    .transcription-animation .mrna-bases text:nth-child(1) { animation-delay: 0.0s; }
+    .transcription-animation .mrna-bases text:nth-child(2) { animation-delay: 0.17s; }
+    .transcription-animation .mrna-bases text:nth-child(3) { animation-delay: 0.34s; }
+    .transcription-animation .mrna-bases text:nth-child(4) { animation-delay: 0.5s; }
+    .transcription-animation .mrna-bases text:nth-child(5) { animation-delay: 0.67s; }
+    .transcription-animation .mrna-bases text:nth-child(6) { animation-delay: 0.84s; }
+    .transcription-animation .mrna-bases text:nth-child(7) { animation-delay: 1.0s; }
+    .transcription-animation .mrna-bases text:nth-child(8) { animation-delay: 1.17s; }
+    .transcription-animation .mrna-bases text:nth-child(9) { animation-delay: 1.34s; }
+    .transcription-animation .mrna-bases text:nth-child(10) { animation-delay: 1.5s; }
+    .transcription-animation .mrna-bases text:nth-child(11) { animation-delay: 1.67s; }
+    .transcription-animation .mrna-bases text:nth-child(12) { animation-delay: 1.84s; }
+    .transcription-animation .mrna-bases text:nth-child(13) { animation-delay: 2.0s; }
+    .transcription-animation .mrna-bases text:nth-child(14) { animation-delay: 2.17s; }
+    .transcription-animation .mrna-bases text:nth-child(15) { animation-delay: 2.34s; }
+    @keyframes baseAppear {
+        0%, 100% { opacity: 0; transform: translateY(3px); }
+        8% { opacity: 1; transform: translateY(0); }
+        50% { opacity: 1; transform: translateY(0); }
+        58% { opacity: 0; transform: translateY(-3px); }
+    }
+
+    .transcription-animation .incoming-ntps circle,
+    .transcription-animation .incoming-ntps text {
+        animation: ntpFloat 2s ease-in-out infinite;
+    }
+    .transcription-animation .incoming-ntps circle:nth-child(3),
+    .transcription-animation .incoming-ntps text:nth-child(4) { animation-delay: 0.6s; }
+    .transcription-animation .incoming-ntps circle:nth-child(5),
+    .transcription-animation .incoming-ntps text:nth-child(6) { animation-delay: 1.2s; }
+    @keyframes ntpFloat {
+        0%, 100% { opacity: 0; transform: translate(0, 0); }
+        50% { opacity: 0.85; transform: translate(-10px, 14px); }
     }
 
     .transcription-animation .polymerase circle:nth-child(2) {
