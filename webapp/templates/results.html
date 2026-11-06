@@ -25,15 +25,15 @@
     <div class="card">
         <div class="card-body text-center py-5">
             <div class="mb-4 transcription-animation" aria-label="Analysis in progress">
-                <svg viewBox="0 0 360 150" width="320" height="133" role="img" aria-label="Transcription: RNA polymerase fixed while DNA unwinds and moves through it">
+                <svg viewBox="0 0 360 150" width="320" height="133" role="img" aria-label="Transcription: RNA polymerase sits on DNA, unwinds it, and synthesizes mRNA">
                     <defs>
-                        <radialGradient id="polymeraseBody" cx="30%" cy="25%" r="75%" fx="20%" fy="20%">
-                            <stop offset="0%" style="stop-color:#a5b9f8;stop-opacity:1" />
-                            <stop offset="45%" style="stop-color:#6d7ee9;stop-opacity:1" />
+                        <radialGradient id="polymeraseBody" cx="30%" cy="20%" r="75%" fx="20%" fy="15%">
+                            <stop offset="0%" style="stop-color:#b8c9fb;stop-opacity:1" />
+                            <stop offset="40%" style="stop-color:#7b8fed;stop-opacity:1" />
                             <stop offset="100%" style="stop-color:#4338ca;stop-opacity:1" />
                         </radialGradient>
                         <linearGradient id="polymeraseJaw" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" style="stop-color:#8fa8f5;stop-opacity:1" />
+                            <stop offset="0%" style="stop-color:#9bb3f7;stop-opacity:1" />
                             <stop offset="100%" style="stop-color:#5a6ed8;stop-opacity:1" />
                         </linearGradient>
                         <filter id="glow">
@@ -45,70 +45,64 @@
                         </filter>
                     </defs>
 
-                    <!-- Moving DNA group -->
-                    <g class="dna-track">
-                        <!-- DNA strands: double helix unwinds at center, rewinds after -->
-                        <path class="dna-strand dna-top" d="M-40,55 L130,55 Q155,55 180,32 Q205,55 230,55 L400,55" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-                        <path class="dna-strand dna-bottom" d="M-40,85 L130,85 Q155,85 180,108 Q205,85 230,85 L400,85" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                    <!-- DNA: double helix on both sides, unwound under polymerase -->
+                    <path class="dna-strand dna-template" d="M0,55 L135,55 Q160,55 180,35 Q200,55 225,55 L360,55" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                    <path class="dna-strand dna-coding" d="M0,85 L135,85 Q160,85 180,105 Q200,85 225,85 L360,85" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
 
-                        <!-- Base-pair rungs on left (upstream) -->
-                        <g class="dna-rungs-left" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                            <line x1="-30" y1="55" x2="-30" y2="85"/>
-                            <line x1="0" y1="55" x2="0" y2="85"/>
-                            <line x1="30" y1="55" x2="30" y2="85"/>
-                            <line x1="60" y1="55" x2="60" y2="85"/>
-                            <line x1="90" y1="55" x2="90" y2="85"/>
-                            <line x1="120" y1="55" x2="120" y2="85"/>
-                        </g>
-
-                        <!-- Base-pair rungs on right (downstream) -->
-                        <g class="dna-rungs-right" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                            <line x1="240" y1="55" x2="240" y2="85"/>
-                            <line x1="270" y1="55" x2="270" y2="85"/>
-                            <line x1="300" y1="55" x2="300" y2="85"/>
-                            <line x1="330" y1="55" x2="330" y2="85"/>
-                            <line x1="360" y1="55" x2="360" y2="85"/>
-                            <line x1="390" y1="55" x2="390" y2="85"/>
-                        </g>
+                    <!-- Base-pair rungs -->
+                    <g class="dna-rungs" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <line x1="15" y1="55" x2="15" y2="85"/>
+                        <line x1="45" y1="55" x2="45" y2="85"/>
+                        <line x1="75" y1="55" x2="75" y2="85"/>
+                        <line x1="105" y1="55" x2="105" y2="85"/>
+                        <line x1="135" y1="55" x2="135" y2="85"/>
+                        <line x1="225" y1="55" x2="225" y2="85"/>
+                        <line x1="255" y1="55" x2="255" y2="85"/>
+                        <line x1="285" y1="55" x2="285" y2="85"/>
+                        <line x1="315" y1="55" x2="315" y2="85"/>
+                        <line x1="345" y1="55" x2="345" y2="85"/>
                     </g>
 
-                    <!-- mRNA strand emerging from polymerase -->
-                    <path class="mrna-strand" d="M180,32 Q180,10 150,8 Q110,6 80,20" fill="none" stroke="#06b6d4" stroke-width="3.5" stroke-linecap="round"/>
-
-                    <!-- Nucleotide letters on mRNA -->
-                    <g class="mrna-bases" fill="#06b6d4" font-size="10" font-weight="700" font-family="Arial, sans-serif" text-anchor="middle" style="pointer-events: none;">
-                        <text x="80" y="14">A</text>
-                        <text x="105" y="10">U</text>
-                        <text x="130" y="10">C</text>
-                        <text x="155" y="12">G</text>
-                        <text x="175" y="22">A</text>
-                    </g>
-
-                    <!-- Incoming NTPs -->
-                    <g class="incoming-ntps">
-                        <circle cx="145" cy="-8" r="4" fill="#f59e0b" opacity="0"/>
-                        <text x="145" y="-5" font-size="6" font-weight="700" fill="#f59e0b" opacity="0" text-anchor="middle">A</text>
-                        <circle cx="165" cy="-12" r="4" fill="#ef4444" opacity="0"/>
-                        <text x="165" y="-9" font-size="6" font-weight="700" fill="#ef4444" opacity="0" text-anchor="middle">U</text>
-                        <circle cx="185" cy="-8" r="4" fill="#22c55e" opacity="0"/>
-                        <text x="185" y="-5" font-size="6" font-weight="700" fill="#22c55e" opacity="0" text-anchor="middle">C</text>
-                    </g>
-
-                    <!-- Fixed RNA polymerase -->
+                    <!-- RNA polymerase: a realistic clamp-like machine over the bubble -->
                     <g class="polymerase" transform="translate(180,70)">
-                        <!-- Lower body / clamp -->
-                        <path d="M-34,-10 C-38,-28 -20,-46 0,-46 C20,-46 38,-28 34,-10 L34,10 C38,28 20,46 0,46 C-20,46 -38,28 -34,10 Z" fill="url(#polymeraseBody)" filter="url(#glow)"/>
-                        <!-- Top jaw lobe -->
-                        <path d="M-28,-36 C-10,-48 18,-48 32,-36 C36,-28 28,-22 16,-22 C0,-22 -18,-22 -30,-28 C-34,-30 -32,-34 -28,-36 Z" fill="url(#polymeraseJaw)" opacity="0.9"/>
-                        <!-- Bottom jaw lobe -->
-                        <path d="M-28,36 C-10,48 18,48 32,36 C36,28 28,22 16,22 C0,22 -18,22 -30,28 C-34,30 -32,34 -28,36 Z" fill="url(#polymeraseJaw)" opacity="0.9"/>
-                        <!-- DNA channel -->
-                        <rect x="-18" y="-12" width="36" height="24" rx="12" fill="var(--body-bg,#f7fafc)" opacity="0.97"/>
-                        <!-- mRNA exit pore -->
-                        <ellipse cx="0" cy="-34" rx="8" ry="5" fill="#06b6d4" opacity="0.6"/>
-                        <!-- Glossy highlights -->
-                        <ellipse cx="-12" cy="-18" rx="8" ry="12" fill="rgba(255,255,255,0.22)"/>
-                        <ellipse cx="14" cy="16" rx="6" ry="9" fill="rgba(255,255,255,0.12)"/>
+                        <!-- Main clamp body -->
+                        <path d="M-42,-18 C-46,-36 -28,-52 0,-52 C28,-52 46,-36 42,-18 L40,18 C44,36 26,52 0,52 C-26,52 -44,36 -40,18 Z" fill="url(#polymeraseBody)" filter="url(#glow)"/>
+                        <!-- Top lobe / jaw -->
+                        <path d="M-32,-42 C-12,-54 20,-54 36,-42 C42,-34 32,-26 18,-26 C2,-26 -18,-26 -34,-32 C-40,-34 -38,-40 -32,-42 Z" fill="url(#polymeraseJaw)" opacity="0.95"/>
+                        <!-- Bottom lobe / jaw -->
+                        <path d="M-32,42 C-12,54 20,54 36,42 C42,34 32,26 18,26 C2,26 -18,26 -34,32 C-40,34 -38,40 -32,42 Z" fill="url(#polymeraseJaw)" opacity="0.95"/>
+                        <!-- DNA tunnel through polymerase -->
+                        <rect x="-22" y="-14" width="44" height="28" rx="14" fill="var(--body-bg,#f7fafc)" opacity="0.98"/>
+                        <!-- mRNA exit channel at top -->
+                        <ellipse cx="0" cy="-40" rx="9" ry="5" fill="#06b6d4" opacity="0.55"/>
+                        <!-- Active site glow -->
+                        <circle cx="0" cy="0" r="14" fill="none" stroke="#06b6d4" stroke-width="2" opacity="0.4"/>
+                        <!-- Highlights -->
+                        <ellipse cx="-16" cy="-22" rx="10" ry="14" fill="rgba(255,255,255,0.22)"/>
+                        <ellipse cx="18" cy="18" rx="7" ry="10" fill="rgba(255,255,255,0.12)"/>
+                    </g>
+
+                    <!-- mRNA growing from template strand inside polymerase -->
+                    <path class="mrna-strand" d="M180,35 Q180,15 155,10 Q120,5 90,18 Q60,28 40,25" fill="none" stroke="#06b6d4" stroke-width="3.5" stroke-linecap="round"/>
+
+                    <!-- mRNA base letters -->
+                    <g class="mrna-bases" fill="#06b6d4" font-size="10" font-weight="700" font-family="Arial, sans-serif" text-anchor="middle" style="pointer-events: none;">
+                        <text x="40" y="18">A</text>
+                        <text x="65" y="16">U</text>
+                        <text x="90" y="12">C</text>
+                        <text x="115" y="10">G</text>
+                        <text x="145" y="12">A</text>
+                        <text x="170" y="20">U</text>
+                    </g>
+
+                    <!-- Incoming NTPs entering active site -->
+                    <g class="incoming-ntps">
+                        <circle cx="165" cy="12" r="4" fill="#f59e0b" opacity="0"/>
+                        <text x="165" y="15" font-size="6" font-weight="700" fill="#f59e0b" opacity="0" text-anchor="middle">A</text>
+                        <circle cx="180" cy="5" r="4" fill="#ef4444" opacity="0"/>
+                        <text x="180" y="8" font-size="6" font-weight="700" fill="#ef4444" opacity="0" text-anchor="middle">U</text>
+                        <circle cx="195" cy="12" r="4" fill="#22c55e" opacity="0"/>
+                        <text x="195" y="15" font-size="6" font-weight="700" fill="#22c55e" opacity="0" text-anchor="middle">C</text>
                     </g>
                 </svg>
             </div>
@@ -440,24 +434,20 @@
         50% { filter: drop-shadow(0 0 5px currentColor); opacity: 1; }
     }
 
-    .transcription-animation .dna-rungs-left line,
-    .transcription-animation .dna-rungs-right line {
+    .transcription-animation .dna-rungs line {
         opacity: 0.45;
         animation: rungPulse 1.2s ease-in-out infinite;
-        filter: drop-shadow(0 0 1px currentColor);
     }
-    .transcription-animation .dna-rungs-left line:nth-child(1) { animation-delay: 0.0s; }
-    .transcription-animation .dna-rungs-left line:nth-child(2) { animation-delay: 0.2s; }
-    .transcription-animation .dna-rungs-left line:nth-child(3) { animation-delay: 0.4s; }
-    .transcription-animation .dna-rungs-left line:nth-child(4) { animation-delay: 0.6s; }
-    .transcription-animation .dna-rungs-left line:nth-child(5) { animation-delay: 0.8s; }
-    .transcription-animation .dna-rungs-left line:nth-child(6) { animation-delay: 1.0s; }
-    .transcription-animation .dna-rungs-right line:nth-child(1) { animation-delay: 0.1s; }
-    .transcription-animation .dna-rungs-right line:nth-child(2) { animation-delay: 0.3s; }
-    .transcription-animation .dna-rungs-right line:nth-child(3) { animation-delay: 0.5s; }
-    .transcription-animation .dna-rungs-right line:nth-child(4) { animation-delay: 0.7s; }
-    .transcription-animation .dna-rungs-right line:nth-child(5) { animation-delay: 0.9s; }
-    .transcription-animation .dna-rungs-right line:nth-child(6) { animation-delay: 1.1s; }
+    .transcription-animation .dna-rungs line:nth-child(1) { animation-delay: 0.0s; }
+    .transcription-animation .dna-rungs line:nth-child(2) { animation-delay: 0.12s; }
+    .transcription-animation .dna-rungs line:nth-child(3) { animation-delay: 0.24s; }
+    .transcription-animation .dna-rungs line:nth-child(4) { animation-delay: 0.36s; }
+    .transcription-animation .dna-rungs line:nth-child(5) { animation-delay: 0.48s; }
+    .transcription-animation .dna-rungs line:nth-child(6) { animation-delay: 0.6s; }
+    .transcription-animation .dna-rungs line:nth-child(7) { animation-delay: 0.72s; }
+    .transcription-animation .dna-rungs line:nth-child(8) { animation-delay: 0.84s; }
+    .transcription-animation .dna-rungs line:nth-child(9) { animation-delay: 0.96s; }
+    .transcription-animation .dna-rungs line:nth-child(10) { animation-delay: 1.08s; }
     @keyframes rungPulse {
         0%, 100% { opacity: 0.45; }
         50% { opacity: 0.9; }
@@ -479,11 +469,12 @@
         animation: baseAppear 3.5s linear infinite;
         filter: drop-shadow(0 0 2px #06b6d4);
     }
-    .transcription-animation .mrna-bases text:nth-child(1) { animation-delay: 0.5s; }
-    .transcription-animation .mrna-bases text:nth-child(2) { animation-delay: 1.0s; }
-    .transcription-animation .mrna-bases text:nth-child(3) { animation-delay: 1.5s; }
-    .transcription-animation .mrna-bases text:nth-child(4) { animation-delay: 2.0s; }
-    .transcription-animation .mrna-bases text:nth-child(5) { animation-delay: 2.5s; }
+    .transcription-animation .mrna-bases text:nth-child(1) { animation-delay: 0.4s; }
+    .transcription-animation .mrna-bases text:nth-child(2) { animation-delay: 0.7s; }
+    .transcription-animation .mrna-bases text:nth-child(3) { animation-delay: 1.0s; }
+    .transcription-animation .mrna-bases text:nth-child(4) { animation-delay: 1.3s; }
+    .transcription-animation .mrna-bases text:nth-child(5) { animation-delay: 1.6s; }
+    .transcription-animation .mrna-bases text:nth-child(6) { animation-delay: 1.9s; }
     @keyframes baseAppear {
         0%, 100% { opacity: 0; transform: translateY(3px); }
         15% { opacity: 1; transform: translateY(0); }
