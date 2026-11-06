@@ -141,16 +141,40 @@ def main():
     signal.signal(signal.SIGINT, shutdown)
 
     try:
+        tick = 0
         while running:
+            backend_restarted = False
+            ngrok_restarted = False
+
             if backend is None or backend.poll() is not None:
                 if backend is not None and backend.poll() is not None:
                     log(f"Backend exited with code {backend.poll()}, restarting...")
                 backend = start_backend()
+                backend_restarted = True
 
             if ngrok is None or ngrok.poll() is not None:
-                if ngrok is not None and ngrok.poll() is not None:
+                if ngrok is None or ngrok.poll() is not None:
                     log(f"Ngrok exited with code {ngrok.poll()}, restarting...")
                 ngrok = start_ngrok(ngrok_path)
+                ngrok_restarted = True
+
+            tick += 1
+            if tick % 6 == 0 or backend_restarted or ngrok_restarted:
+                backend_pid = backend.pid if backend and backend.poll() is None else "dead"
+                ngrok_pid = ngrok.pid if ngrok and ngrok.poll() is None else "dead"
+                health = "unknown"
+                try:
+                    import urllib.request
+                    req = urllib.request.Request(
+                        f"http://127.0.0.1:{NGROK_PORT}/api/health",
+                        headers={"ngrok-skip-browser-warning": "1"},
+                        method="GET",
+                    )
+                    with urllib.request.urlopen(req, timeout=5) as resp:
+                        health = "ok" if resp.status == 200 else f"status_{resp.status}"
+                except Exception as e:
+                    health = f"error: {type(e).__name__}"
+                log(f"Status — backend PID={backend_pid}, ngrok PID={ngrok_pid}, health={health}")
 
             time.sleep(5)
     finally:
