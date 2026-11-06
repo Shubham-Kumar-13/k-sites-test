@@ -24,17 +24,17 @@
 <div id="loadingState" class="py-4" style="display: {{ 'block' if job.status in ['pending', 'running'] else 'none' }};">
     <div class="card">
         <div class="card-body text-center py-5">
-            <div class="mb-4 target-lock-animation" aria-label="Analysis in progress">
-                <svg viewBox="0 0 420 240" width="336" height="192" role="img" aria-label="Safe gene target lock-on animation">
+            <div class="mb-4 gene-deletion-animation" aria-label="Analysis in progress">
+                <svg viewBox="0 0 400 160" width="320" height="128" role="img" aria-label="Gene deletion and DNA repair animation">
                     <defs>
-                        <radialGradient id="safeGlow" cx="50%" cy="50%" r="50%">
-                            <stop offset="0%" style="stop-color:#86efac;stop-opacity:0.6" />
-                            <stop offset="100%" style="stop-color:#22c55e;stop-opacity:0" />
-                        </radialGradient>
-                        <radialGradient id="riskGlow" cx="50%" cy="50%" r="50%">
-                            <stop offset="0%" style="stop-color:#fca5a5;stop-opacity:0.5" />
-                            <stop offset="100%" style="stop-color:#ef4444;stop-opacity:0" />
-                        </radialGradient>
+                        <linearGradient id="dnaBlue" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#60a5fa;stop-opacity:1" />
+                        </linearGradient>
+                        <linearGradient id="targetRed" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#f87171;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#ef4444;stop-opacity:1" />
+                        </linearGradient>
                         <filter id="glow">
                             <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
                             <feMerge>
@@ -44,85 +44,70 @@
                         </filter>
                     </defs>
 
-                    <!-- Background scan line -->
-                    <line class="scan-line" x1="0" y1="120" x2="420" y2="120" stroke="#06b6d4" stroke-width="1.5" opacity="0.4" stroke-dasharray="8 6"/>
-
-                    <!-- Pleiotropy connection web -->
-                    <g class="connection-web" stroke="#94a3b8" stroke-width="1.2" opacity="0.35">
-                        <line x1="100" y1="70" x2="210" y2="120"/>
-                        <line x1="100" y1="70" x2="320" y2="80"/>
-                        <line x1="100" y1="70" x2="80" y2="170"/>
-                        <line x1="210" y1="120" x2="320" y2="80"/>
-                        <line x1="210" y1="120" x2="320" y2="180"/>
-                        <line x1="210" y1="120" x2="80" y2="170"/>
-                        <line x1="320" y1="80" x2="320" y2="180"/>
-                        <line x1="320" y1="180" x2="80" y2="170"/>
+                    <!-- Full DNA before deletion -->
+                    <g class="dna-full">
+                        <path d="M0,75 L400,75" fill="none" stroke="url(#dnaBlue)" stroke-width="4" stroke-linecap="round"/>
+                        <path d="M0,95 L400,95" fill="none" stroke="url(#dnaBlue)" stroke-width="4" stroke-linecap="round"/>
+                        <g stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round">
+                            <line x1="30" y1="75" x2="30" y2="95"/>
+                            <line x1="70" y1="75" x2="70" y2="95"/>
+                            <line x1="110" y1="75" x2="110" y2="95"/>
+                            <line x1="150" y1="75" x2="150" y2="95"/>
+                            <line x1="190" y1="75" x2="190" y2="95"/>
+                            <line x1="230" y1="75" x2="230" y2="95"/>
+                            <line x1="270" y1="75" x2="270" y2="95"/>
+                            <line x1="310" y1="75" x2="310" y2="95"/>
+                            <line x1="350" y1="75" x2="350" y2="95"/>
+                        </g>
                     </g>
 
-                    <!-- Risky gene nodes -->
-                    <g class="gene-node risky-node" transform="translate(100,70)" style="--tx:100px;--ty:70px;--delay:0.6s;">
-                        <circle r="28" fill="#e2e8f0" stroke="#64748b" stroke-width="2"/>
-                        <text y="5" font-size="11" font-weight="700" fill="#475569" text-anchor="middle">Gene A</text>
-                    </g>
-                    <g class="gene-node risky-node" transform="translate(320,80)" style="--tx:320px;--ty:80px;--delay:1.0s;">
-                        <circle r="28" fill="#e2e8f0" stroke="#64748b" stroke-width="2"/>
-                        <text y="5" font-size="11" font-weight="700" fill="#475569" text-anchor="middle">Gene B</text>
-                    </g>
-                    <g class="gene-node risky-node" transform="translate(80,170)" style="--tx:80px;--ty:170px;--delay:1.4s;">
-                        <circle r="28" fill="#e2e8f0" stroke="#64748b" stroke-width="2"/>
-                        <text y="5" font-size="11" font-weight="700" fill="#475569" text-anchor="middle">Gene C</text>
-                    </g>
-                    <g class="gene-node risky-node" transform="translate(320,180)" style="--tx:320px;--ty:180px;--delay:1.8s;">
-                        <circle r="28" fill="#e2e8f0" stroke="#64748b" stroke-width="2"/>
-                        <text y="5" font-size="11" font-weight="700" fill="#475569" text-anchor="middle">Gene D</text>
+                    <!-- Gene segment to be deleted -->
+                    <g class="gene-segment" filter="url(#glow)">
+                        <path d="M150,75 L250,75" fill="none" stroke="url(#targetRed)" stroke-width="4" stroke-linecap="round"/>
+                        <path d="M150,95 L250,95" fill="none" stroke="url(#targetRed)" stroke-width="4" stroke-linecap="round"/>
+                        <g stroke="#ef4444" stroke-width="2.5" stroke-linecap="round">
+                            <line x1="170" y1="75" x2="170" y2="95"/>
+                            <line x1="190" y1="75" x2="190" y2="95"/>
+                            <line x1="210" y1="75" x2="210" y2="95"/>
+                            <line x1="230" y1="75" x2="230" y2="95"/>
+                        </g>
+                        <text x="200" y="115" font-size="10" font-weight="700" fill="#ef4444" text-anchor="middle">GENE</text>
                     </g>
 
-                    <!-- Safe target gene node -->
-                    <g class="gene-node safe-node" transform="translate(210,120)" style="--tx:210px;--ty:120px;--delay:0s;">
-                        <circle r="32" fill="#dcfce7" stroke="#22c55e" stroke-width="2.5"/>
-                        <text y="5" font-size="12" font-weight="700" fill="#15803d" text-anchor="middle">SAFE</text>
+                    <!-- DNA left and right halves (move together after deletion) -->
+                    <g class="dna-left">
+                        <path d="M0,75 L150,75" fill="none" stroke="url(#dnaBlue)" stroke-width="4" stroke-linecap="round"/>
+                        <path d="M0,95 L150,95" fill="none" stroke="url(#dnaBlue)" stroke-width="4" stroke-linecap="round"/>
+                    </g>
+                    <g class="dna-right">
+                        <path d="M250,75 L400,75" fill="none" stroke="url(#dnaBlue)" stroke-width="4" stroke-linecap="round"/>
+                        <path d="M250,95 L400,95" fill="none" stroke="url(#dnaBlue)" stroke-width="4" stroke-linecap="round"/>
                     </g>
 
-                    <!-- Risk rejection X marks -->
-                    <g class="risk-x" transform="translate(100,70)" opacity="0" style="--delay:0.6s;">
-                        <circle r="34" fill="url(#riskGlow)" opacity="0.6"/>
-                        <path d="M-10,-10 L10,10 M10,-10 L-10,10" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
-                    </g>
-                    <g class="risk-x" transform="translate(320,80)" opacity="0" style="--delay:1.0s;">
-                        <circle r="34" fill="url(#riskGlow)" opacity="0.6"/>
-                        <path d="M-10,-10 L10,10 M10,-10 L-10,10" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
-                    </g>
-                    <g class="risk-x" transform="translate(80,170)" opacity="0" style="--delay:1.4s;">
-                        <circle r="34" fill="url(#riskGlow)" opacity="0.6"/>
-                        <path d="M-10,-10 L10,10 M10,-10 L-10,10" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
-                    </g>
-                    <g class="risk-x" transform="translate(320,180)" opacity="0" style="--delay:1.8s;">
-                        <circle r="34" fill="url(#riskGlow)" opacity="0.6"/>
-                        <path d="M-10,-10 L10,10 M10,-10 L-10,10" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+                    <!-- Repair glow at junction -->
+                    <circle class="repair-glow" cx="200" cy="85" r="30" fill="#22c55e" opacity="0" filter="url(#glow)"/>
+
+                    <!-- Repaired continuous DNA -->
+                    <g class="repaired-dna" opacity="0">
+                        <path d="M0,85 L400,85" fill="none" stroke="#22c55e" stroke-width="4" stroke-linecap="round"/>
+                        <g stroke="#22c55e" stroke-width="2.5" stroke-linecap="round">
+                            <line x1="30" y1="75" x2="30" y2="95"/>
+                            <line x1="70" y1="75" x2="70" y2="95"/>
+                            <line x1="110" y1="75" x2="110" y2="95"/>
+                            <line x1="150" y1="75" x2="150" y2="95"/>
+                            <line x1="190" y1="75" x2="190" y2="95"/>
+                            <line x1="230" y1="75" x2="230" y2="95"/>
+                            <line x1="270" y1="75" x2="270" y2="95"/>
+                            <line x1="310" y1="75" x2="310" y2="95"/>
+                            <line x1="350" y1="75" x2="350" y2="95"/>
+                        </g>
                     </g>
 
-                    <!-- Targeting reticle -->
-                    <g class="target-reticle" transform="translate(210,120)" opacity="0">
-                        <circle r="48" fill="none" stroke="#06b6d4" stroke-width="2" stroke-dasharray="12 8"/>
-                        <line x1="-56" y1="0" x2="-40" y2="0" stroke="#06b6d4" stroke-width="2"/>
-                        <line x1="40" y1="0" x2="56" y2="0" stroke="#06b6d4" stroke-width="2"/>
-                        <line x1="0" y1="-56" x2="0" y2="-40" stroke="#06b6d4" stroke-width="2"/>
-                        <line x1="0" y1="40" x2="0" y2="56" stroke="#06b6d4" stroke-width="2"/>
+                    <!-- Success checkmark -->
+                    <g class="repair-check" transform="translate(200,85)" opacity="0">
+                        <circle cx="0" cy="0" r="22" fill="#22c55e" filter="url(#glow)"/>
+                        <path d="M-8,2 L-3,7 L8,-8" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
                     </g>
-
-                    <!-- Locked target brackets -->
-                    <g class="target-brackets" transform="translate(210,120)" opacity="0">
-                        <path d="M-42,-42 L-30,-42 L-30,-30" fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round"/>
-                        <path d="M42,-42 L30,-42 L30,-30" fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round"/>
-                        <path d="M-42,42 L-30,42 L-30,30" fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round"/>
-                        <path d="M42,42 L30,42 L30,30" fill="none" stroke="#22c55e" stroke-width="3" stroke-linecap="round"/>
-                    </g>
-
-                    <!-- Safe glow burst -->
-                    <circle class="safe-burst" cx="210" cy="120" r="70" fill="url(#safeGlow)" opacity="0"/>
-
-                    <!-- Success label -->
-                    <text class="safe-label" x="210" y="225" font-size="14" font-weight="700" fill="#22c55e" text-anchor="middle" opacity="0">SAFE KNOCKOUT TARGET</text>
                 </svg>
             </div>
             
@@ -427,91 +412,83 @@
         color: #94a3b8 !important;
     }
 
-    /* Safe gene target lock-on animation */
-    .target-lock-animation svg {
+    /* Gene deletion and repair animation */
+    .gene-deletion-animation svg {
         overflow: visible;
     }
 
-    .target-lock-animation .scan-line {
-        animation: scanSweep 5s ease-in-out infinite;
+    .gene-deletion-animation .gene-segment {
+        animation: genePulse 4s ease-in-out infinite;
     }
-    @keyframes scanSweep {
-        0%, 100% { transform: translateY(-80px); opacity: 0; }
-        10% { opacity: 0.4; }
-        45% { transform: translateY(80px); opacity: 0.4; }
-        55% { opacity: 0; }
+    @keyframes genePulse {
+        0%, 15%, 85%, 100% { opacity: 1; filter: drop-shadow(0 0 2px #ef4444); }
+        8% { opacity: 1; filter: drop-shadow(0 0 10px #ef4444); }
+        35%, 80% { opacity: 0; transform: translateY(25px); }
+    }
+
+    .gene-deletion-animation .gene-segment text {
+        animation: geneText 4s ease-in-out infinite;
+    }
+    @keyframes geneText {
+        0%, 30% { opacity: 1; }
+        40%, 100% { opacity: 0; }
+    }
+
+    .gene-deletion-animation .dna-left {
+        animation: leftMove 4s ease-in-out infinite;
+    }
+    @keyframes leftMove {
+        0%, 35% { transform: translateX(0); }
+        55%, 80% { transform: translateX(50px); }
+        95%, 100% { transform: translateX(0); }
+    }
+
+    .gene-deletion-animation .dna-right {
+        animation: rightMove 4s ease-in-out infinite;
+    }
+    @keyframes rightMove {
+        0%, 35% { transform: translateX(0); }
+        55%, 80% { transform: translateX(-50px); }
+        95%, 100% { transform: translateX(0); }
+    }
+
+    .gene-deletion-animation .dna-full {
+        animation: fullDna 4s ease-in-out infinite;
+    }
+    @keyframes fullDna {
+        0%, 35% { opacity: 1; }
+        45%, 90% { opacity: 0; }
+        100% { opacity: 1; }
+    }
+
+    .gene-deletion-animation .repair-glow {
+        animation: repairFlash 4s ease-in-out infinite;
+    }
+    @keyframes repairFlash {
+        0%, 50% { opacity: 0; transform: scale(0.5); }
+        60% { opacity: 0.8; transform: scale(1.2); }
+        75% { opacity: 0; transform: scale(1.5); }
         100% { opacity: 0; }
     }
 
-    .target-lock-animation .gene-node {
-        animation: nodeFloat 3s ease-in-out var(--delay, 0s) infinite;
+    .gene-deletion-animation .repaired-dna {
+        animation: repairedShow 4s ease-in-out infinite;
     }
-    @keyframes nodeFloat {
-        0%, 100% { transform: translate(var(--tx,0), var(--ty,0)); }
-        50% { transform: translate(var(--tx,0), calc(var(--ty,0) - 4px)); }
-    }
-
-    .target-lock-animation .risk-x {
-        animation: rejectMark 5s ease-in-out var(--delay, 0s) infinite;
-    }
-    @keyframes rejectMark {
-        0%, 45% { opacity: 0; transform: scale(0.5); }
-        50% { opacity: 1; transform: scale(1.1); }
-        60% { opacity: 1; transform: scale(1); }
-        75%, 100% { opacity: 0; }
-    }
-
-    .target-lock-animation .target-reticle {
-        animation: reticleScan 5s ease-in-out infinite;
-    }
-    @keyframes reticleScan {
-        0%, 15% { opacity: 0; transform: translate(100px, 70px) scale(0.6); }
-        20% { opacity: 1; transform: translate(100px, 70px) scale(1); }
-        30% { opacity: 1; transform: translate(320px, 80px) scale(1); }
-        40% { opacity: 1; transform: translate(80px, 170px) scale(1); }
-        50% { opacity: 1; transform: translate(320px, 180px) scale(1); }
-        60% { opacity: 1; transform: translate(210px, 120px) scale(1.2); }
-        70% { opacity: 0; transform: translate(210px, 120px) scale(1.4); }
+    @keyframes repairedShow {
+        0%, 55% { opacity: 0; }
+        65%, 90% { opacity: 1; }
         100% { opacity: 0; }
     }
 
-    .target-lock-animation .target-brackets {
-        animation: bracketsLock 5s ease-in-out infinite;
+    .gene-deletion-animation .repair-check {
+        animation: repairCheck 4s ease-in-out infinite;
+        transform-origin: center;
     }
-    @keyframes bracketsLock {
-        0%, 55% { opacity: 0; transform: translate(210px, 120px) scale(1.5); }
-        65% { opacity: 1; transform: translate(210px, 120px) scale(1); }
-        85% { opacity: 1; transform: translate(210px, 120px) scale(1); }
-        100% { opacity: 0; transform: translate(210px, 120px) scale(1.2); }
-    }
-
-    .target-lock-animation .safe-burst {
-        animation: safeGlow 5s ease-in-out infinite;
-    }
-    @keyframes safeGlow {
-        0%, 55% { opacity: 0; transform: scale(0.5); }
-        65% { opacity: 1; transform: scale(1); }
-        85% { opacity: 1; transform: scale(1); }
-        100% { opacity: 0; transform: scale(1.3); }
-    }
-
-    .target-lock-animation .safe-node circle {
-        animation: safePulse 5s ease-in-out infinite;
-    }
-    @keyframes safePulse {
-        0%, 55% { stroke: #22c55e; fill: #dcfce7; }
-        65%, 85% { stroke: #16a34a; fill: #bbf7d0; filter: drop-shadow(0 0 8px #22c55e); }
-        100% { stroke: #22c55e; fill: #dcfce7; }
-    }
-
-    .target-lock-animation .safe-label {
-        animation: labelFade 5s ease-in-out infinite;
-    }
-    @keyframes labelFade {
-        0%, 60% { opacity: 0; transform: translateY(10px); }
-        70% { opacity: 1; transform: translateY(0); }
-        90% { opacity: 1; transform: translateY(0); }
-        100% { opacity: 0; transform: translateY(-10px); }
+    @keyframes repairCheck {
+        0%, 60% { opacity: 0; transform: translate(200px, 85px) scale(0.5); }
+        70% { opacity: 1; transform: translate(200px, 85px) scale(1.1); }
+        75%, 90% { opacity: 1; transform: translate(200px, 85px) scale(1); }
+        100% { opacity: 0; transform: translate(200px, 85px) scale(0.5); }
     }
 </style>
 {% endblock %}
