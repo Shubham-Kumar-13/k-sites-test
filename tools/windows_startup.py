@@ -40,9 +40,11 @@ def find_ngrok():
 
     home = Path.home()
     candidates = [
+        ROOT / "ngrok.exe",
         home / "ngrok" / "ngrok.exe",
         home / "AppData" / "Local" / "ngrok" / "ngrok.exe",
         home / "Downloads" / "ngrok" / "ngrok.exe",
+        home / "Downloads" / "ngrok.exe",
         home / "Desktop" / "ngrok.exe",
         Path("C:") / "Program Files" / "ngrok" / "ngrok.exe",
         Path("C:") / "ngrok" / "ngrok.exe",
