@@ -7,7 +7,6 @@ set KSITES_ACCESS_TOKEN=token
 set KSITES_ALLOWED_ORIGINS=https://shubham-kumar-13.github.io
 set KSITES_DATA_DIR=C:\Users\HP\Desktop\Work\K-Sites\webapp\results
 set KSITES_EVIDENCE_DIR=C:\Users\HP\Desktop\Work\K-Sites\webapp\results\evidence-data
-set K_SITES_NCBI_EMAIL=user@example.com
 set KSITES_DATABASE_URI=postgresql+psycopg2://ksites:ksites123@localhost:5432/ksites
 
 REM Change to the K-Sites directory

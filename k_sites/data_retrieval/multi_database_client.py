@@ -6,6 +6,7 @@ This is a CRITICAL component for non-pleiotropic gene identification.
 """
 
 import logging
+import os
 import time
 import xml.etree.ElementTree as ET
 from typing import Dict, List, Optional, Tuple
@@ -20,6 +21,11 @@ logger = logging.getLogger(__name__)
 
 # API Rate limiting
 RATE_LIMIT_DELAY = 0.34  # ~3 requests per second
+
+# NCBI E-Utilities credentials (required by NCBI, allows higher rate limit with API key)
+NCBI_EMAIL = os.getenv("NCBI_EMAIL") or os.getenv("K_SITES_NCBI_EMAIL") or ""
+NCBI_API_KEY = os.getenv("NCBI_API_KEY") or os.getenv("K_SITES_NCBI_API_KEY") or ""
+NCBI_DELAY = 0.11 if NCBI_API_KEY else 0.34  # 10/sec with key, 3/sec without
 
 
 class LookupFailure(Exception):
@@ -367,8 +373,12 @@ class MultiDatabaseClient:
             "retmode": "json",
             "retmax": 1,
         }
+        if NCBI_EMAIL:
+            params["email"] = NCBI_EMAIL
+        if NCBI_API_KEY:
+            params["api_key"] = NCBI_API_KEY
 
-        time.sleep(RATE_LIMIT_DELAY)
+        time.sleep(NCBI_DELAY)
         try:
             response = http_get(self.NCBI_ESEARCH_URL, params=params)
         except Exception as e:
@@ -388,8 +398,12 @@ class MultiDatabaseClient:
             "id": gene_id,
             "retmode": "xml",
         }
+        if NCBI_EMAIL:
+            params["email"] = NCBI_EMAIL
+        if NCBI_API_KEY:
+            params["api_key"] = NCBI_API_KEY
 
-        time.sleep(RATE_LIMIT_DELAY)
+        time.sleep(NCBI_DELAY)
         try:
             response = http_get(self.NCBI_EFETCH_URL, params=params)
         except Exception as e:
