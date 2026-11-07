@@ -25,11 +25,11 @@
     <div class="card">
         <div class="card-body text-center py-5">
             <div class="mb-4 precision-ko-animation" aria-label="Analysis in progress">
-                <svg viewBox="0 0 420 180" width="336" height="144" role="img" aria-label="Precision gene knockout search animation">
+                <svg viewBox="0 0 440 210" width="352" height="168" role="img" aria-label="Enhanced precision gene knockout search animation">
                     <defs>
                         <linearGradient id="scanBeam" x1="0%" y1="0%" x2="100%" y2="0%">
                             <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0" />
-                            <stop offset="50%" style="stop-color:#60a5fa;stop-opacity:0.35" />
+                            <stop offset="50%" style="stop-color:#60a5fa;stop-opacity:0.45" />
                             <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0" />
                         </linearGradient>
                         <linearGradient id="targetGlow" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -40,9 +40,17 @@
                             <stop offset="0%" style="stop-color:#94a3b8;stop-opacity:1" />
                             <stop offset="100%" style="stop-color:#64748b;stop-opacity:1" />
                         </linearGradient>
+                        <linearGradient id="hudGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#0ea5e9;stop-opacity:0.9" />
+                            <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0.9" />
+                        </linearGradient>
                         <radialGradient id="successPulse" cx="50%" cy="50%" r="50%">
-                            <stop offset="0%" style="stop-color:#22c55e;stop-opacity:0.6" />
+                            <stop offset="0%" style="stop-color:#22c55e;stop-opacity:0.7" />
                             <stop offset="100%" style="stop-color:#22c55e;stop-opacity:0" />
+                        </radialGradient>
+                        <radialGradient id="sparkGrad" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:0" />
                         </radialGradient>
                         <filter id="softGlow">
                             <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
@@ -51,72 +59,130 @@
                                 <feMergeNode in="SourceGraphic"/>
                             </feMerge>
                         </filter>
+                        <filter id="strongGlow">
+                            <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
                     </defs>
+
+                    <!-- HUD outer frame -->
+                    <g class="hud-frame" stroke="#0ea5e9" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.4">
+                        <path d="M20,20 L60,20 L60,35"/>
+                        <path d="M420,20 L380,20 L380,35"/>
+                        <path d="M20,190 L60,190 L60,175"/>
+                        <path d="M420,190 L380,190 L380,175"/>
+                    </g>
 
                     <!-- Background genome track -->
                     <g class="genome-track">
-                        <rect x="10" y="120" width="400" height="12" rx="6" fill="#e2e8f0"/>
+                        <rect x="20" y="145" width="400" height="14" rx="7" fill="#e2e8f0"/>
                         <g fill="#cbd5e1">
-                            <circle cx="45" cy="126" r="4"/>
-                            <circle cx="95" cy="126" r="4"/>
-                            <circle cx="145" cy="126" r="4"/>
-                            <circle cx="210" cy="126" r="6" fill="#94a3b8"/>
-                            <circle cx="275" cy="126" r="4"/>
-                            <circle cx="325" cy="126" r="4"/>
-                            <circle cx="375" cy="126" r="4"/>
+                            <circle class="gene-candidate" cx="55" cy="152" r="5"/>
+                            <circle class="gene-candidate" cx="110" cy="152" r="5"/>
+                            <circle class="gene-candidate" cx="165" cy="152" r="5"/>
+                            <circle class="gene-candidate target" cx="220" cy="152" r="7" fill="#94a3b8"/>
+                            <circle class="gene-candidate" cx="290" cy="152" r="5"/>
+                            <circle class="gene-candidate" cx="345" cy="152" r="5"/>
+                            <circle class="gene-candidate" cx="395" cy="152" r="5"/>
                         </g>
-                        <text x="210" y="150" font-size="10" font-weight="600" fill="#64748b" text-anchor="middle">GENOME SEARCH</text>
+                        <text x="220" y="178" font-size="10" font-weight="600" fill="#64748b" text-anchor="middle">GENOME SEARCH</text>
                     </g>
 
                     <!-- Scanning beam -->
-                    <rect class="scan-beam" x="0" y="100" width="80" height="50" fill="url(#scanBeam)"/>
+                    <rect class="scan-beam" x="0" y="125" width="90" height="55" fill="url(#scanBeam)"/>
+
+                    <!-- Scanning magnifier lens -->
+                    <g class="scan-lens">
+                        <circle cx="45" cy="152" r="18" fill="none" stroke="#3b82f6" stroke-width="2.5" opacity="0.7"/>
+                        <line x1="58" y1="165" x2="70" y2="177" stroke="#3b82f6" stroke-width="3" stroke-linecap="round"/>
+                        <circle cx="45" cy="152" r="14" fill="rgba(59,130,246,0.08)"/>
+                    </g>
+
+                    <!-- Rejected off-target genes with X marks -->
+                    <g class="reject-mark reject-1" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round">
+                        <line x1="50" y1="147" x2="60" y2="157"/>
+                        <line x1="60" y1="147" x2="50" y2="157"/>
+                    </g>
+                    <g class="reject-mark reject-2" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round">
+                        <line x1="105" y1="147" x2="115" y2="157"/>
+                        <line x1="115" y1="147" x2="105" y2="157"/>
+                    </g>
+                    <g class="reject-mark reject-3" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round">
+                        <line x1="285" y1="147" x2="295" y2="157"/>
+                        <line x1="295" y1="147" x2="285" y2="157"/>
+                    </g>
 
                     <!-- Target gene -->
                     <g class="target-gene" filter="url(#softGlow)">
-                        <rect x="185" y="108" width="50" height="36" rx="8" fill="url(#targetGlow)"/>
-                        <text x="210" y="130" font-size="11" font-weight="800" fill="white" text-anchor="middle">GENE</text>
+                        <rect x="195" y="130" width="50" height="40" rx="8" fill="url(#targetGlow)"/>
+                        <text x="220" y="155" font-size="11" font-weight="800" fill="white" text-anchor="middle">GENE</text>
                     </g>
+
+                    <!-- Radar HUD ring around target -->
+                    <circle class="radar-ring" cx="220" cy="150" r="55" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-dasharray="8 6" opacity="0"/>
 
                     <!-- Target lock brackets -->
                     <g class="target-lock" stroke="#ef4444" stroke-width="3" fill="none" stroke-linecap="round">
-                        <path d="M175,100 L175,90 L185,90"/>
-                        <path d="M245,100 L245,90 L235,90"/>
-                        <path d="M175,152 L175,162 L185,162"/>
-                        <path d="M245,152 L245,162 L235,162"/>
+                        <path d="M185,120 L185,108 L197,108"/>
+                        <path d="M255,120 L255,108 L243,108"/>
+                        <path d="M185,180 L185,192 L197,192"/>
+                        <path d="M255,180 L255,192 L243,192"/>
+                    </g>
+
+                    <!-- SAFE TARGET banner -->
+                    <g class="safe-banner" opacity="0">
+                        <rect x="160" y="82" width="120" height="22" rx="4" fill="#0ea5e9" filter="url(#softGlow)"/>
+                        <text x="220" y="97" font-size="10" font-weight="800" fill="white" text-anchor="middle">SAFE TARGET LOCKED</text>
                     </g>
 
                     <!-- CRISPR scissor complex -->
-                    <g class="crispr-complex" transform="translate(210, 45)">
+                    <g class="crispr-complex" transform="translate(220, 55)">
                         <!-- guide RNA -->
-                        <path d="M-18,0 Q-18,-20 0,-20 Q18,-20 18,0 L18,35 Q18,45 10,45 L-10,45 Q-18,45 -18,35 Z" fill="none" stroke="#f59e0b" stroke-width="3"/>
-                        <line x1="-8" y1="-8" x2="-8" y2="18" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>
-                        <line x1="0" y1="-8" x2="0" y2="18" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>
-                        <line x1="8" y1="-8" x2="8" y2="18" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>
+                        <path d="M-20,0 Q-20,-22 0,-22 Q20,-22 20,0 L20,38 Q20,48 11,48 L-11,48 Q-20,48 -20,38 Z" fill="none" stroke="#f59e0b" stroke-width="3"/>
+                        <line x1="-9" y1="-8" x2="-9" y2="20" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>
+                        <line x1="0" y1="-8" x2="0" y2="20" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>
+                        <line x1="9" y1="-8" x2="9" y2="20" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>
                         <!-- scissors -->
                         <g class="scissor-left">
-                            <path d="M-22,35 L-6,55 L-22,75" fill="none" stroke="url(#scissorGrad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-                            <circle cx="-22" cy="75" r="5" fill="#475569"/>
+                            <path d="M-24,38 L-7,58 L-24,80" fill="none" stroke="url(#scissorGrad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="-24" cy="80" r="5" fill="#475569"/>
                         </g>
                         <g class="scissor-right">
-                            <path d="M22,35 L6,55 L22,75" fill="none" stroke="url(#scissorGrad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-                            <circle cx="22" cy="75" r="5" fill="#475569"/>
+                            <path d="M24,38 L7,58 L24,80" fill="none" stroke="url(#scissorGrad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="24" cy="80" r="5" fill="#475569"/>
                         </g>
+                    </g>
+
+                    <!-- Cut sparks -->
+                    <g class="cut-sparks">
+                        <circle cx="205" cy="150" r="3" fill="url(#sparkGrad)"/>
+                        <circle cx="235" cy="150" r="3" fill="url(#sparkGrad)"/>
+                        <circle cx="220" cy="140" r="2.5" fill="url(#sparkGrad)"/>
+                        <circle cx="220" cy="160" r="2.5" fill="url(#sparkGrad)"/>
+                        <circle cx="210" cy="145" r="2" fill="#fbbf24"/>
+                        <circle cx="230" cy="155" r="2" fill="#fbbf24"/>
                     </g>
 
                     <!-- Cut gene fragment falling away -->
                     <g class="gene-fragment" filter="url(#softGlow)">
-                        <rect x="190" y="108" width="40" height="36" rx="6" fill="#ef4444"/>
-                        <text x="210" y="130" font-size="9" font-weight="700" fill="white" text-anchor="middle">GENE</text>
+                        <rect x="200" y="130" width="40" height="40" rx="6" fill="#ef4444"/>
+                        <text x="220" y="155" font-size="9" font-weight="700" fill="white" text-anchor="middle">GENE</text>
                     </g>
 
                     <!-- Success pulse ring -->
-                    <circle class="success-pulse" cx="210" cy="126" r="10" fill="url(#successPulse)" opacity="0"/>
+                    <circle class="success-pulse" cx="220" cy="150" r="10" fill="url(#successPulse)" opacity="0"/>
 
                     <!-- Success seal -->
-                    <g class="success-seal" transform="translate(210,126)" opacity="0">
-                        <circle cx="0" cy="0" r="24" fill="#22c55e" filter="url(#softGlow)"/>
-                        <path d="M-10,2 L-3,9 L10,-8" fill="none" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <g class="success-seal" transform="translate(220,150)" opacity="0">
+                        <circle cx="0" cy="0" r="26" fill="#22c55e" filter="url(#strongGlow)"/>
+                        <path d="M-11,2 L-3,10 L11,-9" fill="none" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
                     </g>
+
+                    <!-- Status text line -->
+                    <text class="status-text" x="220" y="32" font-size="10" font-weight="700" fill="#0ea5e9" text-anchor="middle" opacity="0">PRECISION KNOCKOUT VERIFIED</text>
                 </svg>
             </div>
             
@@ -421,9 +487,17 @@
         color: #94a3b8 !important;
     }
 
-    /* Precision knockout search animation */
+    /* Enhanced precision knockout search animation */
     .precision-ko-animation svg {
         overflow: visible;
+    }
+
+    .precision-ko-animation .hud-frame {
+        animation: hudPulse 4.5s ease-in-out infinite;
+    }
+    @keyframes hudPulse {
+        0%, 100% { opacity: 0.25; }
+        50% { opacity: 0.55; }
     }
 
     .precision-ko-animation .genome-track {
@@ -434,14 +508,73 @@
         50% { opacity: 1; }
     }
 
+    .precision-ko-animation .gene-candidate:nth-of-type(1) { animation: candidateReject1 4.5s ease-in-out infinite; }
+    .precision-ko-animation .gene-candidate:nth-of-type(2) { animation: candidateReject2 4.5s ease-in-out infinite; }
+    .precision-ko-animation .gene-candidate:nth-of-type(4) { animation: candidateAccept 4.5s ease-in-out infinite; }
+    .precision-ko-animation .gene-candidate:nth-of-type(5) { animation: candidateReject3 4.5s ease-in-out infinite; }
+    .precision-ko-animation .gene-candidate:nth-of-type(6),
+    .precision-ko-animation .gene-candidate:nth-of-type(7) { animation: candidateDim 4.5s ease-in-out infinite; }
+    @keyframes candidateReject1 {
+        0%, 8% { fill: #cbd5e1; }
+        15% { fill: #ef4444; transform: scale(1.3); }
+        22%, 100% { fill: #94a3b8; opacity: 0.35; }
+    }
+    @keyframes candidateReject2 {
+        0%, 15% { fill: #cbd5e1; }
+        22% { fill: #ef4444; transform: scale(1.3); }
+        29%, 100% { fill: #94a3b8; opacity: 0.35; }
+    }
+    @keyframes candidateAccept {
+        0%, 30% { fill: #94a3b8; }
+        40% { fill: #ef4444; filter: drop-shadow(0 0 6px #ef4444); }
+        55%, 100% { fill: #ef4444; }
+    }
+    @keyframes candidateReject3 {
+        0%, 42% { fill: #cbd5e1; }
+        48% { fill: #ef4444; transform: scale(1.3); }
+        55%, 100% { fill: #94a3b8; opacity: 0.35; }
+    }
+    @keyframes candidateDim {
+        0%, 100% { opacity: 0.6; }
+    }
+
     .precision-ko-animation .scan-beam {
         animation: scanMove 4.5s ease-in-out infinite;
     }
     @keyframes scanMove {
-        0% { transform: translateX(-60px); opacity: 0; }
+        0% { transform: translateX(-70px); opacity: 0; }
         10% { opacity: 1; }
-        40% { transform: translateX(340px); opacity: 1; }
-        50%, 100% { transform: translateX(340px); opacity: 0; }
+        45% { transform: translateX(360px); opacity: 1; }
+        55%, 100% { transform: translateX(360px); opacity: 0; }
+    }
+
+    .precision-ko-animation .scan-lens {
+        animation: lensMove 4.5s ease-in-out infinite;
+    }
+    @keyframes lensMove {
+        0% { transform: translateX(-70px); opacity: 0; }
+        10% { opacity: 1; }
+        45% { transform: translateX(360px); opacity: 1; }
+        55%, 100% { transform: translateX(360px); opacity: 0; }
+    }
+
+    .precision-ko-animation .reject-1 { animation: rejectShow1 4.5s ease-in-out infinite; }
+    .precision-ko-animation .reject-2 { animation: rejectShow2 4.5s ease-in-out infinite; }
+    .precision-ko-animation .reject-3 { animation: rejectShow3 4.5s ease-in-out infinite; }
+    @keyframes rejectShow1 {
+        0%, 12% { opacity: 0; transform: scale(0.5); }
+        18% { opacity: 1; transform: scale(1.1); }
+        26%, 100% { opacity: 0; transform: scale(0.8); }
+    }
+    @keyframes rejectShow2 {
+        0%, 19% { opacity: 0; transform: scale(0.5); }
+        25% { opacity: 1; transform: scale(1.1); }
+        33%, 100% { opacity: 0; transform: scale(0.8); }
+    }
+    @keyframes rejectShow3 {
+        0%, 45% { opacity: 0; transform: scale(0.5); }
+        51% { opacity: 1; transform: scale(1.1); }
+        59%, 100% { opacity: 0; transform: scale(0.8); }
     }
 
     .precision-ko-animation .target-gene {
@@ -449,10 +582,21 @@
         transform-origin: center;
     }
     @keyframes targetReveal {
-        0%, 30% { opacity: 0.25; transform: scale(0.9); }
-        40% { opacity: 1; transform: scale(1.05); filter: drop-shadow(0 0 8px #ef4444); }
+        0%, 30% { opacity: 0.2; transform: scale(0.85); }
+        40% { opacity: 1; transform: scale(1.08); filter: drop-shadow(0 0 10px #ef4444); }
         55% { opacity: 1; transform: scale(1); }
-        65%, 100% { opacity: 0; transform: scale(0.8) translateY(30px); }
+        65%, 100% { opacity: 0; transform: scale(0.75) translateY(35px); }
+    }
+
+    .precision-ko-animation .radar-ring {
+        animation: radarSweep 4.5s ease-in-out infinite;
+        transform-origin: center;
+    }
+    @keyframes radarSweep {
+        0%, 35% { opacity: 0; transform: scale(0.6) rotate(0deg); }
+        42% { opacity: 0.6; }
+        55% { opacity: 0.3; transform: scale(1) rotate(180deg); }
+        70%, 100% { opacity: 0; transform: scale(0.8) rotate(360deg); }
     }
 
     .precision-ko-animation .target-lock {
@@ -460,10 +604,21 @@
         transform-origin: center;
     }
     @keyframes lockOn {
-        0%, 35% { opacity: 0; transform: scale(1.3); }
+        0%, 35% { opacity: 0; transform: scale(1.35); }
         42% { opacity: 1; transform: scale(1); }
         60% { opacity: 1; }
         70%, 100% { opacity: 0; transform: scale(0.9); }
+    }
+
+    .precision-ko-animation .safe-banner {
+        animation: bannerPop 4.5s ease-in-out infinite;
+        transform-origin: center;
+    }
+    @keyframes bannerPop {
+        0%, 38% { opacity: 0; transform: translateY(10px) scale(0.8); }
+        45% { opacity: 1; transform: translateY(0) scale(1.05); }
+        52%, 68% { opacity: 1; transform: translateY(0) scale(1); }
+        78%, 100% { opacity: 0; transform: translateY(-8px) scale(0.9); }
     }
 
     .precision-ko-animation .crispr-complex {
@@ -471,33 +626,56 @@
         transform-origin: center;
     }
     @keyframes crisprApproach {
-        0%, 40% { transform: translate(210px, -40px) scale(0.7); opacity: 0; }
-        48% { transform: translate(210px, 45px) scale(1); opacity: 1; }
-        62% { transform: translate(210px, 45px) scale(1); opacity: 1; }
-        72%, 100% { transform: translate(210px, -40px) scale(0.7); opacity: 0; }
+        0%, 40% { transform: translate(220px, -50px) scale(0.7); opacity: 0; }
+        48% { transform: translate(220px, 55px) scale(1); opacity: 1; }
+        62% { transform: translate(220px, 55px) scale(1); opacity: 1; }
+        72%, 100% { transform: translate(220px, -50px) scale(0.7); opacity: 0; }
     }
 
     .precision-ko-animation .scissor-left {
         animation: snipLeft 4.5s ease-in-out infinite;
-        transform-origin: 0 55px;
+        transform-origin: 0 58px;
     }
     @keyframes snipLeft {
         0%, 48% { transform: rotate(0deg); }
-        55% { transform: rotate(-22deg); }
+        55% { transform: rotate(-24deg); }
         62% { transform: rotate(0deg); }
         100% { transform: rotate(0deg); }
     }
 
     .precision-ko-animation .scissor-right {
         animation: snipRight 4.5s ease-in-out infinite;
-        transform-origin: 0 55px;
+        transform-origin: 0 58px;
     }
     @keyframes snipRight {
         0%, 48% { transform: rotate(0deg); }
-        55% { transform: rotate(22deg); }
+        55% { transform: rotate(24deg); }
         62% { transform: rotate(0deg); }
         100% { transform: rotate(0deg); }
     }
+
+    .precision-ko-animation .cut-sparks circle {
+        animation: sparkBurst 4.5s ease-out infinite;
+        transform-origin: center;
+    }
+    .precision-ko-animation .cut-sparks circle:nth-child(1) { animation-delay: 0s; }
+    .precision-ko-animation .cut-sparks circle:nth-child(2) { animation-delay: 0.05s; }
+    .precision-ko-animation .cut-sparks circle:nth-child(3) { animation-delay: 0.1s; }
+    .precision-ko-animation .cut-sparks circle:nth-child(4) { animation-delay: 0.15s; }
+    .precision-ko-animation .cut-sparks circle:nth-child(5) { animation-delay: 0.08s; }
+    .precision-ko-animation .cut-sparks circle:nth-child(6) { animation-delay: 0.12s; }
+    @keyframes sparkBurst {
+        0%, 54% { opacity: 0; transform: translate(0,0) scale(0.2); }
+        57% { opacity: 1; }
+        70% { opacity: 0; transform: translate(var(--tx, 20px), var(--ty, -20px)) scale(1.2); }
+        100% { opacity: 0; }
+    }
+    .precision-ko-animation .cut-sparks circle:nth-child(1) { --tx: -28px; --ty: -8px; }
+    .precision-ko-animation .cut-sparks circle:nth-child(2) { --tx: 28px; --ty: -8px; }
+    .precision-ko-animation .cut-sparks circle:nth-child(3) { --tx: -6px; --ty: -32px; }
+    .precision-ko-animation .cut-sparks circle:nth-child(4) { --tx: 6px; --ty: 28px; }
+    .precision-ko-animation .cut-sparks circle:nth-child(5) { --tx: -20px; --ty: 18px; }
+    .precision-ko-animation .cut-sparks circle:nth-child(6) { --tx: 20px; --ty: 18px; }
 
     .precision-ko-animation .gene-fragment {
         animation: fragmentFall 4.5s ease-in-out infinite;
@@ -505,7 +683,7 @@
     @keyframes fragmentFall {
         0%, 55% { opacity: 0; transform: translateY(0) rotate(0deg); }
         62% { opacity: 1; transform: translateY(0) rotate(0deg); }
-        80% { opacity: 0; transform: translateY(55px) rotate(25deg); }
+        82% { opacity: 0; transform: translateY(65px) rotate(30deg); }
         100% { opacity: 0; }
     }
 
@@ -516,7 +694,7 @@
     @keyframes pulseExpand {
         0%, 62% { opacity: 0; transform: scale(0.2); }
         65% { opacity: 0.9; }
-        85% { opacity: 0; transform: scale(4.5); }
+        88% { opacity: 0; transform: scale(5); }
         100% { opacity: 0; }
     }
 
@@ -525,10 +703,20 @@
         transform-origin: center;
     }
     @keyframes sealShow {
-        0%, 68% { opacity: 0; transform: translate(210px, 126px) scale(0.3); }
-        76% { opacity: 1; transform: translate(210px, 126px) scale(1.15); }
-        82%, 95% { opacity: 1; transform: translate(210px, 126px) scale(1); }
-        100% { opacity: 0; transform: translate(210px, 126px) scale(0.8); }
+        0%, 68% { opacity: 0; transform: translate(220px, 150px) scale(0.3); }
+        76% { opacity: 1; transform: translate(220px, 150px) scale(1.15); }
+        82%, 95% { opacity: 1; transform: translate(220px, 150px) scale(1); }
+        100% { opacity: 0; transform: translate(220px, 150px) scale(0.8); }
+    }
+
+    .precision-ko-animation .status-text {
+        animation: statusReveal 4.5s ease-in-out infinite;
+    }
+    @keyframes statusReveal {
+        0%, 70% { opacity: 0; letter-spacing: 0; }
+        78% { opacity: 1; letter-spacing: 1px; }
+        90% { opacity: 1; letter-spacing: 1px; }
+        98%, 100% { opacity: 0; letter-spacing: 0; }
     }
 </style>
 {% endblock %}
