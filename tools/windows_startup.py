@@ -31,6 +31,70 @@ WATCHDOG_LOG = LOG_DIR / "watchdog.log"
 NGROK_DOMAIN = os.environ.get("NGROK_DOMAIN", "deuce-scouting-outbid.ngrok-free.dev")
 NGROK_PORT = int(os.environ.get("NGROK_PORT", "5000"))
 
+PID_FILE = LOG_DIR / "watchdog.pid"
+
+
+def _is_process_alive(pid):
+    """Return True if a process with pid is still running (Windows and Unix)."""
+    if pid is None:
+        return False
+    try:
+        import psutil
+        return psutil.pid_exists(pid)
+    except Exception:
+        pass
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            kernel = ctypes.windll.kernel32
+            handle = kernel.OpenProcess(1, False, pid)  # PROCESS_TERMINATE
+            if handle:
+                kernel.CloseHandle(handle)
+                return True
+            return False
+        except Exception:
+            return False
+    try:
+        os.kill(pid, 0)
+        return True
+    except (OSError, ProcessLookupError):
+        return False
+
+
+def _another_instance_running():
+    """Check whether another watchdog is already running and return its PID if so."""
+    if not PID_FILE.exists():
+        return None
+    try:
+        other_pid = int(PID_FILE.read_text(encoding="utf-8").strip() or 0)
+    except Exception:
+        return None
+    if other_pid == os.getpid():
+        return None
+    if other_pid and _is_process_alive(other_pid):
+        return other_pid
+    # Stale lock file
+    try:
+        PID_FILE.unlink()
+    except Exception:
+        pass
+    return None
+
+
+def _write_lock():
+    try:
+        PID_FILE.write_text(str(os.getpid()), encoding="utf-8")
+    except Exception as e:
+        log(f"WARNING: could not write PID file: {e}")
+
+
+def _remove_lock():
+    try:
+        if PID_FILE.exists():
+            PID_FILE.unlink()
+    except Exception:
+        pass
+
 
 def find_ngrok():
     """Find ngrok.exe in PATH or common Windows locations."""
@@ -119,10 +183,18 @@ def terminate(proc):
 def main():
     log("K-Sites startup watchdog starting")
 
+    other_pid = _another_instance_running()
+    if other_pid:
+        log(f"ERROR: another watchdog is already running (PID {other_pid}). Exiting.")
+        sys.exit(0)
+
+    _write_lock()
+
     ngrok_path = find_ngrok()
     if not ngrok_path:
         log("ERROR: ngrok.exe not found.")
         log("Please install ngrok and make sure it is in PATH, or set NGROK_PATH environment variable.")
+        _remove_lock()
         sys.exit(1)
     log(f"Found ngrok at {ngrok_path}")
 
@@ -181,6 +253,7 @@ def main():
     finally:
         terminate(backend)
         terminate(ngrok)
+        _remove_lock()
         log("Watchdog exited")
 
 
