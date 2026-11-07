@@ -24,171 +24,122 @@
 <div id="loadingState" class="py-4" style="display: {{ 'block' if job.status in ['pending', 'running'] else 'none' }};">
     <div class="card">
         <div class="card-body text-center py-5">
-            <div class="mb-4 ko-search-animation" aria-label="Analysis in progress">
-                <svg viewBox="0 0 480 220" width="384" height="176" role="img" aria-label="DNA double helix search and gene knockout animation">
+            <div class="mb-4 gk-loader" aria-label="Analysis in progress">
+                <svg xmlns="http://www.w3.org/2000/svg" class="gk" viewBox="0 0 360 180" width="360" height="180" role="img" aria-labelledby="gk-t gk-d">
+                    <title id="gk-t">Analysis in progress</title>
+                    <desc id="gk-d">Animation: a magnifying glass scans a DNA strand, finds a gene, and molecular scissors cut it out before the search continues.</desc>
+                    <style>
+                        .gk *{box-sizing:border-box}
+                        .gk{overflow:visible}
+                        .gk-scroll{transform:translateX(-200px)}
+                        .gk-lens{transform:translate(180px,88px)}
+                        .gk-lensc{transform:translate(-180px,-88px)}
+                        .gk-ringA,.gk-hlA,.gk-badge,.gk-pill,.gk-sci,.gk-b1,.gk-b2,.gk-pulse{opacity:0}
+                        .gk-ringR,.gk-hlR,.gk-red,.gk-gene{opacity:1}
+                        .gk-pulse{fill:none} .gk-hlA,.gk-hlR{fill:none}
+                        .gk-p1{animation:gk-p1 12.0s linear infinite} .gk-p2{animation:gk-p2 12.0s linear infinite}
+                        .gk-scroll{animation:gk-scroll 12.0s linear infinite}
+                        .gk-lens{animation:gk-lens 12.0s linear infinite}
+                        .gk-lensc{animation:gk-lensc 12.0s linear infinite}
+                        .gk-ringA{animation:gk-ringA 12.0s linear infinite} .gk-ringR{animation:gk-ringR 12.0s linear infinite}
+                        .gk-hlA{animation:gk-hlA 12.0s linear infinite} .gk-hlR{animation:gk-hlR 12.0s linear infinite}
+                        .gk-red{animation:gk-red 12.0s linear infinite}
+                        .gk-gene{animation:gk-gene 12.0s linear infinite}
+                        .gk-badge{animation:gk-badge 12.0s linear infinite}
+                        .gk-pill{animation:gk-pill 12.0s linear infinite}
+                        .gk-sci{animation:gk-sci 12.0s linear infinite}
+                        .gk-bA{animation:gk-bA 12.0s linear infinite} .gk-bB{animation:gk-bB 12.0s linear infinite}
+                        .gk-b1{animation:gk-b1 12.0s linear infinite} .gk-b2{animation:gk-b2 12.0s linear infinite}
+                        .gk-t{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+                        @media (prefers-reduced-motion:reduce){
+                          .gk *{animation:none!important}
+                          .gk .gk-red{animation:gk-soft 2.6s ease-in-out infinite!important}
+                        }
+                        @keyframes gk-soft{0%,100%{opacity:.7}50%{opacity:1}}
+                        @keyframes gk-scroll{0.0000%{transform:translateX(0px);animation-timing-function:cubic-bezier(.3333,.6667,.6667,1)}31.6667%{transform:translateX(-200px)}68.3333%{transform:translateX(-200px);animation-timing-function:cubic-bezier(.3333,0,.6667,.3333)}100.0000%{transform:translateX(-400px)}}
+                        @keyframes gk-lens{0.0000%{transform:translate(123.93px,86.23px)}0.4167%{transform:translate(121.15px,86.29px)}0.8333%{transform:translate(118.46px,86.38px)}1.2500%{transform:translate(115.89px,86.49px)}1.6667%{transform:translate(113.49px,86.63px)}2.0833%{transform:translate(111.28px,86.79px)}2.5000%{transform:translate(109.29px,86.96px)}2.9167%{transform:translate(107.52px,87.15px)}3.3333%{transform:translate(105.99px,87.35px)}3.7500%{transform:translate(104.71px,87.56px)}4.1667%{transform:translate(103.68px,87.77px)}4.5833%{transform:translate(102.90px,87.99px)}5.0000%{transform:translate(102.39px,88.21px)}5.4167%{transform:translate(102.13px,88.43px)}5.8333%{transform:translate(102.12px,88.64px)}6.2500%{transform:translate(102.37px,88.85px)}6.6667%{transform:translate(102.86px,89.04px)}7.0833%{transform:translate(103.61px,89.23px)}7.5000%{transform:translate(104.59px,89.40px)}7.9167%{transform:translate(105.81px,89.55px)}8.3333%{transform:translate(107.25px,89.69px)}8.7500%{transform:translate(108.92px,89.81px)}9.1667%{transform:translate(110.81px,89.91px)}9.5833%{transform:translate(112.90px,89.99px)}10.0000%{transform:translate(115.20px,90.04px)}10.4167%{transform:translate(117.69px,90.08px)}10.8333%{transform:translate(120.36px,90.09px)}11.2500%{transform:translate(123.21px,90.08px)}11.6667%{transform:translate(126.23px,90.04px)}12.0833%{transform:translate(129.40px,89.99px)}12.5000%{transform:translate(132.72px,89.91px)}12.9167%{transform:translate(136.18px,89.81px)}13.3333%{transform:translate(139.76px,89.69px)}13.7500%{transform:translate(143.46px,89.55px)}14.1667%{transform:translate(147.27px,89.39px)}14.5833%{transform:translate(151.17px,89.22px)}15.0000%{transform:translate(155.15px,89.04px)}15.4167%{transform:translate(159.21px,88.84px)}15.8333%{transform:translate(163.32px,88.64px)}16.2500%{transform:translate(167.49px,88.42px)}16.6667%{transform:translate(171.69px,88.21px)}17.0833%{transform:translate(175.91px,87.99px)}17.5000%{transform:translate(180.15px,87.77px)}17.9167%{transform:translate(184.39px,87.55px)}18.3333%{transform:translate(188.62px,87.34px)}18.7500%{transform:translate(192.83px,87.14px)}19.1667%{transform:translate(197.00px,86.94px)}19.5833%{transform:translate(201.13px,86.76px)}20.0000%{transform:translate(205.20px,86.59px)}20.4167%{transform:translate(209.20px,86.43px)}20.8333%{transform:translate(213.12px,86.30px)}21.2500%{transform:translate(216.96px,86.18px)}21.6667%{transform:translate(220.69px,86.08px)}22.0833%{transform:translate(224.31px,86.00px)}22.5000%{transform:translate(227.81px,85.95px)}22.9167%{transform:translate(231.18px,85.91px)}23.3333%{transform:translate(234.41px,85.90px)}23.7500%{transform:translate(237.49px,85.92px)}24.1667%{transform:translate(240.41px,85.95px)}24.5833%{transform:translate(243.17px,86.01px)}25.0000%{transform:translate(245.72px,86.09px)}25.4167%{transform:translate(245.50px,86.22px)}25.8333%{transform:translate(242.28px,86.39px)}26.2500%{transform:translate(237.43px,86.58px)}26.6667%{transform:translate(231.83px,86.76px)}27.0833%{transform:translate(226.03px,86.94px)}27.5000%{transform:translate(220.39px,87.10px)}27.9167%{transform:translate(215.10px,87.24px)}28.3333%{transform:translate(210.27px,87.36px)}28.7500%{transform:translate(205.93px,87.47px)}29.1667%{transform:translate(202.09px,87.56px)}29.5833%{transform:translate(198.71px,87.64px)}30.0000%{transform:translate(195.78px,87.70px)}30.4167%{transform:translate(193.24px,87.76px)}30.8333%{transform:translate(191.06px,87.80px)}31.2500%{transform:translate(189.19px,87.84px)}31.6667%{transform:translate(187.61px,87.87px)}32.0833%{transform:translate(185.98px,87.90px)}32.5000%{transform:translate(184.46px,87.92px)}32.9167%{transform:translate(183.22px,87.95px)}33.3333%{transform:translate(182.27px,87.96px)}33.7500%{transform:translate(181.58px,87.97px)}34.1667%{transform:translate(181.08px,87.98px)}34.5833%{transform:translate(180.74px,87.99px)}35.0000%{transform:translate(180.50px,87.99px)}35.4167%{transform:translate(180.34px,87.99px)}35.8333%{transform:translate(180.22px,88.00px)}36.2500%{transform:translate(180.15px,88.00px)}36.6667%{transform:translate(180.10px,88.00px)}37.0833%{transform:translate(180.07px,88.00px)}37.5000%{transform:translate(180.04px,88.00px)}37.9167%{transform:translate(180.03px,88.00px)}38.3333%{transform:translate(180.02px,88.00px)}38.7500%{transform:translate(180.01px,88.00px)}39.1667%{transform:translate(180.01px,88.00px)}39.5833%{transform:translate(180.01px,88.00px)}40.0000%{transform:translate(180.00px,88.00px)}40.4167%{transform:translate(180.00px,88.00px)}40.8333%{transform:translate(180.00px,88.00px)}41.2500%{transform:translate(180.00px,88.00px)}41.6667%{transform:translate(180.00px,88.00px)}42.0833%{transform:translate(180.00px,88.00px)}42.5000%{transform:translate(180.00px,88.00px)}42.9167%{transform:translate(180.00px,88.00px)}43.3333%{transform:translate(180.00px,88.00px)}43.7500%{transform:translate(180.00px,88.00px)}44.1667%{transform:translate(180.00px,88.00px)}44.5833%{transform:translate(180.00px,88.00px)}45.0000%{transform:translate(180.00px,88.00px)}45.4167%{transform:translate(180.00px,88.00px)}45.8333%{transform:translate(180.00px,88.00px)}46.2500%{transform:translate(180.00px,88.00px)}46.6667%{transform:translate(180.00px,88.00px)}47.0833%{transform:translate(180.00px,88.00px)}47.5000%{transform:translate(180.00px,88.00px)}47.9167%{transform:translate(180.00px,88.00px)}48.3333%{transform:translate(179.96px,88.00px)}48.7500%{transform:translate(177.27px,88.10px)}49.1667%{transform:translate(171.74px,88.30px)}49.5833%{transform:translate(164.77px,88.56px)}50.0000%{transform:translate(157.29px,88.84px)}50.4167%{transform:translate(149.87px,89.11px)}50.8333%{transform:translate(142.86px,89.37px)}51.2500%{transform:translate(136.44px,89.60px)}51.6667%{transform:translate(130.70px,89.81px)}52.0833%{transform:translate(125.64px,90.00px)}52.5000%{transform:translate(121.26px,90.16px)}52.9167%{transform:translate(117.49px,90.30px)}53.3333%{transform:translate(114.28px,90.42px)}53.7500%{transform:translate(111.56px,90.52px)}54.1667%{transform:translate(109.28px,90.60px)}54.5833%{transform:translate(107.37px,90.67px)}55.0000%{transform:translate(105.77px,90.73px)}55.4167%{transform:translate(104.45px,90.78px)}55.8333%{transform:translate(103.36px,90.82px)}56.2500%{transform:translate(102.45px,90.85px)}56.6667%{transform:translate(101.71px,90.88px)}57.0833%{transform:translate(101.10px,90.90px)}57.5000%{transform:translate(100.60px,90.92px)}57.9167%{transform:translate(100.19px,90.93px)}58.3333%{transform:translate(99.85px,90.95px)}58.7500%{transform:translate(99.58px,90.96px)}59.1667%{transform:translate(99.36px,90.96px)}59.5833%{transform:translate(99.18px,90.97px)}60.0000%{transform:translate(99.03px,90.98px)}60.4167%{transform:translate(98.91px,90.98px)}60.8333%{transform:translate(98.81px,90.98px)}61.2500%{transform:translate(98.73px,90.99px)}61.6667%{transform:translate(98.67px,90.99px)}62.0833%{transform:translate(98.62px,90.99px)}62.5000%{transform:translate(98.58px,90.99px)}62.9167%{transform:translate(98.54px,90.99px)}63.3333%{transform:translate(98.51px,91.00px)}63.7500%{transform:translate(98.49px,91.00px)}64.1667%{transform:translate(98.47px,91.00px)}64.5833%{transform:translate(98.46px,91.00px)}65.0000%{transform:translate(98.88px,90.98px)}65.4167%{transform:translate(100.79px,90.90px)}65.8333%{transform:translate(103.93px,90.76px)}66.2500%{transform:translate(108.04px,90.58px)}66.6667%{transform:translate(112.91px,90.36px)}67.0833%{transform:translate(118.33px,90.12px)}67.5000%{transform:translate(124.17px,89.87px)}67.9167%{transform:translate(130.30px,89.60px)}68.3333%{transform:translate(136.61px,89.32px)}68.7500%{transform:translate(143.02px,89.05px)}69.1667%{transform:translate(149.47px,88.77px)}69.5833%{transform:translate(155.89px,88.51px)}70.0000%{transform:translate(162.24px,88.25px)}70.4167%{transform:translate(168.49px,88.01px)}70.8333%{transform:translate(174.60px,87.78px)}71.2500%{transform:translate(180.55px,87.57px)}71.6667%{transform:translate(186.33px,87.38px)}72.0833%{transform:translate(191.91px,87.21px)}72.5000%{transform:translate(197.29px,87.06px)}72.9167%{transform:translate(202.45px,86.93px)}73.3333%{transform:translate(207.38px,86.83px)}73.7500%{transform:translate(212.09px,86.75px)}74.1667%{transform:translate(216.56px,86.69px)}74.5833%{transform:translate(220.79px,86.66px)}75.0000%{transform:translate(224.78px,86.65px)}75.4167%{transform:translate(228.53px,86.66px)}75.8333%{transform:translate(232.03px,86.70px)}76.2500%{transform:translate(235.28px,86.76px)}76.6667%{transform:translate(238.29px,86.83px)}77.0833%{transform:translate(241.04px,86.93px)}77.5000%{transform:translate(243.54px,87.04px)}77.9167%{transform:translate(245.80px,87.17px)}78.3333%{transform:translate(247.80px,87.31px)}78.7500%{transform:translate(249.55px,87.46px)}79.1667%{transform:translate(251.05px,87.62px)}79.5833%{transform:translate(252.31px,87.79px)}80.0000%{transform:translate(253.32px,87.97px)}80.4167%{transform:translate(254.08px,88.15px)}80.8333%{transform:translate(254.60px,88.32px)}81.2500%{transform:translate(254.88px,88.50px)}81.6667%{transform:translate(254.92px,88.68px)}82.0833%{transform:translate(254.72px,88.84px)}82.5000%{transform:translate(254.30px,89.00px)}82.9167%{transform:translate(253.64px,89.15px)}83.3333%{transform:translate(252.76px,89.29px)}83.7500%{transform:translate(251.66px,89.42px)}84.1667%{transform:translate(250.35px,89.53px)}84.5833%{transform:translate(248.82px,89.63px)}85.0000%{transform:translate(247.10px,89.71px)}85.4167%{transform:translate(245.17px,89.77px)}85.8333%{transform:translate(243.06px,89.81px)}86.2500%{transform:translate(240.76px,89.84px)}86.6667%{transform:translate(238.28px,89.84px)}87.0833%{transform:translate(235.64px,89.82px)}87.5000%{transform:translate(232.83px,89.79px)}87.9167%{transform:translate(229.88px,89.73px)}88.3333%{transform:translate(226.78px,89.66px)}88.7500%{transform:translate(223.54px,89.57px)}89.1667%{transform:translate(220.19px,89.46px)}89.5833%{transform:translate(216.71px,89.34px)}90.0000%{transform:translate(213.14px,89.20px)}90.4167%{transform:translate(209.47px,89.05px)}90.8333%{transform:translate(205.71px,88.89px)}91.2500%{transform:translate(201.88px,88.72px)}91.6667%{transform:translate(197.99px,88.54px)}92.0833%{transform:translate(194.04px,88.35px)}92.5000%{transform:translate(190.06px,88.16px)}92.9167%{transform:translate(186.05px,87.97px)}93.3333%{transform:translate(182.01px,87.78px)}93.7500%{transform:translate(177.98px,87.59px)}94.1667%{transform:translate(173.94px,87.41px)}94.5833%{transform:translate(169.92px,87.23px)}95.0000%{transform:translate(165.93px,87.07px)}95.4167%{transform:translate(161.97px,86.91px)}95.8333%{transform:translate(158.07px,86.76px)}96.2500%{transform:translate(154.22px,86.63px)}96.6667%{transform:translate(150.44px,86.51px)}97.0833%{transform:translate(146.74px,86.41px)}97.5000%{transform:translate(143.14px,86.33px)}97.9167%{transform:translate(139.63px,86.26px)}98.3333%{transform:translate(136.23px,86.22px)}98.7500%{transform:translate(132.96px,86.19px)}99.1667%{transform:translate(129.81px,86.18px)}99.5833%{transform:translate(126.80px,86.20px)}100.0000%{transform:translate(123.93px,86.23px)}}
+                        @keyframes gk-lensc{0.0000%{transform:translate(-123.93px,-86.23px)}0.4167%{transform:translate(-121.15px,-86.29px)}0.8333%{transform:translate(-118.46px,-86.38px)}1.2500%{transform:translate(-115.89px,-86.49px)}1.6667%{transform:translate(-113.49px,-86.63px)}2.0833%{transform:translate(-111.28px,-86.79px)}2.5000%{transform:translate(-109.29px,-86.96px)}2.9167%{transform:translate(-107.52px,-87.15px)}3.3333%{transform:translate(-105.99px,-87.35px)}3.7500%{transform:translate(-104.71px,-87.56px)}4.1667%{transform:translate(-103.68px,-87.77px)}4.5833%{transform:translate(-102.90px,-87.99px)}5.0000%{transform:translate(-102.39px,-88.21px)}5.4167%{transform:translate(-102.13px,-88.43px)}5.8333%{transform:translate(-102.12px,-88.64px)}6.2500%{transform:translate(-102.37px,-88.85px)}6.6667%{transform:translate(-102.86px,-89.04px)}7.0833%{transform:translate(-103.61px,-89.23px)}7.5000%{transform:translate(-104.59px,-89.40px)}7.9167%{transform:translate(-105.81px,-89.55px)}8.3333%{transform:translate(-107.25px,-89.69px)}8.7500%{transform:translate(-108.92px,-89.81px)}9.1667%{transform:translate(-110.81px,-89.91px)}9.5833%{transform:translate(-112.90px,-89.99px)}10.0000%{transform:translate(-115.20px,-90.04px)}10.4167%{transform:translate(-117.69px,-90.08px)}10.8333%{transform:translate(-120.36px,-90.09px)}11.2500%{transform:translate(-123.21px,-90.08px)}11.6667%{transform:translate(-126.23px,-90.04px)}12.0833%{transform:translate(-129.40px,-89.99px)}12.5000%{transform:translate(-132.72px,-89.91px)}12.9167%{transform:translate(-136.18px,-89.81px)}13.3333%{transform:translate(-139.76px,-89.69px)}13.7500%{transform:translate(-143.46px,-89.55px)}14.1667%{transform:translate(-147.27px,-89.39px)}14.5833%{transform:translate(-151.17px,-89.22px)}15.0000%{transform:translate(-155.15px,-89.04px)}15.4167%{transform:translate(-159.21px,-88.84px)}15.8333%{transform:translate(-163.32px,-88.64px)}16.2500%{transform:translate(-167.49px,-88.42px)}16.6667%{transform:translate(-171.69px,-88.21px)}17.0833%{transform:translate(-175.91px,-87.99px)}17.5000%{transform:translate(-180.15px,-87.77px)}17.9167%{transform:translate(-184.39px,-87.55px)}18.3333%{transform:translate(-188.62px,-87.34px)}18.7500%{transform:translate(-192.83px,-87.14px)}19.1667%{transform:translate(-197.00px,-86.94px)}19.5833%{transform:translate(-201.13px,-86.76px)}20.0000%{transform:translate(-205.20px,-86.59px)}20.4167%{transform:translate(-209.20px,-86.43px)}20.8333%{transform:translate(-213.12px,-86.30px)}21.2500%{transform:translate(-216.96px,-86.18px)}21.6667%{transform:translate(-220.69px,-86.08px)}22.0833%{transform:translate(-224.31px,-86.00px)}22.5000%{transform:translate(-227.81px,-85.95px)}22.9167%{transform:translate(-231.18px,-85.91px)}23.3333%{transform:translate(-234.41px,-85.90px)}23.7500%{transform:translate(-237.49px,-85.92px)}24.1667%{transform:translate(-240.41px,-85.95px)}24.5833%{transform:translate(-243.17px,-86.01px)}25.0000%{transform:translate(-245.72px,-86.09px)}25.4167%{transform:translate(-245.50px,-86.22px)}25.8333%{transform:translate(-242.28px,-86.39px)}26.2500%{transform:translate(-237.43px,-86.58px)}26.6667%{transform:translate(-231.83px,-86.76px)}27.0833%{transform:translate(-226.03px,-86.94px)}27.5000%{transform:translate(-220.39px,-87.10px)}27.9167%{transform:translate(-215.10px,-87.24px)}28.3333%{transform:translate(-210.27px,-87.36px)}28.7500%{transform:translate(-205.93px,-87.47px)}29.1667%{transform:translate(-202.09px,-87.56px)}29.5833%{transform:translate(-198.71px,-87.64px)}30.0000%{transform:translate(-195.78px,-87.70px)}30.4167%{transform:translate(-193.24px,-87.76px)}30.8333%{transform:translate(-191.06px,-87.80px)}31.2500%{transform:translate(-189.19px,-87.84px)}31.6667%{transform:translate(-187.61px,-87.87px)}32.0833%{transform:translate(-185.98px,-87.90px)}32.5000%{transform:translate(-184.46px,-87.92px)}32.9167%{transform:translate(-183.22px,-87.95px)}33.3333%{transform:translate(-182.27px,-87.96px)}33.7500%{transform:translate(-181.58px,-87.97px)}34.1667%{transform:translate(-181.08px,-87.98px)}34.5833%{transform:translate(-180.74px,-87.99px)}35.0000%{transform:translate(-180.50px,-87.99px)}35.4167%{transform:translate(-180.34px,-87.99px)}35.8333%{transform:translate(-180.22px,-88.00px)}36.2500%{transform:translate(-180.15px,-88.00px)}36.6667%{transform:translate(-180.10px,-88.00px)}37.0833%{transform:translate(-180.07px,-88.00px)}37.5000%{transform:translate(-180.04px,-88.00px)}37.9167%{transform:translate(-180.03px,-88.00px)}38.3333%{transform:translate(-180.02px,-88.00px)}38.7500%{transform:translate(-180.01px,-88.00px)}39.1667%{transform:translate(-180.01px,-88.00px)}39.5833%{transform:translate(-180.01px,-88.00px)}40.0000%{transform:translate(-180.00px,-88.00px)}40.4167%{transform:translate(-180.00px,-88.00px)}40.8333%{transform:translate(-180.00px,-88.00px)}41.2500%{transform:translate(-180.00px,-88.00px)}41.6667%{transform:translate(-180.00px,-88.00px)}42.0833%{transform:translate(-180.00px,-88.00px)}42.5000%{transform:translate(-180.00px,-88.00px)}42.9167%{transform:translate(-180.00px,-88.00px)}43.3333%{transform:translate(-180.00px,-88.00px)}43.7500%{transform:translate(-180.00px,-88.00px)}44.1667%{transform:translate(-180.00px,-88.00px)}44.5833%{transform:translate(-180.00px,-88.00px)}45.0000%{transform:translate(-180.00px,-88.00px)}45.4167%{transform:translate(-180.00px,-88.00px)}45.8333%{transform:translate(-180.00px,-88.00px)}46.2500%{transform:translate(-180.00px,-88.00px)}46.6667%{transform:translate(-180.00px,-88.00px)}47.0833%{transform:translate(-180.00px,-88.00px)}47.5000%{transform:translate(-180.00px,-88.00px)}47.9167%{transform:translate(-180.00px,-88.00px)}48.3333%{transform:translate(-179.96px,-88.00px)}48.7500%{transform:translate(-177.27px,-88.10px)}49.1667%{transform:translate(-171.74px,-88.30px)}49.5833%{transform:translate(-164.77px,-88.56px)}50.0000%{transform:translate(-157.29px,-88.84px)}50.4167%{transform:translate(-149.87px,-89.11px)}50.8333%{transform:translate(-142.86px,-89.37px)}51.2500%{transform:translate(-136.44px,-89.60px)}51.6667%{transform:translate(-130.70px,-89.81px)}52.0833%{transform:translate(-125.64px,-90.00px)}52.5000%{transform:translate(-121.26px,-90.16px)}52.9167%{transform:translate(-117.49px,-90.30px)}53.3333%{transform:translate(-114.28px,-90.42px)}53.7500%{transform:translate(-111.56px,-90.52px)}54.1667%{transform:translate(-109.28px,-90.60px)}54.5833%{transform:translate(-107.37px,-90.67px)}55.0000%{transform:translate(-105.77px,-90.73px)}55.4167%{transform:translate(-104.45px,-90.78px)}55.8333%{transform:translate(-103.36px,-90.82px)}56.2500%{transform:translate(-102.45px,-90.85px)}56.6667%{transform:translate(-101.71px,-90.88px)}57.0833%{transform:translate(-101.10px,-90.90px)}57.5000%{transform:translate(-100.60px,-90.92px)}57.9167%{transform:translate(-100.19px,-90.93px)}58.3333%{transform:translate(-99.85px,-90.95px)}58.7500%{transform:translate(-99.58px,-90.96px)}59.1667%{transform:translate(-99.36px,-90.96px)}59.5833%{transform:translate(-99.18px,-90.97px)}60.0000%{transform:translate(-99.03px,-90.98px)}60.4167%{transform:translate(-98.91px,-90.98px)}60.8333%{transform:translate(-98.81px,-90.98px)}61.2500%{transform:translate(-98.73px,-90.99px)}61.6667%{transform:translate(-98.67px,-90.99px)}62.0833%{transform:translate(-98.62px,-90.99px)}62.5000%{transform:translate(-98.58px,-90.99px)}62.9167%{transform:translate(-98.54px,-90.99px)}63.3333%{transform:translate(-98.51px,-91.00px)}63.7500%{transform:translate(-98.49px,-91.00px)}64.1667%{transform:translate(-98.47px,-91.00px)}64.5833%{transform:translate(-98.46px,-91.00px)}65.0000%{transform:translate(-98.88px,-90.98px)}65.4167%{transform:translate(-100.79px,-90.90px)}65.8333%{transform:translate(-103.93px,-90.76px)}66.2500%{transform:translate(-108.04px,-90.58px)}66.6667%{transform:translate(-112.91px,-90.36px)}67.0833%{transform:translate(-118.33px,-90.12px)}67.5000%{transform:translate(-124.17px,-89.87px)}67.9167%{transform:translate(-130.30px,-89.60px)}68.3333%{transform:translate(-136.61px,-89.32px)}68.7500%{transform:translate(-143.02px,-89.05px)}69.1667%{transform:translate(-149.47px,-88.77px)}69.5833%{transform:translate(-155.89px,-88.51px)}70.0000%{transform:translate(-162.24px,-88.25px)}70.4167%{transform:translate(-168.49px,-88.01px)}70.8333%{transform:translate(-174.60px,-87.78px)}71.2500%{transform:translate(-180.55px,-87.57px)}71.6667%{transform:translate(-186.33px,-87.38px)}72.0833%{transform:translate(-191.91px,-87.21px)}72.5000%{transform:translate(-197.29px,-87.06px)}72.9167%{transform:translate(-202.45px,-86.93px)}73.3333%{transform:translate(-207.38px,-86.83px)}73.7500%{transform:translate(-212.09px,-86.75px)}74.1667%{transform:translate(-216.56px,-86.69px)}74.5833%{transform:translate(-220.79px,-86.66px)}75.0000%{transform:translate(-224.78px,-86.65px)}75.4167%{transform:translate(-228.53px,-86.66px)}75.8333%{transform:translate(-232.03px,-86.70px)}76.2500%{transform:translate(-235.28px,-86.76px)}76.6667%{transform:translate(-238.29px,-86.83px)}77.0833%{transform:translate(-241.04px,-86.93px)}77.5000%{transform:translate(-243.54px,-87.04px)}77.9167%{transform:translate(-245.80px,-87.17px)}78.3333%{transform:translate(-247.80px,-87.31px)}78.7500%{transform:translate(-249.55px,-87.46px)}79.1667%{transform:translate(-251.05px,-87.62px)}79.5833%{transform:translate(-252.31px,-87.79px)}80.0000%{transform:translate(-253.32px,-87.97px)}80.4167%{transform:translate(-254.08px,-88.15px)}80.8333%{transform:translate(-254.60px,-88.32px)}81.2500%{transform:translate(-254.88px,-88.50px)}81.6667%{transform:translate(-254.92px,-88.68px)}82.0833%{transform:translate(-254.72px,-88.84px)}82.5000%{transform:translate(-254.30px,-89.00px)}82.9167%{transform:translate(-253.64px,-89.15px)}83.3333%{transform:translate(-252.76px,-89.29px)}83.7500%{transform:translate(-251.66px,-89.42px)}84.1667%{transform:translate(-250.35px,-89.53px)}84.5833%{transform:translate(-248.82px,-89.63px)}85.0000%{transform:translate(-247.10px,-89.71px)}85.4167%{transform:translate(-245.17px,-89.77px)}85.8333%{transform:translate(-243.06px,-89.81px)}86.2500%{transform:translate(-240.76px,-89.84px)}86.6667%{transform:translate(-238.28px,-89.84px)}87.0833%{transform:translate(-235.64px,-89.82px)}87.5000%{transform:translate(-232.83px,-89.79px)}87.9167%{transform:translate(-229.88px,-89.73px)}88.3333%{transform:translate(-226.78px,-89.66px)}88.7500%{transform:translate(-223.54px,-89.57px)}89.1667%{transform:translate(-220.19px,-89.46px)}89.5833%{transform:translate(-216.71px,-89.34px)}90.0000%{transform:translate(-213.14px,-89.20px)}90.4167%{transform:translate(-209.47px,-89.05px)}90.8333%{transform:translate(-205.71px,-88.89px)}91.2500%{transform:translate(-201.88px,-88.72px)}91.6667%{transform:translate(-197.99px,-88.54px)}92.0833%{transform:translate(-194.04px,-88.35px)}92.5000%{transform:translate(-190.06px,-88.16px)}92.9167%{transform:translate(-186.05px,-87.97px)}93.3333%{transform:translate(-182.01px,-87.78px)}93.7500%{transform:translate(-177.98px,-87.59px)}94.1667%{transform:translate(-173.94px,-87.41px)}94.5833%{transform:translate(-169.92px,-87.23px)}95.0000%{transform:translate(-165.93px,-87.07px)}95.4167%{transform:translate(-161.97px,-86.91px)}95.8333%{transform:translate(158.07px,-86.76px)}96.2500%{transform:translate(-154.22px,-86.63px)}96.6667%{transform:translate(-150.44px,-86.51px)}97.0833%{transform:translate(-146.74px,-86.41px)}97.5000%{transform:translate(-143.14px,-86.33px)}97.9167%{transform:translate(-139.63px,-86.26px)}98.3333%{transform:translate(-136.23px,-86.22px)}98.7500%{transform:translate(-132.96px,-86.19px)}99.1667%{transform:translate(-129.81px,-86.18px)}99.5833%{transform:translate(-126.80px,-86.20px)}100.0000%{transform:translate(-123.93px,-86.23px)}}
+                        @keyframes gk-ringA{0.0000%{opacity:0}31.6667%{opacity:0}34.1667%{opacity:1}41.6667%{opacity:1}48.3333%{opacity:0}100.0000%{opacity:0}}
+                        @keyframes gk-ringR{0.0000%{opacity:0}41.6667%{opacity:0}48.3333%{opacity:1}66.6667%{opacity:1}71.6667%{opacity:0}100.0000%{opacity:0}}
+                        @keyframes gk-hlA{0.0000%{opacity:0}31.6667%{opacity:0}34.1667%{opacity:1}41.6667%{opacity:1}48.3333%{opacity:0}100.0000%{opacity:0}}
+                        @keyframes gk-hlR{0.0000%{opacity:0}41.6667%{opacity:0}48.3333%{opacity:1}100.0000%{opacity:1}}
+                        @keyframes gk-p1{0.0000%{opacity:0;transform:scale(.6)}31.6667%{opacity:.9;transform:scale(.6);animation-timing-function:cubic-bezier(.3333,.6667,.6667,1)}40.0000%{opacity:0;transform:scale(1.9)}100.0000%{opacity:0;transform:scale(1.9)}}
+                        @keyframes gk-p2{0.0000%{opacity:0;transform:scale(.6)}37.5000%{opacity:.9;transform:scale(.6);animation-timing-function:cubic-bezier(.3333,.6667,.6667,1)}45.8333%{opacity:0;transform:scale(1.9)}100.0000%{opacity:0;transform:scale(1.9)}}
+                        @keyframes gk-red{0.0000%{opacity:0}41.6667%{opacity:0;animation-timing-function:cubic-bezier(.4,0,.6,1)}48.3333%{opacity:1}49.1667%{opacity:0.981}50.0000%{opacity:0.989}50.8333%{opacity:0.897}51.6667%{opacity:0.789}52.5000%{opacity:0.765}53.3333%{opacity:0.846}54.1667%{opacity:0.959}55.0000%{opacity:0.999}55.8333%{opacity:0.929}56.6667%{opacity:0.815}57.5000%{opacity:0.760}58.3333%{opacity:0.816}59.1667%{opacity:0.930}60.0000%{opacity:0.999}60.8333%{opacity:0.958}61.6667%{opacity:0.845}62.5000%{opacity:0.765}63.3333%{opacity:0.790}64.1667%{opacity:0.898}65.0000%{opacity:0.990}100.0000%{opacity:0.990}}
+                        @keyframes gk-gene{0.0000%{transform:translate(0px,0px) rotate(0deg);opacity:1}58.6667%{transform:translate(0px,0px) rotate(0deg);opacity:1;animation-timing-function:cubic-bezier(.3333,.6667,.6667,1)}59.5000%{transform:translate(2.5px,0px) rotate(0deg);opacity:1}64.7500%{transform:translate(2.5px,0px) rotate(0deg);opacity:1;animation-timing-function:cubic-bezier(.3333,.6667,.6667,1)}67.0833%{transform:translate(6px,-24px) rotate(16deg);opacity:1;animation-timing-function:cubic-bezier(.3333,0,.6667,.3333)}78.3333%{transform:translate(20px,72px) rotate(100deg);opacity:0}100.0000%{transform:translate(20px,72px) rotate(100deg);opacity:0}}
+                        @keyframes gk-badge{0.0000%{opacity:0;transform:scale(0) rotate(0deg)}31.6667%{opacity:0.55;transform:scale(0.000) rotate(0.00deg)}31.8333%{opacity:1;transform:scale(0.230) rotate(3.38deg)}32.0000%{opacity:1;transform:scale(0.427) rotate(4.93deg)}32.1667%{opacity:1;transform:scale(0.593) rotate(4.22deg)}32.3333%{opacity:0.55;transform:scale(0.731) rotate(1.82deg)}32.5000%{opacity:0.55;transform:scale(0.843) rotate(-1.06deg)}32.6667%{opacity:0.55;transform:scale(0.931) rotate(-3.15deg)}32.8333%{opacity:1;transform:scale(0.998) rotate(-3.66deg)}33.0000%{opacity:1;transform:scale(1.046) rotate(-2.56deg)}33.1667%{opacity:1;transform:scale(1.077) rotate(-0.52deg)}33.3333%{opacity:1;transform:scale(1.095) rotate(1.49deg)}33.5000%{opacity:0.55;transform:scale(1.100) rotate(2.64deg)}33.6667%{opacity:0.55;transform:scale(1.096) rotate(2.53deg)}33.8333%{opacity:0.55;transform:scale(1.085) rotate(1.38deg)}34.0000%{opacity:1;transform:scale(1.069) rotate(-0.22deg)}34.1667%{opacity:1;transform:scale(1.050) rotate(-1.54deg)}34.3333%{opacity:1;transform:scale(1.032) rotate(-2.04deg)}34.5000%{opacity:1;transform:scale(1.016) rotate(-1.63deg)}34.6667%{opacity:0.55;transform:scale(1.004) rotate(-0.58deg)}34.8333%{opacity:0.55;transform:scale(1.000) rotate(0.59deg)}35.0000%{opacity:0.55;transform:scale(1.000) rotate(1.37deg)}35.1667%{opacity:1;transform:scale(1.000) rotate(1.48deg)}35.3333%{opacity:1;transform:scale(1.000) rotate(0.95deg)}35.5000%{opacity:1;transform:scale(1.000) rotate(0.09deg)}35.6667%{opacity:0.55;transform:scale(1.000) rotate(-0.71deg)}35.8333%{opacity:0.55;transform:scale(1.000) rotate(-1.11deg)}36.0000%{opacity:0.55;transform:scale(1.000) rotate(-1.00deg)}36.1667%{opacity:0.55;transform:scale(1.000) rotate(-0.48deg)}36.3333%{opacity:1;transform:scale(1.000) rotate(0.18deg)}36.5000%{opacity:1;transform:scale(1.000) rotate(0.68deg)}36.6667%{opacity:1;transform:scale(1.000) rotate(0.84deg)}36.8333%{opacity:0.55;transform:scale(1.000) rotate(0.62deg)}37.0000%{opacity:0.55;transform:scale(1.000) rotate(0.17deg)}37.1667%{opacity:0.55;transform:scale(1.000) rotate(-0.30deg)}37.3333%{opacity:0.55;transform:scale(1.000) rotate(-0.59deg)}37.5000%{opacity:1;transform:scale(1.000) rotate(-0.59deg)}37.6667%{opacity:1;transform:scale(1.000) rotate(-0.35deg)}37.8333%{opacity:1;transform:scale(1.000) rotate(0.01deg)}38.0000%{opacity:0.55;transform:scale(1.000) rotate(0.33deg)}38.1667%{opacity:0.55;transform:scale(1.000) rotate(0.46deg)}38.3333%{opacity:0.55;transform:scale(1.000) rotate(0.39deg)}38.5000%{opacity:1;transform:scale(1.000) rotate(0.16deg)}38.6667%{opacity:1;transform:scale(1.000) rotate(-0.11deg)}38.8333%{opacity:1;transform:scale(1.000) rotate(-0.30deg)}39.0000%{opacity:1;transform:scale(1.000) rotate(-0.34deg)}39.1667%{opacity:1;transform:scale(1.000) rotate(-0.23deg)}39.3333%{opacity:1;transform:scale(1.000) rotate(-0.04deg)}39.5000%{opacity:1;transform:scale(1.000) rotate(0.15deg)}39.6667%{opacity:1;transform:scale(1.000) rotate(0.25deg)}39.8333%{opacity:1;transform:scale(1.000) rotate(0.24deg)}45.4167%{opacity:1;transform:scale(1) rotate(0deg)}48.3333%{opacity:0;transform:scale(1) rotate(0deg)}100.0000%{opacity:0;transform:scale(1) rotate(0deg)}}
+                        @keyframes gk-pill{0.0000%{opacity:0;transform:scale(.001)}65.7500%{opacity:0.000;transform:scale(0.001)}65.9583%{opacity:0.125;transform:scale(0.269)}66.1667%{opacity:0.250;transform:scale(0.493)}66.3750%{opacity:0.375;transform:scale(0.674)}66.5833%{opacity:0.500;transform:scale(0.817)}66.7917%{opacity:0.625;transform:scale(0.926)}67.0000%{opacity:0.750;transform:scale(1.005)}67.2083%{opacity:0.875;transform:scale(1.058)}67.4167%{opacity:1.000;transform:scale(1.088)}67.6250%{opacity:1.000;transform:scale(1.099)}67.8333%{opacity:1.000;transform:scale(1.097)}68.0417%{opacity:1.000;transform:scale(1.084)}68.2500%{opacity:1.000;transform:scale(1.064)}68.4583%{opacity:1.000;transform:scale(1.042)}68.6667%{opacity:1.000;transform:scale(1.021)}68.8750%{opacity:1.000;transform:scale(1.006)}69.0833%{opacity:1.000;transform:scale(1.000)}69.2917%{opacity:1.000;transform:scale(1.000)}69.5000%{opacity:1.000;transform:scale(1.000)}69.7083%{opacity:1.000;transform:scale(1.000)}83.2500%{opacity:1;transform:scale(1)}87.0000%{opacity:0;transform:scale(1)}100.0000%{opacity:0;transform:scale(1)}}
+                        @keyframes gk-sci{0.0000%{transform:translate(0px,-160px);opacity:0}52.5000%{transform:translate(0px,-160px);opacity:0;animation-timing-function:cubic-bezier(.215,.61,.355,1)}54.5833%{transform:translate(0px,-80px);opacity:1}56.6667%{transform:translate(0px,0px);opacity:1}59.5833%{transform:translate(0px,0px);opacity:1;animation-timing-function:cubic-bezier(.4,0,.6,1)}62.9167%{transform:translate(50px,0px);opacity:1}66.0000%{transform:translate(50px,0px);opacity:1;animation-timing-function:cubic-bezier(.4,0,.6,1)}70.5833%{transform:translate(50px,-130px);opacity:0}100.0000%{transform:translate(50px,-130px);opacity:0}}
+                        @keyframes gk-bA{0.0000%{transform:rotate(7deg)}52.5000%{transform:rotate(7deg);animation-timing-function:cubic-bezier(.215,.61,.355,1)}56.6667%{transform:rotate(26deg);animation-timing-function:cubic-bezier(.4,0,.6,1)}57.6667%{transform:rotate(33deg);animation-timing-function:cubic-bezier(.3333,0,.6667,.3333)}58.6667%{transform:rotate(1.7deg);animation-timing-function:cubic-bezier(.3333,.6667,.6667,1)}60.4167%{transform:rotate(26deg)}62.9167%{transform:rotate(26deg);animation-timing-function:cubic-bezier(.4,0,.6,1)}63.7500%{transform:rotate(33deg);animation-timing-function:cubic-bezier(.3333,0,.6667,.3333)}64.7500%{transform:rotate(1.7deg);animation-timing-function:cubic-bezier(.3333,.6667,.6667,1)}66.0000%{transform:rotate(26deg)}100.0000%{transform:rotate(26deg)}}
+                        @keyframes gk-bB{0.0000%{transform:rotate(-7deg)}52.5000%{transform:rotate(-7deg);animation-timing-function:cubic-bezier(.215,.61,.355,1)}56.6667%{transform:rotate(-26deg);animation-timing-function:cubic-bezier(.4,0,.6,1)}57.6667%{transform:rotate(-33deg);animation-timing-function:cubic-bezier(.3333,0,.6667,.3333)}58.6667%{transform:rotate(-1.7deg);animation-timing-function:cubic-bezier(.3333,.6667,.6667,1)}60.4167%{transform:rotate(-26deg)}62.9167%{transform:rotate(-26deg);animation-timing-function:cubic-bezier(.4,0,.6,1)}63.7500%{transform:rotate(-33deg);animation-timing-function:cubic-bezier(.3333,0,.6667,.3333)}64.7500%{transform:rotate(-1.7deg);animation-timing-function:cubic-bezier(.3333,.6667,.6667,1)}66.0000%{transform:rotate(-26deg)}100.0000%{transform:rotate(-26deg)}}
+                        @keyframes gk-b1{0.0000%{opacity:0;transform:scale(.3)}58.6667%{opacity:1;transform:scale(.3);animation-timing-function:cubic-bezier(.3333,.6667,.6667,1)}62.1667%{opacity:0;transform:scale(1.5)}100.0000%{opacity:0;transform:scale(1.5)}}
+                        @keyframes gk-b2{0.0000%{opacity:0;transform:scale(.3)}64.7500%{opacity:1;transform:scale(.3);animation-timing-function:cubic-bezier(.3333,.6667,.6667,1)}68.2500%{opacity:0;transform:scale(1.9)}100.0000%{opacity:0;transform:scale(1.9)}}</style>
                     <defs>
-                        <linearGradient id="helixBlue" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
-                            <stop offset="50%" style="stop-color:#3b82f6;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#60a5fa;stop-opacity:1" />
+                        <linearGradient id="gk-fade" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="360" y2="0">
+                            <stop offset="0" stop-color="#000"/><stop offset=".0556" stop-color="#000"/><stop offset=".1667" stop-color="#fff"/>
+                            <stop offset=".8333" stop-color="#fff"/><stop offset=".9444" stop-color="#000"/><stop offset="1" stop-color="#000"/>
                         </linearGradient>
-                        <linearGradient id="targetRed" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#f87171;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#ef4444;stop-opacity:1" />
+                        <mask id="gk-m" maskUnits="userSpaceOnUse" x="0" y="0" width="360" height="180">
+                            <rect width="360" height="180" fill="url(#gk-fade)"/><circle class="gk-lens" r="33" fill="#000"/>
+                        </mask>
+                        <clipPath id="gk-clip"><circle r="31"/></clipPath>
+                        <linearGradient id="gk-steel" gradientUnits="userSpaceOnUse" x1="-9" y1="0" x2="2" y2="0">
+                            <stop offset="0" stop-color="#9aa8bd"/><stop offset=".55" stop-color="#e2e8f0"/><stop offset="1" stop-color="#fff"/>
                         </linearGradient>
-                        <linearGradient id="scissorGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" style="stop-color:#94a3b8;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#64748b;stop-opacity:1" />
+                        <linearGradient id="gk-rim" gradientUnits="userSpaceOnUse" x1="-34" y1="-34" x2="34" y2="34">
+                            <stop offset="0" stop-color="#f1f5f9"/><stop offset=".5" stop-color="#94a3b8"/><stop offset="1" stop-color="#64748b"/>
                         </linearGradient>
-                        <radialGradient id="impactGlow" cx="50%" cy="50%" r="50%">
-                            <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:0.9" />
-                            <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:0" />
-                        </radialGradient>
-                        <radialGradient id="safeGlow" cx="50%" cy="50%" r="50%">
-                            <stop offset="0%" style="stop-color:#22c55e;stop-opacity:0.7" />
-                            <stop offset="100%" style="stop-color:#22c55e;stop-opacity:0" />
-                        </radialGradient>
-                        <filter id="softGlow">
-                            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                            <feMerge>
-                                <feMergeNode in="coloredBlur"/>
-                                <feMergeNode in="SourceGraphic"/>
-                            </feMerge>
-                        </filter>
-                        <filter id="strongGlow">
-                            <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
-                            <feMerge>
-                                <feMergeNode in="coloredBlur"/>
-                                <feMergeNode in="SourceGraphic"/>
-                            </feMerge>
-                        </filter>
                     </defs>
-
-                    <!-- Double helix DNA backbones -->
-                    <g class="dna-backbone">
-                        <path d="M40,160 Q90,100 140,140 T240,140 T340,140 T440,160" fill="none" stroke="url(#helixBlue)" stroke-width="5" stroke-linecap="round"/>
-                        <path d="M40,120 Q90,180 140,140 T240,140 T340,140 T440,120" fill="none" stroke="url(#helixBlue)" stroke-width="5" stroke-linecap="round"/>
+                    <g mask="url(#gk-m)"><g class="gk-scroll"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M-45 88C-36.7 77.5 -28.3 68 -20 68M-20 108C-11.7 108 -3.3 98.5 5 88M5 88C13.3 77.5 21.7 68 30 68M30 108C38.3 108 46.7 98.5 55 88M55 88C63.3 77.5 71.7 68 80 68M80 108C88.3 108 96.7 98.5 105 88M105 88C113.3 77.5 121.7 68 130 68M130 108C138.3 108 146.7 98.5 155 88M155 88C163.3 77.5 171.7 68 180 68M180 108C188.3 108 196.7 98.5 205 88M205 88C213.3 77.5 221.7 68 230 68M230 108C238.3 108 246.7 98.5 255 88M255 88C263.3 77.5 271.7 68 280 68M280 108C288.3 108 296.7 98.5 305 88M305 88C313.3 77.5 321.7 68 330 68M330 108C338.3 108 346.7 98.5 355 88M405 88C413.3 77.5 421.7 68 430 68M430 108C438.3 108 446.7 98.5 455 88M455 88C463.3 77.5 471.7 68 480 68M480 108C488.3 108 496.7 98.5 505 88M505 88C513.3 77.5 521.7 68 530 68M530 108C538.3 108 546.7 98.5 555 88M555 88C563.3 77.5 571.7 68 580 68M580 108C588.3 108 596.7 98.5 605 88M605 88C613.3 77.5 621.7 68 630 68M630 108C638.3 108 646.7 98.5 655 88M655 88C663.3 77.5 671.7 68 680 68M680 108C688.3 108 696.7 98.5 705 88M705 88C713.3 77.5 721.7 68 730 68M730 108C738.3 108 746.7 98.5 755 88M755 88C763.3 77.5 771.7 68 780 68M780 108C788.3 108 796.7 98.5 805 88M805 88C813.3 77.5 821.7 68 830 68" stroke="#7c93cc" stroke-width="2.6" opacity=".8"/><path d="M-10 104.2V88M10 81.8V88M120 71.8V88M140 71.8V88M160 94.2V88M170 104.2V88M190 104.2V88M210 81.8V88M320 71.8V88M340 71.8V88M410 81.8V88M520 71.8V88M540 71.8V88M560 94.2V88M570 104.2V88M590 104.2V88M610 81.8V88M720 71.8V88M740 71.8V88M760 94.2V88M770 104.2V88M790 104.2V88" stroke="#0284c7" stroke-width="1.7" opacity=".92"/><path d="M-10 88V71.8M10 88V94.2M120 88V104.2M140 88V104.2M160 88V81.8M170 88V71.8M190 88V71.8M210 88V94.2M320 88V104.2M340 88V104.2M410 88V94.2M520 88V104.2M540 88V104.2M560 88V81.8M570 88V71.8M590 88V71.8M610 88V94.2M720 88V104.2M740 88V104.2M760 88V81.8M770 88V71.8M790 88V71.8" stroke="#8b5cf6" stroke-width="1.7" opacity=".92"/><path d="M-20 88V68M0 88V81.8M20 88V104.2M30 68V88M40 88V104.2M50 81.8V88M60 88V81.8M70 88V71.8M80 88V68M90 88V71.8M100 94.2V88M110 81.8V88M130 88V108M150 88V94.2M180 88V68M200 88V81.8M220 88V104.2M230 68V88M240 88V104.2M250 81.8V88M260 88V81.8M270 88V71.8M280 88V68M290 88V71.8M300 94.2V88M310 81.8V88M330 88V108M350 88V94.2M420 88V104.2M430 68V88M440 88V104.2M450 81.8V88M460 88V81.8M470 88V71.8M480 88V68M490 88V71.8M500 94.2V88M510 81.8V88M530 88V108M550 88V94.2M580 88V68M600 88V81.8M620 88V104.2M630 68V88M640 88V104.2M650 81.8V88M660 88V81.8M670 88V71.8M680 88V68M690 88V71.8M700 94.2V88M710 81.8V88M730 88V108M750 88V94.2M780 88V68" stroke="#d97706" stroke-width="1.7" opacity=".92"/><path d="M-20 108V88M0 94.2V88M20 71.8V88M30 88V108M40 71.8V88M50 88V94.2M60 94.2V88M70 104.2V88M80 108V88M90 104.2V88M100 88V81.8M110 88V94.2M130 68V88M150 81.8V88M180 108V88M200 94.2V88M220 71.8V88M230 88V108M240 71.8V88M250 88V94.2M260 94.2V88M270 104.2V88M280 108V88M290 104.2V88M300 88V81.8M310 88V94.2M330 68V88M350 81.8V88M420 71.8V88M430 88V108M440 71.8V88M450 88V94.2M460 94.2V88M470 104.2V88M480 108V88M490 104.2V88M500 88V81.8M510 88V94.2M530 68V88M550 81.8V88M580 108V88M600 94.2V88M620 71.8V88M630 88V108M640 71.8V88M650 88V94.2M660 94.2V88M670 104.2V88M680 108V88M690 104.2V88M700 88V81.8M710 88V94.2M730 68V88M750 81.8V88M780 108V88" stroke="#0d9488" stroke-width="1.7" opacity=".92"/><path d="M-10 104.2h.01M10 81.8h.01M120 71.8h.01M190 104.2h.01M210 81.8h.01M320 71.8h.01M410 81.8h.01M520 71.8h.01M590 104.2h.01M610 81.8h.01M720 71.8h.01M790 104.2h.01" stroke="#0284c7" stroke-width="3.8" opacity=".85"/><path d="M140 104.2h.01M160 81.8h.01M170 71.8h.01M340 104.2h.01M540 104.2h.01M560 81.8h.01M570 71.8h.01M740 104.2h.01M760 81.8h.01M770 71.8h.01" stroke="#8b5cf6" stroke-width="3.8" opacity=".85"/><path d="M40 104.2h.01M60 81.8h.01M70 71.8h.01M100 94.2h.01M110 81.8h.01M150 94.2h.01M240 104.2h.01M260 81.8h.01M270 71.8h.01M300 94.2h.01M310 81.8h.01M350 94.2h.01M440 104.2h.01M460 81.8h.01M470 71.8h.01M500 94.2h.01M510 81.8h.01M550 94.2h.01M640 104.2h.01M660 81.8h.01M670 71.8h.01M700 94.2h.01M710 81.8h.01M750 94.2h.01" stroke="#d97706" stroke-width="3.8" opacity=".85"/><path d="M0 94.2h.01M20 71.8h.01M50 94.2h.01M90 104.2h.01M200 94.2h.01M220 71.8h.01M250 94.2h.01M290 104.2h.01M420 71.8h.01M450 94.2h.01M490 104.2h.01M600 94.2h.01M620 71.8h.01M650 94.2h.01M690 104.2h.01" stroke="#0d9488" stroke-width="3.8" opacity=".85"/><path d="M-45 88C-36.7 98.5 -28.3 108 -20 108M-20 68C-11.7 68 -3.3 77.5 5 88M5 88C13.3 98.5 21.7 108 30 108M30 68C38.3 68 46.7 77.5 55 88M55 88C63.3 98.5 71.7 108 80 108M80 68C88.3 68 96.7 77.5 105 88M105 88C113.3 98.5 121.7 108 130 108M130 68C138.3 68 146.7 77.5 155 88M155 88C163.3 98.5 171.7 108 180 108M180 68C188.3 68 196.7 77.5 205 88M205 88C213.3 98.5 221.7 108 230 108M230 68C238.3 68 246.7 77.5 255 88M255 88C263.3 98.5 271.7 108 280 108M280 68C288.3 68 296.7 77.5 305 88M305 88C313.3 98.5 321.7 108 330 108M330 68C338.3 68 346.7 77.5 355 88M405 88C413.3 98.5 421.7 68 430 108M430 68C438.3 68 446.7 77.5 455 88M455 88C463.3 98.5 471.7 108 480 108M480 68C488.3 68 496.7 77.5 505 88M505 88C513.3 98.5 521.7 108 530 108M530 68C538.3 68 546.7 77.5 555 88M555 88C563.3 98.5 571.7 108 580 108M580 68C588.3 68 596.7 77.5 605 88M605 88C613.3 98.5 621.7 108 630 108M630 68C638.3 68 646.7 77.5 655 88M655 88C663.3 98.5 671.7 108 680 108M680 68C688.3 68 696.7 77.5 705 88M705 88C713.3 98.5 721.7 108 730 108M730 68C738.3 68 746.7 77.5 755 88M755 88C763.3 98.5 771.7 108 780 108M780 68C788.3 68 796.7 77.5 805 88M805 88C813.3 98.5 821.7 108 830 108" stroke="#5b7fd6" stroke-width="3.4"/><path d="M140 71.8h.01M160 94.2h.01M170 104.2h.01M340 71.8h.01M540 71.8h.01M560 94.2h.01M570 104.2h.01M740 71.8h.01M760 94.2h.01M770 104.2h.01" stroke="#0284c7" stroke-width="5.6"/><path d="M-10 71.8h.01M10 94.2h.01M120 104.2h.01M190 71.8h.01M210 94.2h.01M320 104.2h.01M410 94.2h.01M520 104.2h.01M590 71.8h.01M610 94.2h.01M720 104.2h.01M790 71.8h.01" stroke="#8b5cf6" stroke-width="5.6"/><path d="M-20 68h.01M0 81.8h.01M20 104.2h.01M30 68h.01M50 81.8h.01M80 68h.01M90 71.8h.01M130 108h.01M180 68h.01M200 81.8h.01M220 104.2h.01M230 68h.01M250 81.8h.01M280 68h.01M290 71.8h.01M330 108h.01M420 104.2h.01M430 68h.01M450 81.8h.01M480 68h.01M490 71.8h.01M530 108h.01M580 68h.01M600 81.8h.01M620 104.2h.01M630 68h.01M650 81.8h.01M680 68h.01M690 71.8h.01M730 108h.01M780 68h.01" stroke="#d97706" stroke-width="5.6"/><path d="M-20 108h.01M30 108h.01M40 71.8h.01M60 94.2h.01M70 104.2h.01M80 108h.01M100 81.8h.01M110 94.2h.01M130 68h.01M150 81.8h.01M180 108h.01M230 108h.01M240 71.8h.01M260 94.2h.01M270 104.2h.01M280 108h.01M300 81.8h.01M310 94.2h.01M330 68h.01M350 81.8h.01M430 108h.01M440 71.8h.01M460 94.2h.01M470 104.2h.01M480 108h.01M500 81.8h.01M510 94.2h.01M530 68h.01M550 81.8h.01M580 108h.01M630 108h.01M640 71.8h.01M660 94.2h.01M670 104.2h.01M680 108h.01M700 81.8h.01M710 94.2h.01M730 68h.01M750 81.8h.01M780 108h.01" stroke="#0d9488" stroke-width="5.6"/><g transform="translate(380 88)"><g class="gk-gene">
+                        <g class="gk-n"><path d="M-25 0C-16.7 -10.5 -8.3 -20 0 -20M0 20C8.3 20 16.7 10.5 25 0" stroke="#7c93cc" stroke-width="2.6" opacity=".8"/><path d="M-20 6.2V0M-10 16.2V0M10 16.2V0" stroke="#0284c7" stroke-width="1.7" opacity=".92"/><path d="M-20 0V-6.2M-10 0V-16.2M10 0V-16.2" stroke="#8b5cf6" stroke-width="1.7" opacity=".92"/><path d="M0 0V-20M20 0V-6.2" stroke="#d97706" stroke-width="1.7" opacity=".92"/><path d="M0 20V0M20 6.2V0" stroke="#0d9488" stroke-width="1.7" opacity=".92"/><path d="M10 16.2h.01" stroke="#0284c7" stroke-width="3.8" opacity=".85"/><path d="M-20 -6.2h.01M-10 -16.2h.01" stroke="#8b5cf6" stroke-width="3.8" opacity=".85"/><path d="M20 6.2h.01" stroke="#0d9488" stroke-width="3.8" opacity=".85"/><path d="M-25 0C-16.7 10.5 -8.3 20 0 20M0 -20C8.3 -20 16.7 -10.5 25 0" stroke="#5b7fd6" stroke-width="3.4"/><path d="M-20 6.2h.01M-10 16.2h.01" stroke="#0284c7" stroke-width="5.6"/><path d="M10 -16.2h.01" stroke="#8b5cf6" stroke-width="5.6"/><path d="M0 -20h.01M20 -6.2h.01" stroke="#d97706" stroke-width="5.6"/><path d="M0 20h.01" stroke="#0d9488" stroke-width="5.6"/></g>
+                        <g class="gk-red"><rect x="-34" y="-30" width="68" height="60" rx="9" fill="#ef4444" fill-opacity=".16" stroke="#ef4444" stroke-width="1.2"/><path d="M-25 0C-16.7 -10.5 -8.3 -20 0 -20M0 20C8.3 20 16.7 10.5 25 0M-25 0C-16.7 10.5 -8.3 20 0 20M0 -20C8.3 -20 16.7 -10.5 25 0" stroke="#ef4444" stroke-width="3.4"/><path d="M-20 6.2V0M-10 16.2V0M10 16.2V0M-20 0V-6.2M-10 0V-16.2M10 0V-16.2M0 0V-20M20 0V-6.2M0 20V0M20 6.2V0" stroke="#ef4444" stroke-width="1.9"/><path d="M10 16.2h.01M-20 -6.2h.01M-10 -16.2h.01M20 6.2h.01M-20 6.2h.01M-10 16.2h.01M10 -16.2h.01M0 -20h.01M20 -6.2h.01M0 20h.01" stroke="#ef4444" stroke-width="5.2"/></g>
+                        <circle class="gk-pulse gk-p1" cy="20" r="7" stroke="#f59e0b" stroke-width="1.6"/>
+                        <circle class="gk-pulse gk-p2" cy="20" r="7" stroke="#f59e0b" stroke-width="1.6"/>
+                        <circle class="gk-hlA" cy="20" r="7.5" stroke="#f59e0b" stroke-width="2"/>
+                        <circle class="gk-hlR" cy="20" r="7.5" stroke="#ef4444" stroke-width="2"/>
+                        </g></g></g></g></g>
+                    <g class="gk-lens">
+                        <g clip-path="url(#gk-clip)"><g transform="scale(1.4)"><g class="gk-lensc"><g class="gk-scroll"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M-45 88C-36.7 77.5 -28.3 68 -20 68M-20 108C-11.7 108 -3.3 98.5 5 88M5 88C13.3 77.5 21.7 68 30 68M30 108C38.3 108 46.7 98.5 55 88M55 88C63.3 77.5 71.7 68 80 68M80 108C88.3 108 96.7 98.5 105 88M105 88C113.3 77.5 121.7 68 130 68M130 108C138.3 108 146.7 98.5 155 88M155 88C163.3 77.5 171.7 68 180 68M180 108C188.3 108 196.7 98.5 205 88M205 88C213.3 77.5 221.7 68 230 68M230 108C238.3 108 246.7 98.5 255 88M255 88C263.3 77.5 271.7 68 280 68M280 108C288.3 108 296.7 98.5 305 88M305 88C313.3 77.5 321.7 68 330 68M330 108C338.3 108 346.7 98.5 355 88M405 88C413.3 77.5 421.7 68 430 68M430 108C438.3 108 446.7 98.5 455 88M455 88C463.3 77.5 471.7 68 480 68M480 108C488.3 108 496.7 98.5 505 88M505 88C513.3 77.5 521.7 68 530 68M530 108C538.3 108 546.7 98.5 555 88M555 88C563.3 77.5 571.7 68 580 68M580 108C588.3 108 596.7 98.5 605 88M605 88C613.3 77.5 621.7 68 630 68M630 108C638.3 108 646.7 98.5 655 88M655 88C663.3 77.5 671.7 68 680 68M680 108C688.3 108 696.7 98.5 705 88M705 88C713.3 77.5 721.7 68 730 68M730 108C738.3 108 746.7 98.5 755 88M755 88C763.3 77.5 771.7 68 780 68M780 108C788.3 108 796.7 98.5 805 88M805 88C813.3 77.5 821.7 68 830 68" stroke="#7c93cc" stroke-width="2.6" opacity=".8"/><path d="M-10 104.2V88M10 81.8V88M120 71.8V88M140 71.8V88M160 94.2V88M170 104.2V88M190 104.2V88M210 81.8V88M320 71.8V88M340 71.8V88M410 81.8V88M520 71.8V88M540 71.8V88M560 94.2V88M570 104.2V88M590 104.2V88M610 81.8V88M720 71.8V88M740 71.8V88M760 94.2V88M770 104.2V88M790 104.2V88" stroke="#0284c7" stroke-width="1.7" opacity=".92"/><path d="M-10 88V71.8M10 88V94.2M120 88V104.2M140 88V104.2M160 88V81.8M170 88V71.8M190 88V71.8M210 88V94.2M320 88V104.2M340 88V104.2M410 88V94.2M520 88V104.2M540 88V104.2M560 88V81.8M570 88V71.8M590 88V71.8M610 88V94.2M720 88V104.2M740 88V104.2M760 88V81.8M770 88V71.8M790 88V71.8" stroke="#8b5cf6" stroke-width="1.7" opacity=".92"/><path d="M-20 88V68M0 88V81.8M20 88V104.2M30 68V88M40 88V104.2M50 81.8V88M60 88V81.8M70 88V71.8M80 88V68M90 88V71.8M100 94.2V88M110 81.8V88M130 88V108M150 88V94.2M180 88V68M200 88V81.8M220 88V104.2M230 68V88M240 88V104.2M250 81.8V88M260 88V81.8M270 88V71.8M280 88V68M290 88V71.8M300 94.2V88M310 81.8V88M330 88V108M350 88V94.2M420 88V104.2M430 68V88M440 88V104.2M450 81.8V88M460 88V81.8M470 88V71.8M480 88V68M490 88V71.8M500 94.2V88M510 81.8V88M530 88V108M550 88V94.2M580 88V68M600 88V81.8M620 88V104.2M630 68V88M640 88V104.2M650 81.8V88M660 88V81.8M670 88V71.8M680 88V68M690 88V71.8M700 94.2V88M710 81.8V88M730 88V108M750 88V94.2M780 88V68" stroke="#d97706" stroke-width="1.7" opacity=".92"/><path d="M-20 108V88M0 94.2V88M20 71.8V88M30 88V108M40 71.8V88M50 88V94.2M60 94.2V88M70 104.2V88M80 108V88M90 104.2V88M100 88V81.8M110 88V94.2M130 68V88M150 81.8V88M180 108V88M200 94.2V88M220 71.8V88M230 88V108M240 71.8V88M250 88V94.2M260 94.2V88M270 104.2V88M280 108V88M290 104.2V88M300 88V81.8M310 88V94.2M330 68V88M350 81.8V88M420 71.8V88M430 88V108M440 71.8V88M450 88V94.2M460 94.2V88M470 104.2V88M480 108V88M490 104.2V88M500 88V81.8M510 88V94.2M530 68V88M550 81.8V88M580 108V88M600 94.2V88M620 71.8V88M630 88V108M640 71.8V88M650 88V94.2M660 94.2V88M670 104.2V88M680 108V88M690 104.2V88M700 88V81.8M710 88V94.2M730 68V88M750 81.8V88M780 108V88" stroke="#0d9488" stroke-width="1.7" opacity=".92"/><path d="M-10 104.2h.01M10 81.8h.01M120 71.8h.01M190 104.2h.01M210 81.8h.01M320 71.8h.01M410 81.8h.01M520 71.8h.01M590 104.2h.01M610 81.8h.01M720 71.8h.01M790 104.2h.01" stroke="#0284c7" stroke-width="3.8" opacity=".85"/><path d="M140 104.2h.01M160 81.8h.01M170 71.8h.01M340 104.2h.01M540 104.2h.01M560 81.8h.01M570 71.8h.01M740 104.2h.01M760 81.8h.01M770 71.8h.01" stroke="#8b5cf6" stroke-width="3.8" opacity=".85"/><path d="M40 104.2h.01M60 81.8h.01M70 71.8h.01M100 94.2h.01M110 81.8h.01M150 94.2h.01M240 104.2h.01M260 81.8h.01M270 71.8h.01M300 94.2h.01M310 81.8h.01M350 94.2h.01M440 104.2h.01M460 81.8h.01M470 71.8h.01M500 94.2h.01M510 81.8h.01M550 94.2h.01M640 104.2h.01M660 81.8h.01M670 71.8h.01M700 94.2h.01M710 81.8h.01M750 94.2h.01" stroke="#d97706" stroke-width="3.8" opacity=".85"/><path d="M0 94.2h.01M20 71.8h.01M50 94.2h.01M90 104.2h.01M200 94.2h.01M220 71.8h.01M250 94.2h.01M290 104.2h.01M420 71.8h.01M450 94.2h.01M490 104.2h.01M600 94.2h.01M620 71.8h.01M650 94.2h.01M690 104.2h.01" stroke="#0d9488" stroke-width="3.8" opacity=".85"/><path d="M-45 88C-36.7 98.5 -28.3 108 -20 108M-20 68C-11.7 68 -3.3 77.5 5 88M5 88C13.3 98.5 21.7 108 30 108M30 68C38.3 68 46.7 77.5 55 88M55 88C63.3 98.5 71.7 108 80 108M80 68C88.3 68 96.7 77.5 105 88M105 88C113.3 98.5 121.7 108 130 108M130 68C138.3 68 146.7 77.5 155 88M155 88C163.3 98.5 171.7 108 180 108M180 68C188.3 68 196.7 77.5 205 88M205 88C213.3 98.5 221.7 108 230 108M230 68C238.3 68 246.7 77.5 255 88M255 88C263.3 98.5 271.7 108 280 108M280 68C288.3 68 296.7 77.5 305 88M305 88C313.3 98.5 321.7 108 330 108M330 68C338.3 68 346.7 77.5 355 88M405 88C413.3 98.5 421.7 108 430 108M430 68C438.3 68 446.7 77.5 455 88M455 88C463.3 98.5 471.7 108 480 108M480 68C488.3 68 496.7 77.5 505 88M505 88C513.3 98.5 521.7 108 530 108M530 68C538.3 68 546.7 77.5 555 88M555 88C563.3 98.5 571.7 108 580 108M580 68C588.3 68 596.7 77.5 605 88M605 88C613.3 98.5 621.7 108 630 108M630 68C638.3 68 646.7 77.5 655 88M655 88C663.3 98.5 671.7 108 680 108M680 68C688.3 68 696.7 77.5 705 88M705 88C713.3 98.5 721.7 108 730 108M730 68C738.3 68 746.7 77.5 755 88M755 88C763.3 98.5 771.7 108 780 108M780 68C788.3 68 796.7 77.5 805 88M805 88C813.3 98.5 821.7 108 830 108" stroke="#5b7fd6" stroke-width="3.4"/><path d="M140 71.8h.01M160 94.2h.01M170 104.2h.01M340 71.8h.01M540 71.8h.01M560 94.2h.01M570 104.2h.01M740 71.8h.01M760 94.2h.01M770 104.2h.01" stroke="#0284c7" stroke-width="5.6"/><path d="M-10 71.8h.01M10 94.2h.01M120 104.2h.01M190 71.8h.01M210 94.2h.01M320 104.2h.01M410 94.2h.01M520 104.2h.01M590 71.8h.01M610 94.2h.01M720 104.2h.01M790 71.8h.01" stroke="#8b5cf6" stroke-width="5.6"/><path d="M-20 68h.01M0 81.8h.01M20 104.2h.01M30 68h.01M50 81.8h.01M80 68h.01M90 71.8h.01M130 108h.01M180 68h.01M200 81.8h.01M220 104.2h.01M230 68h.01M250 81.8h.01M280 68h.01M290 71.8h.01M330 108h.01M420 104.2h.01M430 68h.01M450 81.8h.01M480 68h.01M490 71.8h.01M530 108h.01M580 68h.01M600 81.8h.01M620 104.2h.01M630 68h.01M650 81.8h.01M680 68h.01M690 71.8h.01M730 108h.01M780 68h.01" stroke="#d97706" stroke-width="5.6"/><path d="M-20 108h.01M30 108h.01M40 71.8h.01M60 94.2h.01M70 104.2h.01M80 108h.01M100 81.8h.01M110 94.2h.01M130 68h.01M150 81.8h.01M180 108h.01M230 108h.01M240 71.8h.01M260 94.2h.01M270 104.2h.01M280 108h.01M300 81.8h.01M310 94.2h.01M330 68h.01M350 81.8h.01M430 108h.01M440 71.8h.01M460 94.2h.01M470 104.2h.01M480 108h.01M500 81.8h.01M510 94.2h.01M530 68h.01M550 81.8h.01M580 108h.01M630 108h.01M640 71.8h.01M660 94.2h.01M670 104.2h.01M680 108h.01M700 81.8h.01M710 94.2h.01M730 68h.01M750 81.8h.01M780 108h.01" stroke="#0d9488" stroke-width="5.6"/><g transform="translate(380 88)"><g class="gk-gene">
+                        <g class="gk-n"><path d="M-25 0C-16.7 -10.5 -8.3 -20 0 -20M0 20C8.3 20 16.7 10.5 25 0" stroke="#7c93cc" stroke-width="2.6" opacity=".8"/><path d="M-20 6.2V0M-10 16.2V0M10 16.2V0" stroke="#0284c7" stroke-width="1.7" opacity=".92"/><path d="M-20 0V-6.2M-10 0V-16.2M10 0V-16.2" stroke="#8b5cf6" stroke-width="1.7" opacity=".92"/><path d="M0 0V-20M20 0V-6.2" stroke="#d97706" stroke-width="1.7" opacity=".92"/><path d="M0 20V0M20 6.2V0" stroke="#0d9488" stroke-width="1.7" opacity=".92"/><path d="M10 16.2h.01" stroke="#0284c7" stroke-width="3.8" opacity=".85"/><path d="M-20 -6.2h.01M-10 -16.2h.01" stroke="#8b5cf6" stroke-width="3.8" opacity=".85"/><path d="M20 6.2h.01" stroke="#0d9488" stroke-width="3.8" opacity=".85"/><path d="M-25 0C-16.7 10.5 -8.3 20 0 20M0 -20C8.3 -20 16.7 -10.5 25 0" stroke="#5b7fd6" stroke-width="3.4"/><path d="M-20 6.2h.01M-10 16.2h.01" stroke="#0284c7" stroke-width="5.6"/><path d="M10 -16.2h.01" stroke="#8b5cf6" stroke-width="5.6"/><path d="M0 -20h.01M20 -6.2h.01" stroke="#d97706" stroke-width="5.6"/><path d="M0 20h.01" stroke="#0d9488" stroke-width="5.6"/></g>
+                        <g class="gk-red"><rect x="-34" y="-30" width="68" height="60" rx="9" fill="#ef4444" fill-opacity=".16" stroke="#ef4444" stroke-width="1.2"/><path d="M-25 0C-16.7 -10.5 -8.3 -20 0 -20M0 20C8.3 20 16.7 10.5 25 0M-25 0C-16.7 10.5 -8.3 20 0 20M0 -20C8.3 -20 16.7 -10.5 25 0" stroke="#ef4444" stroke-width="3.4"/><path d="M-20 6.2V0M-10 16.2V0M10 16.2V0M-20 0V-6.2M-10 0V-16.2M10 0V-16.2M0 0V-20M20 0V-6.2M0 20V0M20 6.2V0" stroke="#ef4444" stroke-width="1.9"/><path d="M10 16.2h.01M-20 -6.2h.01M-10 -16.2h.01M20 6.2h.01M-20 6.2h.01M-10 16.2h.01M10 -16.2h.01M0 -20h.01M20 -6.2h.01M0 20h.01" stroke="#ef4444" stroke-width="5.2"/></g>
+                        <circle class="gk-pulse gk-p1" cy="20" r="7" stroke="#f59e0b" stroke-width="1.6"/>
+                        <circle class="gk-pulse gk-p2" cy="20" r="7" stroke="#f59e0b" stroke-width="1.6"/>
+                        <circle class="gk-hlA" cy="20" r="7.5" stroke="#f59e0b" stroke-width="2"/>
+                        <circle class="gk-hlR" cy="20" r="7.5" stroke="#ef4444" stroke-width="2"/>
+                        </g></g></g></g></g></g></g>
+                    <circle r="32.5" fill="#7894c8" fill-opacity=".07"/>
+                    <g transform="rotate(45)" stroke-linecap="round" fill="none">
+                        <path d="M33 0H47" stroke="#e2e8f0" stroke-width="7.5" stroke-opacity=".8"/><path d="M33 0H47" stroke="#94a3b8" stroke-width="5.5"/>
+                        <path d="M45 0H78" stroke="#e2e8f0" stroke-width="10" stroke-opacity=".85"/><path d="M45 0H78" stroke="#475569" stroke-width="8"/>
+                        <path d="M50 -2H74" stroke="#94a3b8" stroke-width="1.6"/>
                     </g>
-
-                    <!-- Base pairs (rungs) -->
-                    <g class="base-pairs" stroke="#60a5fa" stroke-width="3" stroke-linecap="round">
-                        <line x1="60" y1="137" x2="60" y2="143"/>
-                        <line x1="100" y1="121" x2="100" y2="159"/>
-                        <line x1="140" y1="113" x2="140" y2="167"/>
-                        <line x1="180" y1="121" x2="180" y2="159"/>
-                        <line x1="220" y1="137" x2="220" y2="143"/>
-                        <line x1="260" y1="159" x2="260" y2="121"/>
-                        <line x1="300" y1="167" x2="300" y2="113"/>
-                        <line x1="340" y1="159" x2="340" y2="121"/>
-                        <line x1="380" y1="143" x2="380" y2="137"/>
-                        <line x1="420" y1="127" x2="420" y2="153"/>
+                    <circle r="33" fill="none" stroke="#334155" stroke-opacity=".55" stroke-width="5.8"/>
+                    <circle r="33" fill="none" stroke="url(#gk-rim)" stroke-width="4.2"/>
+                    <circle r="29.5" fill="none" stroke="#0ea5e9" stroke-width="1.4"/>
+                    <circle class="gk-ringA" r="29.5" fill="none" stroke="#f59e0b" stroke-width="1.8"/>
+                    <circle class="gk-ringR" r="29.5" fill="none" stroke="#ef4444" stroke-width="1.8"/>
+                    <path d="M-17 -19A25 25 0 0 1 -4 -25" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="2.4" stroke-linecap="round"/>
                     </g>
-
-                    <!-- Base letters -->
-                    <g class="base-letters" font-size="11" font-weight="800" fill="#3b82f6" text-anchor="middle">
-                        <text x="60" y="108">A</text>
-                        <text x="60" y="178">T</text>
-                        <text x="100" y="108">G</text>
-                        <text x="100" y="178">C</text>
-                        <text x="140" y="100">T</text>
-                        <text x="140" y="186">A</text>
-                        <text x="180" y="108">C</text>
-                        <text x="180" y="178">G</text>
-                        <text x="260" y="178">A</text>
-                        <text x="260" y="108">T</text>
-                        <text x="300" y="186">G</text>
-                        <text x="300" y="100">C</text>
-                        <text x="340" y="178">C</text>
-                        <text x="340" y="108">G</text>
-                        <text x="380" y="178">T</text>
-                        <text x="380" y="108">A</text>
-                        <text x="420" y="116">A</text>
-                        <text x="420" y="170">T</text>
-                    </g>
-
-                    <!-- Target nucleotide base that gets found -->
-                    <g class="target-base" filter="url(#strongGlow)">
-                        <line x1="220" y1="120" x2="220" y2="160" stroke="#f59e0b" stroke-width="5" stroke-linecap="round"/>
-                        <text x="220" y="112" font-size="13" font-weight="900" fill="#f59e0b" text-anchor="middle">G</text>
-                        <text x="220" y="180" font-size="13" font-weight="900" fill="#f59e0b" text-anchor="middle">C</text>
-                    </g>
-
-                    <!-- Target gene segment (red glowing area) -->
-                    <g class="target-gene-block" filter="url(#strongGlow)">
-                        <rect x="195" y="95" width="70" height="90" rx="12" fill="url(#targetRed)" opacity="0.8"/>
-                        <text x="230" y="145" font-size="12" font-weight="900" fill="white" text-anchor="middle">GENE</text>
-                    </g>
-
-                    <!-- Magnifying glass -->
-                    <g class="magnifier">
-                        <circle cx="0" cy="0" r="30" fill="rgba(59,130,246,0.12)" stroke="#3b82f6" stroke-width="4"/>
-                        <line x1="22" y1="22" x2="40" y2="40" stroke="#3b82f6" stroke-width="6" stroke-linecap="round"/>
-                        <path d="M-16,-12 Q-6,-20 8,-14" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="3" stroke-linecap="round"/>
-                    </g>
-
-                    <!-- FOUND IT warning bubble -->
-                    <g class="found-it-bubble" opacity="0">
-                        <path d="M245,45 L300,45 L310,65 L300,85 L260,85 L245,95 L250,75 L245,75 Z" fill="#f59e0b" filter="url(#softGlow)"/>
-                        <text x="270" y="70" font-size="11" font-weight="900" fill="white" text-anchor="middle">FOUND IT</text>
-                    </g>
-
-                    <!-- Sophisticated CRISPR-style scissors -->
-                    <g class="scissors" transform="translate(230, -90)">
-                        <!-- Guide RNA strand -->
-                        <g class="guide-rna">
-                            <path d="M-14,-35 Q-14,-55 0,-55 Q14,-55 14,-35 L14,15 Q14,28 6,28 L-6,28 Q-14,28 -14,15 Z" fill="none" stroke="#f59e0b" stroke-width="3.5"/>
-                            <line x1="-5" y1="-42" x2="-5" y2="5" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/>
-                            <line x1="0" y1="-42" x2="0" y2="5" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/>
-                            <line x1="5" y1="-42" x2="5" y2="5" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/>
-                        </g>
-                        <!-- Cas9 body -->
-                        <ellipse cx="0" cy="-15" rx="22" ry="16" fill="url(#scissorGrad)" filter="url(#softGlow)"/>
-                        <circle cx="0" cy="-15" r="7" fill="#e2e8f0"/>
-                        <circle cx="0" cy="-15" r="4" fill="#3b82f6"/>
-                        <!-- Blades -->
-                        <g class="scissor-blade-left">
-                            <path d="M-18,5 L-8,45 L-22,62" fill="none" stroke="url(#scissorGrad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M-18,5 L-8,45" fill="none" stroke="#e2e8f0" stroke-width="1.5" opacity="0.5"/>
-                            <circle cx="-22" cy="62" r="5" fill="#475569"/>
-                        </g>
-                        <g class="scissor-blade-right">
-                            <path d="M18,5 L8,45 L22,62" fill="none" stroke="url(#scissorGrad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M18,5 L8,45" fill="none" stroke="#e2e8f0" stroke-width="1.5" opacity="0.5"/>
-                            <circle cx="22" cy="62" r="5" fill="#475569"/>
-                        </g>
-                        <!-- Pivot glow -->
-                        <circle cx="0" cy="5" r="6" fill="#f59e0b" filter="url(#softGlow)"/>
-                    </g>
-
-                    <!-- Impact burst -->
-                    <g class="impact-burst" transform="translate(230,140)">
-                        <circle cx="0" cy="0" r="25" fill="url(#impactGlow)" opacity="0"/>
-                        <g stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round">
-                            <line x1="0" y1="-35" x2="0" y2="-22"/>
-                            <line x1="0" y1="22" x2="0" y2="35"/>
-                            <line x1="-35" y1="0" x2="-22" y2="0"/>
-                            <line x1="22" y1="0" x2="35" y2="0"/>
-                            <line x1="-24" y1="-24" x2="-16" y2="-16"/>
-                            <line x1="16" y1="-16" x2="24" y2="-24"/>
-                            <line x1="-24" y1="24" x2="-16" y2="16"/>
-                            <line x1="16" y1="16" x2="24" y2="24"/>
-                        </g>
-                    </g>
-
-                    <!-- Knocked-out gene fragment flying away -->
-                    <g class="knocked-fragment" filter="url(#softGlow)">
-                        <rect x="200" y="105" width="60" height="80" rx="10" fill="#ef4444"/>
-                        <text x="230" y="148" font-size="11" font-weight="900" fill="white" text-anchor="middle">GENE</text>
-                    </g>
-
-                    <!-- Safe glow after knockout -->
-                    <circle class="safe-glow" cx="230" cy="140" r="15" fill="url(#safeGlow)" opacity="0"/>
-
-                    <!-- Success banner -->
-                    <g class="safe-banner" opacity="0">
-                        <rect x="130" y="185" width="220" height="26" rx="6" fill="#22c55e" filter="url(#softGlow)"/>
-                        <text x="240" y="203" font-size="11" font-weight="900" fill="white" text-anchor="middle">GENE KNOCKED OUT SAFELY</text>
-                    </g>
+                    <g transform="translate(155 88)"><g class="gk-b1"><g stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round" fill="none"><path d="M5.0 0.0L11.0 0.0"/><path d="M3.5 3.5L7.8 7.8"/><path d="M0.0 5.0L0.0 11.0"/><path d="M-3.5 3.5L-7.8 7.8"/><path d="M-5.0 0.0L-11.0 0.0"/><path d="M-3.5 -3.5L-7.8 -7.8"/><path d="M-0.0 -5.0L-0.0 -11.0"/><path d="M3.5 -3.5L7.8 -7.8"/></g><circle r="9" fill="none" stroke="#f97316" stroke-width="1.5"/><circle r="3.6" fill="#fbbf24" stroke="#b45309" stroke-width=".8"/></g></g><g transform="translate(205 88)"><g class="gk-b2"><g stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round" fill="none"><path d="M5.0 0.0L11.0 0.0"/><path d="M3.5 3.5L7.8 7.8"/><path d="M0.0 5.0L0.0 11.0"/><path d="M-3.5 3.5L-7.8 7.8"/><path d="M-5.0 0.0L-11.0 0.0"/><path d="M-3.5 -3.5L-7.8 -7.8"/><path d="M-0.0 -5.0L-0.0 -11.0"/><path d="M3.5 -3.5L7.8 -7.8"/></g><circle r="9" fill="none" stroke="#f97316" stroke-width="1.5"/><circle r="3.6" fill="#fbbf24" stroke="#b45309" stroke-width=".8"/></g></g>
+                    <g transform="translate(155 50)"><g class="gk-sci"><g transform="scale(0.46)">
+                        <circle cy="50" r="74" fill="#0d9488" fill-opacity=".10"/>
+                        <g class="gk-bB"><g transform="scale(-1 1)"><path d="M0 -6V-63" stroke="#64748b" stroke-width="9" stroke-linecap="round" fill="none"/><circle cy="-80" r="17" fill="none" stroke="#8b5cf6" stroke-width="8"/><path d="M1.5 -6V135Q-11 83.7 -8 -6Z" fill="url(#gk-steel)" stroke="#334155" stroke-width="1.4" stroke-linejoin="round"/><path d="M.4 4V127" stroke="#fff" stroke-opacity=".85" stroke-width="1.1" fill="none"/></g></g>
+                        <g class="gk-bA"><g><path d="M0 -6V-63" stroke="#64748b" stroke-width="9" stroke-linecap="round" fill="none"/><circle cy="-80" r="17" fill="none" stroke="#0d9488" stroke-width="8"/><path d="M1.5 -6V135Q-11 83.7 -8 -6Z" fill="url(#gk-steel)" stroke="#334155" stroke-width="1.4" stroke-linejoin="round"/><path d="M.4 4V127" stroke="#fff" stroke-opacity=".85" stroke-width="1.1" fill="none"/></g></g>
+                        <circle r="7.5" fill="#cbd5e1" stroke="#334155" stroke-width="1.3"/><path d="M-4 -1.5L4 1.5" stroke="#334155" stroke-width="1.3"/>
+                    </g></g></g>
+                    <g transform="translate(180 34)"><g class="gk-badge">
+                        <path d="M-5 11.5H5L0 18Z" fill="#f59e0b" stroke="#7c2d12" stroke-width="1.2" stroke-linejoin="round"/>
+                        <rect x="-49" y="-12" width="98" height="24" rx="7" fill="#f59e0b" stroke="#7c2d12" stroke-width="1.3"/>
+                        <path d="M-5 11.5H5" stroke="#f59e0b" stroke-width="2.4"/>
+                        <path d="M-36 -6.5L-28.5 6.5H-43.5Z" fill="#1f1305" stroke="#1f1305" stroke-width="1.4" stroke-linejoin="round"/>
+                        <text class="gk-t" x="-36" y="5.2" font-size="7.5" font-weight="900" text-anchor="middle" fill="#f59e0b">!</text>
+                        <text class="gk-t" x="9" y="4.6" font-size="11.5" font-weight="800" text-anchor="middle" fill="#1f1305">FOUND IT!</text>
+                    </g></g>
+                    <g transform="translate(180 152)"><g class="gk-pill">
+                        <rect x="-93" y="-12" width="186" height="24" rx="12" fill="#15803d" stroke="#86efac" stroke-width="1"/>
+                        <circle cx="-76" r="8" fill="#22c55e"/><path d="M-80 .3L-77 3.4L-71.5-2.6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <text class="gk-t" x="12" y="4" font-size="11" font-weight="700" text-anchor="middle" fill="#fff">Gene knocked out safely</text>
+                    </g></g>
                 </svg>
             </div>
             
@@ -493,157 +444,15 @@
         color: #94a3b8 !important;
     }
 
-    /* DNA search and gene knockout animation */
-    .ko-search-animation svg {
-        overflow: visible;
+    /* Gene knockout SVG loader */
+    .gk-loader {
+        display: flex;
+        justify-content: center;
+        align-items: center;
     }
-
-    .ko-search-animation .base-pairs,
-    .ko-search-animation .base-letters,
-    .ko-search-animation .dna-backbone {
-        animation: dnaBreathe 5s ease-in-out infinite;
-    }
-    @keyframes dnaBreathe {
-        0%, 100% { opacity: 0.9; }
-        50% { opacity: 1; }
-    }
-
-    .ko-search-animation .magnifier {
-        animation: magnifierSearch 5s ease-in-out infinite;
-    }
-    @keyframes magnifierSearch {
-        0% { transform: translate(-50px, 140px) rotate(-8deg); opacity: 0; }
-        8% { opacity: 1; }
-        25% { transform: translate(230px, 140px) rotate(0deg); }
-        30% { transform: translate(230px, 140px) scale(1.1); }
-        35% { transform: translate(230px, 140px) scale(1); }
-        65% { transform: translate(230px, 140px) rotate(0deg); }
-        85% { transform: translate(530px, 140px) rotate(8deg); opacity: 1; }
-        95%, 100% { transform: translate(530px, 140px); opacity: 0; }
-    }
-
-    .ko-search-animation .target-base {
-        animation: baseFound 5s ease-in-out infinite;
-        transform-origin: center;
-    }
-    @keyframes baseFound {
-        0%, 24% { opacity: 0; transform: scale(0.8); }
-        30% { opacity: 1; transform: scale(1.15); filter: drop-shadow(0 0 12px #f59e0b); }
-        40%, 55% { opacity: 1; transform: scale(1.1); filter: drop-shadow(0 0 8px #f59e0b); }
-        62% { opacity: 0; transform: scale(0.9); }
-        100% { opacity: 0; }
-    }
-
-    .ko-search-animation .target-gene-block {
-        animation: geneHighlight 5s ease-in-out infinite;
-        transform-origin: center;
-    }
-    @keyframes geneHighlight {
-        0%, 32% { opacity: 0; transform: scale(0.85); }
-        38% { opacity: 0.9; transform: scale(1.05); filter: drop-shadow(0 0 14px #ef4444); }
-        55% { opacity: 0.9; transform: scale(1); }
-        62% { opacity: 0; transform: scale(0.8) translateY(20px); }
-        100% { opacity: 0; }
-    }
-
-    .ko-search-animation .found-it-bubble {
-        animation: foundItPop 5s ease-in-out infinite;
-        transform-origin: 230px 75px;
-    }
-    @keyframes foundItPop {
-        0%, 26% { opacity: 0; transform: scale(0.5) translateY(10px); }
-        32% { opacity: 1; transform: scale(1.1) translateY(0); }
-        38%, 48% { opacity: 1; transform: scale(1) translateY(0); }
-        55%, 100% { opacity: 0; transform: scale(0.8) translateY(-10px); }
-    }
-
-    .ko-search-animation .scissors {
-        animation: scissorsApproach 5s ease-in-out infinite;
-        transform-origin: 230px 0;
-    }
-    @keyframes scissorsApproach {
-        0%, 38% { transform: translate(230px, -150px) rotate(-12deg); opacity: 0; }
-        44% { transform: translate(230px, 75px) rotate(0deg); opacity: 1; }
-        48% { transform: translate(230px, 95px) rotate(0deg); }
-        52% { transform: translate(230px, 75px) rotate(0deg); }
-        58% { transform: translate(230px, -150px) rotate(-12deg); opacity: 1; }
-        64%, 100% { opacity: 0; }
-    }
-
-    .ko-search-animation .scissor-blade-left {
-        animation: bladeSnipLeft 5s ease-in-out infinite;
-        transform-origin: 0 45px;
-    }
-    @keyframes bladeSnipLeft {
-        0%, 46% { transform: rotate(0deg); }
-        50% { transform: rotate(-18deg); }
-        54% { transform: rotate(0deg); }
-        100% { transform: rotate(0deg); }
-    }
-
-    .ko-search-animation .scissor-blade-right {
-        animation: bladeSnipRight 5s ease-in-out infinite;
-        transform-origin: 0 45px;
-    }
-    @keyframes bladeSnipRight {
-        0%, 46% { transform: rotate(0deg); }
-        50% { transform: rotate(18deg); }
-        54% { transform: rotate(0deg); }
-        100% { transform: rotate(0deg); }
-    }
-
-    .ko-search-animation .guide-rna {
-        animation: guidePulse 5s ease-in-out infinite;
-    }
-    @keyframes guidePulse {
-        0%, 40% { opacity: 0.7; }
-        48% { opacity: 1; filter: drop-shadow(0 0 6px #f59e0b); }
-        60% { opacity: 1; }
-        70%, 100% { opacity: 0.7; }
-    }
-
-    .ko-search-animation .impact-burst {
-        animation: impactFlash 5s ease-out infinite;
-        transform-origin: center;
-    }
-    @keyframes impactFlash {
-        0%, 46% { opacity: 0; transform: scale(0.2); }
-        48% { opacity: 1; transform: scale(1.3); }
-        55% { opacity: 0; transform: scale(1.8); }
-        100% { opacity: 0; }
-    }
-
-    .ko-search-animation .knocked-fragment {
-        animation: fragmentDrop 5s ease-in-out infinite;
-        transform-origin: center;
-    }
-    @keyframes fragmentDrop {
-        0%, 50% { opacity: 0; transform: translateY(0) rotate(0deg) scale(1); }
-        53% { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
-        75% { opacity: 0; transform: translateY(90px) rotate(15deg) scale(0.85); }
-        100% { opacity: 0; }
-    }
-
-    .ko-search-animation .safe-glow {
-        animation: safePulse 5s ease-out infinite;
-        transform-origin: center;
-    }
-    @keyframes safePulse {
-        0%, 50% { opacity: 0; transform: scale(0.3); }
-        55% { opacity: 0.9; transform: scale(1.5); }
-        75% { opacity: 0; transform: scale(3); }
-        100% { opacity: 0; }
-    }
-
-    .ko-search-animation .safe-banner {
-        animation: safeBannerShow 5s ease-in-out infinite;
-        transform-origin: center;
-    }
-    @keyframes safeBannerShow {
-        0%, 54% { opacity: 0; transform: translateY(15px) scale(0.85); }
-        60% { opacity: 1; transform: translateY(0) scale(1.05); }
-        70%, 90% { opacity: 1; transform: translateY(0) scale(1); }
-        98%, 100% { opacity: 0; transform: translateY(-10px) scale(0.9); }
+    .gk-loader svg {
+        max-width: 100%;
+        height: auto;
     }
 </style>
 {% endblock %}
