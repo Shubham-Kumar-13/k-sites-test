@@ -24,18 +24,14 @@
 <div id="loadingState" class="py-4" style="display: {{ 'block' if job.status in ['pending', 'running'] else 'none' }};">
     <div class="card">
         <div class="card-body text-center py-5">
-            <div class="mb-4 search-burst-animation" aria-label="Analysis in progress">
-                <svg viewBox="0 0 420 300" width="336" height="240" role="img" aria-label="Multi-database gene search">
+            <div class="mb-4 filter-waterfall-animation" aria-label="Analysis in progress">
+                <svg viewBox="0 0 420 320" width="336" height="256" role="img" aria-label="Gene filtering waterfall">
                     <defs>
-                        <radialGradient id="coreGrad" cx="35%" cy="35%" r="65%" fx="25%" fy="25%">
-                            <stop offset="0%" style="stop-color:#93c5fd;stop-opacity:1" />
-                            <stop offset="50%" style="stop-color:#3b82f6;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#1d4ed8;stop-opacity:1" />
-                        </radialGradient>
-                        <radialGradient id="nodeGrad" cx="30%" cy="30%" r="70%" fx="20%" fy="20%">
-                            <stop offset="0%" style="stop-color:#e0e7ff;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#6366f1;stop-opacity:1" />
-                        </radialGradient>
+                        <linearGradient id="filterGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.9" />
+                            <stop offset="50%" style="stop-color:#06b6d4;stop-opacity:0.95" />
+                            <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0.9" />
+                        </linearGradient>
                         <filter id="glow">
                             <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
                             <feMerge>
@@ -45,78 +41,69 @@
                         </filter>
                     </defs>
 
-                    <!-- Outer orbit rings -->
-                    <circle class="orbit-ring" cx="210" cy="150" r="115" fill="none" stroke="#cbd5e1" stroke-width="1.5" opacity="0.4" stroke-dasharray="6 6"/>
-                    <circle class="orbit-ring" cx="210" cy="150" r="140" fill="none" stroke="#94a3b8" stroke-width="1" opacity="0.25" stroke-dasharray="4 8"/>
-
-                    <!-- Search beams from core to databases -->
-                    <g class="search-beams" stroke="#06b6d4" stroke-width="2" stroke-linecap="round" opacity="0">
-                        <line x1="210" y1="150" x2="210" y2="40"/>
-                        <line x1="210" y1="150" x2="315" y2="95"/>
-                        <line x1="210" y1="150" x2="315" y2="205"/>
-                        <line x1="210" y1="150" x2="210" y2="260"/>
-                        <line x1="210" y1="150" x2="105" y2="205"/>
-                        <line x1="210" y1="150" x2="105" y2="95"/>
+                    <!-- Filter layers -->
+                    <g class="filter-layer" transform="translate(0,90)">
+                        <rect x="20" y="0" width="380" height="28" rx="14" fill="url(#filterGrad)" opacity="0.85"/>
+                        <text x="210" y="18" font-size="11" font-weight="700" fill="white" text-anchor="middle">GO ANNOTATION FILTER</text>
+                    </g>
+                    <g class="filter-layer" transform="translate(0,155)">
+                        <rect x="20" y="0" width="380" height="28" rx="14" fill="url(#filterGrad)" opacity="0.85"/>
+                        <text x="210" y="18" font-size="11" font-weight="700" fill="white" text-anchor="middle">PLEIOTROPY FILTER</text>
+                    </g>
+                    <g class="filter-layer" transform="translate(0,220)">
+                        <rect x="20" y="0" width="380" height="28" rx="14" fill="url(#filterGrad)" opacity="0.85"/>
+                        <text x="210" y="18" font-size="11" font-weight="700" fill="white" text-anchor="middle">EVIDENCE FILTER</text>
                     </g>
 
-                    <!-- Database nodes -->
-                    <g class="db-node" transform="translate(210,40)">
-                        <circle r="28" fill="url(#nodeGrad)" stroke="#4f46e5" stroke-width="2" filter="url(#glow)"/>
-                        <text y="4" font-size="9" font-weight="700" fill="#312e81" text-anchor="middle">QuickGO</text>
-                    </g>
-                    <g class="db-node" transform="translate(315,95)">
-                        <circle r="28" fill="url(#nodeGrad)" stroke="#4f46e5" stroke-width="2" filter="url(#glow)"/>
-                        <text y="4" font-size="9" font-weight="700" fill="#312e81" text-anchor="middle">UniProt</text>
-                    </g>
-                    <g class="db-node" transform="translate(315,205)">
-                        <circle r="28" fill="url(#nodeGrad)" stroke="#4f46e5" stroke-width="2" filter="url(#glow)"/>
-                        <text y="4" font-size="9" font-weight="700" fill="#312e81" text-anchor="middle">NCBI</text>
-                    </g>
-                    <g class="db-node" transform="translate(210,260)">
-                        <circle r="28" fill="url(#nodeGrad)" stroke="#4f46e5" stroke-width="2" filter="url(#glow)"/>
-                        <text y="4" font-size="8" font-weight="700" fill="#312e81" text-anchor="middle">Ensembl</text>
-                    </g>
-                    <g class="db-node" transform="translate(105,205)">
-                        <circle r="28" fill="url(#nodeGrad)" stroke="#4f46e5" stroke-width="2" filter="url(#glow)"/>
-                        <text y="4" font-size="7" font-weight="700" fill="#312e81" text-anchor="middle">Alliance</text>
-                    </g>
-                    <g class="db-node" transform="translate(105,95)">
-                        <circle r="28" fill="url(#nodeGrad)" stroke="#4f46e5" stroke-width="2" filter="url(#glow)"/>
-                        <text y="4" font-size="9" font-weight="700" fill="#312e81" text-anchor="middle">MyGene</text>
+                    <!-- Gene particles falling through filters -->
+                    <g class="gene-dots">
+                        <circle cx="60" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:1;"/>
+                        <circle cx="100" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:2;"/>
+                        <circle cx="140" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:0;"/>
+                        <circle cx="180" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:1;"/>
+                        <circle cx="220" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:3;"/>
+                        <circle cx="260" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:2;"/>
+                        <circle cx="300" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:0;"/>
+                        <circle cx="340" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:1;"/>
+                        <circle cx="80" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:2;"/>
+                        <circle cx="120" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:3;"/>
+                        <circle cx="160" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:0;"/>
+                        <circle cx="200" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:1;"/>
+                        <circle cx="240" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:2;"/>
+                        <circle cx="280" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:0;"/>
+                        <circle cx="320" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:1;"/>
                     </g>
 
-                    <!-- Returning gene particles -->
-                    <g class="gene-particles">
-                        <circle cx="210" cy="40" r="4" fill="#22c55e" opacity="0" style="--dx:0px;--dy:110px;"/>
-                        <circle cx="315" cy="95" r="4" fill="#22c55e" opacity="0" style="--dx:-105px;--dy:55px;"/>
-                        <circle cx="315" cy="205" r="4" fill="#22c55e" opacity="0" style="--dx:-105px;--dy:-55px;"/>
-                        <circle cx="210" cy="260" r="4" fill="#22c55e" opacity="0" style="--dx:0px;--dy:-110px;"/>
-                        <circle cx="105" cy="205" r="4" fill="#22c55e" opacity="0" style="--dx:105px;--dy:-55px;"/>
-                        <circle cx="105" cy="95" r="4" fill="#22c55e" opacity="0" style="--dx:105px;--dy:55px;"/>
+                    <!-- Rejected gene poof effects -->
+                    <g class="reject-poofs">
+                        <circle cx="60" cy="104" r="8" fill="#ef4444" opacity="0"/>
+                        <circle cx="100" cy="169" r="8" fill="#ef4444" opacity="0"/>
+                        <circle cx="180" cy="104" r="8" fill="#ef4444" opacity="0"/>
+                        <circle cx="220" cy="234" r="8" fill="#ef4444" opacity="0"/>
+                        <circle cx="260" cy="169" r="8" fill="#ef4444" opacity="0"/>
+                        <circle cx="340" cy="104" r="8" fill="#ef4444" opacity="0"/>
+                        <circle cx="80" cy="169" r="8" fill="#ef4444" opacity="0"/>
+                        <circle cx="120" cy="234" r="8" fill="#ef4444" opacity="0"/>
+                        <circle cx="200" cy="104" r="8" fill="#ef4444" opacity="0"/>
+                        <circle cx="240" cy="169" r="8" fill="#ef4444" opacity="0"/>
+                        <circle cx="320" cy="104" r="8" fill="#ef4444" opacity="0"/>
                     </g>
 
-                    <!-- Central K-Sites core -->
-                    <g class="search-core" transform="translate(210,150)">
-                        <circle r="45" fill="url(#coreGrad)" filter="url(#glow)"/>
-                        <text y="-5" font-size="11" font-weight="700" fill="white" text-anchor="middle">K-Sites</text>
-                        <text y="10" font-size="8" fill="#dbeafe" text-anchor="middle">searching...</text>
+                    <!-- Safe gene accumulation tray -->
+                    <rect x="20" y="275" width="380" height="35" rx="17" fill="#dcfce7" stroke="#22c55e" stroke-width="2" opacity="0.9"/>
+                    <text x="210" y="298" font-size="12" font-weight="700" fill="#15803d" text-anchor="middle">SAFE TARGET CANDIDATES</text>
+
+                    <!-- Safe gene dots in tray -->
+                    <g class="safe-dots">
+                        <circle cx="80" cy="292" r="5" fill="#22c55e" opacity="0"/>
+                        <circle cx="140" cy="292" r="5" fill="#22c55e" opacity="0"/>
+                        <circle cx="200" cy="292" r="5" fill="#22c55e" opacity="0"/>
+                        <circle cx="260" cy="292" r="5" fill="#22c55e" opacity="0"/>
+                        <circle cx="320" cy="292" r="5" fill="#22c55e" opacity="0"/>
                     </g>
 
-                    <!-- Core pulse ring -->
-                    <circle class="core-pulse" cx="210" cy="150" r="45" fill="none" stroke="#3b82f6" stroke-width="2" opacity="0"/>
-
-                    <!-- Result gene cards -->
-                    <g class="result-genes" transform="translate(210,150)" opacity="0">
-                        <rect x="-35" y="-55" width="70" height="18" rx="9" fill="#22c55e" opacity="0.9"/>
-                        <text x="0" y="-42" font-size="8" font-weight="700" fill="white" text-anchor="middle">SAFE GENE 1</text>
-                        <rect x="-35" y="-30" width="70" height="18" rx="9" fill="#22c55e" opacity="0.9"/>
-                        <text x="0" y="-17" font-size="8" font-weight="700" fill="white" text-anchor="middle">SAFE GENE 2</text>
-                        <rect x="-35" y="-5" width="70" height="18" rx="9" fill="#22c55e" opacity="0.9"/>
-                        <text x="0" y="8" font-size="8" font-weight="700" fill="white" text-anchor="middle">SAFE GENE 3</text>
-                    </g>
-
-                    <!-- Status text -->
-                    <text class="search-status" x="210" y="285" font-size="13" font-weight="700" fill="#3b82f6" text-anchor="middle" opacity="0">QUERIES RETURNING...</text>
+                    <!-- Counter -->
+                    <text class="safe-counter" x="210" y="50" font-size="16" font-weight="700" fill="#22c55e" text-anchor="middle" opacity="0">5 SAFE GENES FOUND</text>
                 </svg>
             </div>
             
@@ -421,102 +408,91 @@
         color: #94a3b8 !important;
     }
 
-    /* Multi-database gene search burst animation */
-    .search-burst-animation svg {
+    /* Gene filtering waterfall animation */
+    .filter-waterfall-animation svg {
         overflow: visible;
     }
 
-    .search-burst-animation .orbit-ring {
-        animation: orbitSpin 12s linear infinite;
-        transform-origin: center;
+    .filter-waterfall-animation .filter-layer {
+        animation: filterPulse 3s ease-in-out infinite;
     }
-    .search-burst-animation .orbit-ring:nth-of-type(2) {
-        animation-direction: reverse;
-        animation-duration: 18s;
-    }
-    @keyframes orbitSpin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+    .filter-waterfall-animation .filter-layer:nth-of-type(2) { animation-delay: 0.2s; }
+    .filter-waterfall-animation .filter-layer:nth-of-type(3) { animation-delay: 0.4s; }
+    @keyframes filterPulse {
+        0%, 100% { filter: drop-shadow(0 0 0px #3b82f6); opacity: 0.85; }
+        50% { filter: drop-shadow(0 0 8px #06b6d4); opacity: 1; }
     }
 
-    .search-burst-animation .search-core {
-        animation: corePulse 2s ease-in-out infinite;
-        transform-origin: center;
+    .filter-waterfall-animation .gene-dots circle {
+        animation: geneFall 4s linear infinite;
+        opacity: 0;
     }
-    @keyframes corePulse {
-        0%, 100% { transform: translate(210px, 150px) scale(1); }
-        50% { transform: translate(210px, 150px) scale(1.06); }
-    }
-
-    .search-burst-animation .core-pulse {
-        animation: coreRing 2s ease-out infinite;
-        transform-origin: center;
-    }
-    @keyframes coreRing {
-        0% { opacity: 0.7; transform: scale(1); }
-        100% { opacity: 0; transform: scale(1.6); }
-    }
-
-    .search-burst-animation .search-beams {
-        animation: beamFire 4s ease-in-out infinite;
-    }
-    @keyframes beamFire {
-        0%, 10% { opacity: 0; }
-        15% { opacity: 1; }
-        35% { opacity: 0.1; }
+    .filter-waterfall-animation .gene-dots circle:nth-child(1) { animation-delay: 0.0s; }
+    .filter-waterfall-animation .gene-dots circle:nth-child(2) { animation-delay: 0.25s; }
+    .filter-waterfall-animation .gene-dots circle:nth-child(3) { animation-delay: 0.5s; }
+    .filter-waterfall-animation .gene-dots circle:nth-child(4) { animation-delay: 0.75s; }
+    .filter-waterfall-animation .gene-dots circle:nth-child(5) { animation-delay: 1.0s; }
+    .filter-waterfall-animation .gene-dots circle:nth-child(6) { animation-delay: 1.25s; }
+    .filter-waterfall-animation .gene-dots circle:nth-child(7) { animation-delay: 1.5s; }
+    .filter-waterfall-animation .gene-dots circle:nth-child(8) { animation-delay: 1.75s; }
+    .filter-waterfall-animation .gene-dots circle:nth-child(9) { animation-delay: 2.0s; }
+    .filter-waterfall-animation .gene-dots circle:nth-child(10) { animation-delay: 2.25s; }
+    .filter-waterfall-animation .gene-dots circle:nth-child(11) { animation-delay: 2.5s; }
+    .filter-waterfall-animation .gene-dots circle:nth-child(12) { animation-delay: 2.75s; }
+    .filter-waterfall-animation .gene-dots circle:nth-child(13) { animation-delay: 3.0s; }
+    .filter-waterfall-animation .gene-dots circle:nth-child(14) { animation-delay: 3.25s; }
+    .filter-waterfall-animation .gene-dots circle:nth-child(15) { animation-delay: 3.5s; }
+    @keyframes geneFall {
+        0% { opacity: 0; transform: translateY(0); fill: #3b82f6; }
+        5% { opacity: 1; }
+        25% { opacity: 1; transform: translateY(80px); fill: #3b82f6; }
+        28% { opacity: 1; transform: translateY(90px); fill: #ef4444; }
+        32% { opacity: 0; transform: translateY(95px); }
         100% { opacity: 0; }
     }
 
-    .search-burst-animation .db-node {
-        animation: nodeFlash 4s ease-in-out infinite;
+    .filter-waterfall-animation .reject-poofs circle {
+        animation: poofFlash 4s ease-out infinite;
     }
-    .search-burst-animation .db-node:nth-of-type(2) { animation-delay: 0.1s; }
-    .search-burst-animation .db-node:nth-of-type(3) { animation-delay: 0.25s; }
-    .search-burst-animation .db-node:nth-of-type(4) { animation-delay: 0.4s; }
-    .search-burst-animation .db-node:nth-of-type(5) { animation-delay: 0.55s; }
-    .search-burst-animation .db-node:nth-of-type(6) { animation-delay: 0.7s; }
-    .search-burst-animation .db-node:nth-of-type(7) { animation-delay: 0.85s; }
-    @keyframes nodeFlash {
-        0%, 10% { filter: none; }
-        20% { filter: drop-shadow(0 0 10px #06b6d4); transform: scale(1.1); }
-        35%, 100% { filter: none; transform: scale(1); }
+    .filter-waterfall-animation .reject-poofs circle:nth-child(1) { animation-delay: 0.95s; }
+    .filter-waterfall-animation .reject-poofs circle:nth-child(2) { animation-delay: 1.2s; }
+    .filter-waterfall-animation .reject-poofs circle:nth-child(3) { animation-delay: 1.45s; }
+    .filter-waterfall-animation .reject-poofs circle:nth-child(4) { animation-delay: 1.7s; }
+    .filter-waterfall-animation .reject-poofs circle:nth-child(5) { animation-delay: 1.95s; }
+    .filter-waterfall-animation .reject-poofs circle:nth-child(6) { animation-delay: 2.2s; }
+    .filter-waterfall-animation .reject-poofs circle:nth-child(7) { animation-delay: 2.45s; }
+    .filter-waterfall-animation .reject-poofs circle:nth-child(8) { animation-delay: 2.7s; }
+    .filter-waterfall-animation .reject-poofs circle:nth-child(9) { animation-delay: 2.95s; }
+    .filter-waterfall-animation .reject-poofs circle:nth-child(10) { animation-delay: 3.2s; }
+    .filter-waterfall-animation .reject-poofs circle:nth-child(11) { animation-delay: 3.45s; }
+    @keyframes poofFlash {
+        0%, 90% { opacity: 0; transform: scale(0.5); }
+        95% { opacity: 0.8; transform: scale(1.4); }
+        100% { opacity: 0; transform: scale(1.8); }
     }
 
-    .search-burst-animation .gene-particles circle {
-        animation: particleReturn 4s ease-in-out infinite;
+    .filter-waterfall-animation .safe-dots circle {
+        animation: safeDotAppear 4s ease-in-out infinite;
         opacity: 0;
     }
-    .search-burst-animation .gene-particles circle:nth-child(1) { animation-delay: 0.2s; }
-    .search-burst-animation .gene-particles circle:nth-child(2) { animation-delay: 0.35s; }
-    .search-burst-animation .gene-particles circle:nth-child(3) { animation-delay: 0.5s; }
-    .search-burst-animation .gene-particles circle:nth-child(4) { animation-delay: 0.65s; }
-    .search-burst-animation .gene-particles circle:nth-child(5) { animation-delay: 0.8s; }
-    .search-burst-animation .gene-particles circle:nth-child(6) { animation-delay: 0.95s; }
-    @keyframes particleReturn {
-        0%, 15% { opacity: 0; transform: translate(0, 0) scale(0.5); }
-        25% { opacity: 1; }
-        55% { opacity: 1; transform: translate(var(--dx, 0), var(--dy, 0)) scale(1); }
-        70%, 100% { opacity: 0; transform: translate(var(--dx, 0), var(--dy, 0)) scale(0.5); }
+    .filter-waterfall-animation .safe-dots circle:nth-child(1) { animation-delay: 2.0s; }
+    .filter-waterfall-animation .safe-dots circle:nth-child(2) { animation-delay: 2.4s; }
+    .filter-waterfall-animation .safe-dots circle:nth-child(3) { animation-delay: 2.8s; }
+    .filter-waterfall-animation .safe-dots circle:nth-child(4) { animation-delay: 3.2s; }
+    .filter-waterfall-animation .safe-dots circle:nth-child(5) { animation-delay: 3.6s; }
+    @keyframes safeDotAppear {
+        0%, 60% { opacity: 0; transform: scale(0); }
+        70% { opacity: 1; transform: scale(1.2); }
+        80%, 100% { opacity: 1; transform: scale(1); }
     }
 
-    .search-burst-animation .result-genes {
-        animation: resultsShow 4s ease-in-out infinite;
-        transform-origin: center;
+    .filter-waterfall-animation .safe-counter {
+        animation: counterPulse 4s ease-in-out infinite;
     }
-    @keyframes resultsShow {
-        0%, 50% { opacity: 0; transform: translate(210px, 150px) scale(0.6); }
-        60% { opacity: 1; transform: translate(210px, 150px) scale(1); }
-        85% { opacity: 1; transform: translate(210px, 150px) scale(1); }
-        100% { opacity: 0; transform: translate(210px, 150px) scale(0.8); }
-    }
-
-    .search-burst-animation .search-status {
-        animation: statusFade 4s ease-in-out infinite;
-    }
-    @keyframes statusFade {
-        0%, 10% { opacity: 0; transform: translateY(10px); }
-        20% { opacity: 1; transform: translateY(0); }
-        80% { opacity: 1; transform: translateY(0); }
+    @keyframes counterPulse {
+        0%, 55% { opacity: 0; transform: translateY(10px); }
+        70% { opacity: 1; transform: translateY(0); }
+        90% { opacity: 1; transform: translateY(0); }
         100% { opacity: 0; transform: translateY(-10px); }
     }
 </style>
