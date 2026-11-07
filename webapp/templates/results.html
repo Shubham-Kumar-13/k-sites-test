@@ -24,19 +24,28 @@
 <div id="loadingState" class="py-4" style="display: {{ 'block' if job.status in ['pending', 'running'] else 'none' }};">
     <div class="card">
         <div class="card-body text-center py-5">
-            <div class="mb-4 gene-deletion-animation" aria-label="Analysis in progress">
-                <svg viewBox="0 0 400 160" width="320" height="128" role="img" aria-label="Gene deletion and DNA repair animation">
+            <div class="mb-4 precision-ko-animation" aria-label="Analysis in progress">
+                <svg viewBox="0 0 420 180" width="336" height="144" role="img" aria-label="Precision gene knockout search animation">
                     <defs>
-                        <linearGradient id="dnaBlue" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#60a5fa;stop-opacity:1" />
+                        <linearGradient id="scanBeam" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0" />
+                            <stop offset="50%" style="stop-color:#60a5fa;stop-opacity:0.35" />
+                            <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0" />
                         </linearGradient>
-                        <linearGradient id="targetRed" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <linearGradient id="targetGlow" x1="0%" y1="0%" x2="100%" y2="100%">
                             <stop offset="0%" style="stop-color:#f87171;stop-opacity:1" />
                             <stop offset="100%" style="stop-color:#ef4444;stop-opacity:1" />
                         </linearGradient>
-                        <filter id="glow">
-                            <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+                        <linearGradient id="scissorGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:#94a3b8;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#64748b;stop-opacity:1" />
+                        </linearGradient>
+                        <radialGradient id="successPulse" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" style="stop-color:#22c55e;stop-opacity:0.6" />
+                            <stop offset="100%" style="stop-color:#22c55e;stop-opacity:0" />
+                        </radialGradient>
+                        <filter id="softGlow">
+                            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
                             <feMerge>
                                 <feMergeNode in="coloredBlur"/>
                                 <feMergeNode in="SourceGraphic"/>
@@ -44,69 +53,69 @@
                         </filter>
                     </defs>
 
-                    <!-- Full DNA before deletion -->
-                    <g class="dna-full">
-                        <path d="M0,75 L400,75" fill="none" stroke="url(#dnaBlue)" stroke-width="4" stroke-linecap="round"/>
-                        <path d="M0,95 L400,95" fill="none" stroke="url(#dnaBlue)" stroke-width="4" stroke-linecap="round"/>
-                        <g stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round">
-                            <line x1="30" y1="75" x2="30" y2="95"/>
-                            <line x1="70" y1="75" x2="70" y2="95"/>
-                            <line x1="110" y1="75" x2="110" y2="95"/>
-                            <line x1="150" y1="75" x2="150" y2="95"/>
-                            <line x1="190" y1="75" x2="190" y2="95"/>
-                            <line x1="230" y1="75" x2="230" y2="95"/>
-                            <line x1="270" y1="75" x2="270" y2="95"/>
-                            <line x1="310" y1="75" x2="310" y2="95"/>
-                            <line x1="350" y1="75" x2="350" y2="95"/>
+                    <!-- Background genome track -->
+                    <g class="genome-track">
+                        <rect x="10" y="120" width="400" height="12" rx="6" fill="#e2e8f0"/>
+                        <g fill="#cbd5e1">
+                            <circle cx="45" cy="126" r="4"/>
+                            <circle cx="95" cy="126" r="4"/>
+                            <circle cx="145" cy="126" r="4"/>
+                            <circle cx="210" cy="126" r="6" fill="#94a3b8"/>
+                            <circle cx="275" cy="126" r="4"/>
+                            <circle cx="325" cy="126" r="4"/>
+                            <circle cx="375" cy="126" r="4"/>
+                        </g>
+                        <text x="210" y="150" font-size="10" font-weight="600" fill="#64748b" text-anchor="middle">GENOME SEARCH</text>
+                    </g>
+
+                    <!-- Scanning beam -->
+                    <rect class="scan-beam" x="0" y="100" width="80" height="50" fill="url(#scanBeam)"/>
+
+                    <!-- Target gene -->
+                    <g class="target-gene" filter="url(#softGlow)">
+                        <rect x="185" y="108" width="50" height="36" rx="8" fill="url(#targetGlow)"/>
+                        <text x="210" y="130" font-size="11" font-weight="800" fill="white" text-anchor="middle">GENE</text>
+                    </g>
+
+                    <!-- Target lock brackets -->
+                    <g class="target-lock" stroke="#ef4444" stroke-width="3" fill="none" stroke-linecap="round">
+                        <path d="M175,100 L175,90 L185,90"/>
+                        <path d="M245,100 L245,90 L235,90"/>
+                        <path d="M175,152 L175,162 L185,162"/>
+                        <path d="M245,152 L245,162 L235,162"/>
+                    </g>
+
+                    <!-- CRISPR scissor complex -->
+                    <g class="crispr-complex" transform="translate(210, 45)">
+                        <!-- guide RNA -->
+                        <path d="M-18,0 Q-18,-20 0,-20 Q18,-20 18,0 L18,35 Q18,45 10,45 L-10,45 Q-18,45 -18,35 Z" fill="none" stroke="#f59e0b" stroke-width="3"/>
+                        <line x1="-8" y1="-8" x2="-8" y2="18" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>
+                        <line x1="0" y1="-8" x2="0" y2="18" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>
+                        <line x1="8" y1="-8" x2="8" y2="18" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"/>
+                        <!-- scissors -->
+                        <g class="scissor-left">
+                            <path d="M-22,35 L-6,55 L-22,75" fill="none" stroke="url(#scissorGrad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="-22" cy="75" r="5" fill="#475569"/>
+                        </g>
+                        <g class="scissor-right">
+                            <path d="M22,35 L6,55 L22,75" fill="none" stroke="url(#scissorGrad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="22" cy="75" r="5" fill="#475569"/>
                         </g>
                     </g>
 
-                    <!-- Gene segment to be deleted -->
-                    <g class="gene-segment" filter="url(#glow)">
-                        <path d="M150,75 L250,75" fill="none" stroke="url(#targetRed)" stroke-width="4" stroke-linecap="round"/>
-                        <path d="M150,95 L250,95" fill="none" stroke="url(#targetRed)" stroke-width="4" stroke-linecap="round"/>
-                        <g stroke="#ef4444" stroke-width="2.5" stroke-linecap="round">
-                            <line x1="170" y1="75" x2="170" y2="95"/>
-                            <line x1="190" y1="75" x2="190" y2="95"/>
-                            <line x1="210" y1="75" x2="210" y2="95"/>
-                            <line x1="230" y1="75" x2="230" y2="95"/>
-                        </g>
-                        <text x="200" y="115" font-size="10" font-weight="700" fill="#ef4444" text-anchor="middle">GENE</text>
+                    <!-- Cut gene fragment falling away -->
+                    <g class="gene-fragment" filter="url(#softGlow)">
+                        <rect x="190" y="108" width="40" height="36" rx="6" fill="#ef4444"/>
+                        <text x="210" y="130" font-size="9" font-weight="700" fill="white" text-anchor="middle">GENE</text>
                     </g>
 
-                    <!-- DNA left and right halves (move together after deletion) -->
-                    <g class="dna-left">
-                        <path d="M0,75 L150,75" fill="none" stroke="url(#dnaBlue)" stroke-width="4" stroke-linecap="round"/>
-                        <path d="M0,95 L150,95" fill="none" stroke="url(#dnaBlue)" stroke-width="4" stroke-linecap="round"/>
-                    </g>
-                    <g class="dna-right">
-                        <path d="M250,75 L400,75" fill="none" stroke="url(#dnaBlue)" stroke-width="4" stroke-linecap="round"/>
-                        <path d="M250,95 L400,95" fill="none" stroke="url(#dnaBlue)" stroke-width="4" stroke-linecap="round"/>
-                    </g>
+                    <!-- Success pulse ring -->
+                    <circle class="success-pulse" cx="210" cy="126" r="10" fill="url(#successPulse)" opacity="0"/>
 
-                    <!-- Repair glow at junction -->
-                    <circle class="repair-glow" cx="200" cy="85" r="30" fill="#22c55e" opacity="0" filter="url(#glow)"/>
-
-                    <!-- Repaired continuous DNA -->
-                    <g class="repaired-dna" opacity="0">
-                        <path d="M0,85 L400,85" fill="none" stroke="#22c55e" stroke-width="4" stroke-linecap="round"/>
-                        <g stroke="#22c55e" stroke-width="2.5" stroke-linecap="round">
-                            <line x1="30" y1="75" x2="30" y2="95"/>
-                            <line x1="70" y1="75" x2="70" y2="95"/>
-                            <line x1="110" y1="75" x2="110" y2="95"/>
-                            <line x1="150" y1="75" x2="150" y2="95"/>
-                            <line x1="190" y1="75" x2="190" y2="95"/>
-                            <line x1="230" y1="75" x2="230" y2="95"/>
-                            <line x1="270" y1="75" x2="270" y2="95"/>
-                            <line x1="310" y1="75" x2="310" y2="95"/>
-                            <line x1="350" y1="75" x2="350" y2="95"/>
-                        </g>
-                    </g>
-
-                    <!-- Success checkmark -->
-                    <g class="repair-check" transform="translate(200,85)" opacity="0">
-                        <circle cx="0" cy="0" r="22" fill="#22c55e" filter="url(#glow)"/>
-                        <path d="M-8,2 L-3,7 L8,-8" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- Success seal -->
+                    <g class="success-seal" transform="translate(210,126)" opacity="0">
+                        <circle cx="0" cy="0" r="24" fill="#22c55e" filter="url(#softGlow)"/>
+                        <path d="M-10,2 L-3,9 L10,-8" fill="none" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
                     </g>
                 </svg>
             </div>
@@ -412,83 +421,114 @@
         color: #94a3b8 !important;
     }
 
-    /* Gene deletion and repair animation */
-    .gene-deletion-animation svg {
+    /* Precision knockout search animation */
+    .precision-ko-animation svg {
         overflow: visible;
     }
 
-    .gene-deletion-animation .gene-segment {
-        animation: genePulse 4s ease-in-out infinite;
+    .precision-ko-animation .genome-track {
+        animation: genomePulse 4.5s ease-in-out infinite;
     }
-    @keyframes genePulse {
-        0%, 15%, 85%, 100% { opacity: 1; filter: drop-shadow(0 0 2px #ef4444); }
-        8% { opacity: 1; filter: drop-shadow(0 0 10px #ef4444); }
-        35%, 80% { opacity: 0; transform: translateY(25px); }
-    }
-
-    .gene-deletion-animation .gene-segment text {
-        animation: geneText 4s ease-in-out infinite;
-    }
-    @keyframes geneText {
-        0%, 30% { opacity: 1; }
-        40%, 100% { opacity: 0; }
+    @keyframes genomePulse {
+        0%, 100% { opacity: 0.85; }
+        50% { opacity: 1; }
     }
 
-    .gene-deletion-animation .dna-left {
-        animation: leftMove 4s ease-in-out infinite;
+    .precision-ko-animation .scan-beam {
+        animation: scanMove 4.5s ease-in-out infinite;
     }
-    @keyframes leftMove {
-        0%, 35% { transform: translateX(0); }
-        55%, 80% { transform: translateX(50px); }
-        95%, 100% { transform: translateX(0); }
-    }
-
-    .gene-deletion-animation .dna-right {
-        animation: rightMove 4s ease-in-out infinite;
-    }
-    @keyframes rightMove {
-        0%, 35% { transform: translateX(0); }
-        55%, 80% { transform: translateX(-50px); }
-        95%, 100% { transform: translateX(0); }
+    @keyframes scanMove {
+        0% { transform: translateX(-60px); opacity: 0; }
+        10% { opacity: 1; }
+        40% { transform: translateX(340px); opacity: 1; }
+        50%, 100% { transform: translateX(340px); opacity: 0; }
     }
 
-    .gene-deletion-animation .dna-full {
-        animation: fullDna 4s ease-in-out infinite;
-    }
-    @keyframes fullDna {
-        0%, 35% { opacity: 1; }
-        45%, 90% { opacity: 0; }
-        100% { opacity: 1; }
-    }
-
-    .gene-deletion-animation .repair-glow {
-        animation: repairFlash 4s ease-in-out infinite;
-    }
-    @keyframes repairFlash {
-        0%, 50% { opacity: 0; transform: scale(0.5); }
-        60% { opacity: 0.8; transform: scale(1.2); }
-        75% { opacity: 0; transform: scale(1.5); }
-        100% { opacity: 0; }
-    }
-
-    .gene-deletion-animation .repaired-dna {
-        animation: repairedShow 4s ease-in-out infinite;
-    }
-    @keyframes repairedShow {
-        0%, 55% { opacity: 0; }
-        65%, 90% { opacity: 1; }
-        100% { opacity: 0; }
-    }
-
-    .gene-deletion-animation .repair-check {
-        animation: repairCheck 4s ease-in-out infinite;
+    .precision-ko-animation .target-gene {
+        animation: targetReveal 4.5s ease-in-out infinite;
         transform-origin: center;
     }
-    @keyframes repairCheck {
-        0%, 60% { opacity: 0; transform: translate(200px, 85px) scale(0.5); }
-        70% { opacity: 1; transform: translate(200px, 85px) scale(1.1); }
-        75%, 90% { opacity: 1; transform: translate(200px, 85px) scale(1); }
-        100% { opacity: 0; transform: translate(200px, 85px) scale(0.5); }
+    @keyframes targetReveal {
+        0%, 30% { opacity: 0.25; transform: scale(0.9); }
+        40% { opacity: 1; transform: scale(1.05); filter: drop-shadow(0 0 8px #ef4444); }
+        55% { opacity: 1; transform: scale(1); }
+        65%, 100% { opacity: 0; transform: scale(0.8) translateY(30px); }
+    }
+
+    .precision-ko-animation .target-lock {
+        animation: lockOn 4.5s ease-in-out infinite;
+        transform-origin: center;
+    }
+    @keyframes lockOn {
+        0%, 35% { opacity: 0; transform: scale(1.3); }
+        42% { opacity: 1; transform: scale(1); }
+        60% { opacity: 1; }
+        70%, 100% { opacity: 0; transform: scale(0.9); }
+    }
+
+    .precision-ko-animation .crispr-complex {
+        animation: crisprApproach 4.5s ease-in-out infinite;
+        transform-origin: center;
+    }
+    @keyframes crisprApproach {
+        0%, 40% { transform: translate(210px, -40px) scale(0.7); opacity: 0; }
+        48% { transform: translate(210px, 45px) scale(1); opacity: 1; }
+        62% { transform: translate(210px, 45px) scale(1); opacity: 1; }
+        72%, 100% { transform: translate(210px, -40px) scale(0.7); opacity: 0; }
+    }
+
+    .precision-ko-animation .scissor-left {
+        animation: snipLeft 4.5s ease-in-out infinite;
+        transform-origin: 0 55px;
+    }
+    @keyframes snipLeft {
+        0%, 48% { transform: rotate(0deg); }
+        55% { transform: rotate(-22deg); }
+        62% { transform: rotate(0deg); }
+        100% { transform: rotate(0deg); }
+    }
+
+    .precision-ko-animation .scissor-right {
+        animation: snipRight 4.5s ease-in-out infinite;
+        transform-origin: 0 55px;
+    }
+    @keyframes snipRight {
+        0%, 48% { transform: rotate(0deg); }
+        55% { transform: rotate(22deg); }
+        62% { transform: rotate(0deg); }
+        100% { transform: rotate(0deg); }
+    }
+
+    .precision-ko-animation .gene-fragment {
+        animation: fragmentFall 4.5s ease-in-out infinite;
+    }
+    @keyframes fragmentFall {
+        0%, 55% { opacity: 0; transform: translateY(0) rotate(0deg); }
+        62% { opacity: 1; transform: translateY(0) rotate(0deg); }
+        80% { opacity: 0; transform: translateY(55px) rotate(25deg); }
+        100% { opacity: 0; }
+    }
+
+    .precision-ko-animation .success-pulse {
+        animation: pulseExpand 4.5s ease-out infinite;
+        transform-origin: center;
+    }
+    @keyframes pulseExpand {
+        0%, 62% { opacity: 0; transform: scale(0.2); }
+        65% { opacity: 0.9; }
+        85% { opacity: 0; transform: scale(4.5); }
+        100% { opacity: 0; }
+    }
+
+    .precision-ko-animation .success-seal {
+        animation: sealShow 4.5s ease-in-out infinite;
+        transform-origin: center;
+    }
+    @keyframes sealShow {
+        0%, 68% { opacity: 0; transform: translate(210px, 126px) scale(0.3); }
+        76% { opacity: 1; transform: translate(210px, 126px) scale(1.15); }
+        82%, 95% { opacity: 1; transform: translate(210px, 126px) scale(1); }
+        100% { opacity: 0; transform: translate(210px, 126px) scale(0.8); }
     }
 </style>
 {% endblock %}
