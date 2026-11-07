@@ -128,6 +128,9 @@ export class LocalBackend {
             const cancelMatch = /^\/api\/jobs\/([^/]+)\/cancel$/.exec(route);
             if (cancelMatch && method === 'POST') return await this.cancel(cancelMatch[1]);
 
+            const deleteMatch = /^\/api\/jobs\/([^/]+)$/.exec(route);
+            if (deleteMatch && method === 'DELETE') return await this.delete(deleteMatch[1]);
+
             const match = /^\/api\/jobs\/([^/]+)\/(status|results|download)(?:\/([^/]+))?$/.exec(route);
             if (match) {
                 const [, jobId, action, fileType] = match;
@@ -308,6 +311,16 @@ export class LocalBackend {
         if (controller) controller.abort();
         await this._update(job, { status: 'failed', current_step: 'Cancelled', error_message: 'Cancelled by you.' }, true);
         return jsonResponse(this._toDict(job));
+    }
+
+    /** Permanently delete a job and its stored results. */
+    async delete(jobId) {
+        const job = await this.d.store.getJob(jobId);
+        if (!job) return jsonResponse({ error: 'Job not found' }, 404);
+        if (this.controllers.has(jobId)) this.controllers.get(jobId).abort();
+        this.running.delete(jobId);
+        await this.d.store.deleteJob(jobId);
+        return jsonResponse({ success: true, message: 'Job deleted' });
     }
 
     async status(jobId) {

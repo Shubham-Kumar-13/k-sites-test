@@ -161,12 +161,38 @@ function renderJobs(jobs) {
                 <small class="text-muted">${formatDate(job.created_at)}</small>
             </td>
             <td>
-                <a href="${ksPage('results', { job: job.id })}" class="btn btn-sm btn-primary">
+                <a href="${ksPage('results', { job: job.id })}" class="btn btn-sm btn-primary" title="View results">
                     <i class="fas fa-eye"></i>
                 </a>
+                <button class="btn btn-sm btn-outline-danger ms-1" title="Delete job" onclick="deleteJob('${job.id}', this)">
+                    <i class="fas fa-trash"></i>
+                </button>
             </td>
         </tr>
     `).join('');
+}
+
+async function deleteJob(jobId, btn) {
+    if (!confirm('Delete this job permanently? This cannot be undone.')) return;
+    
+    const row = btn.closest('tr');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    try {
+        const response = await ksFetch('/api/jobs/' + encodeURIComponent(jobId), { method: 'DELETE' });
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.error || 'Could not delete job');
+        }
+        allJobs = allJobs.filter(j => j.id !== jobId);
+        filterJobs();
+    } catch (error) {
+        console.error('Error deleting job:', error);
+        alert(error.message || 'Error deleting job');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-trash"></i>';
+    }
 }
 
 function filterJobs() {

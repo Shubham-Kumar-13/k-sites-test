@@ -1182,6 +1182,29 @@ def list_all_jobs():
     return jsonify({'jobs': [job.to_dict() for job in jobs]})
 
 
+@app.route('/api/jobs/<job_id>', methods=['DELETE'])
+@login_required
+def delete_job(job_id):
+    """Delete a job and its results"""
+    job = AnalysisJob.query.get(job_id)
+    if not job:
+        return jsonify({'error': 'Job not found'}), 404
+    
+    # Remove results directory if it exists
+    if job.results_path:
+        try:
+            results_dir = Path(job.results_path)
+            if results_dir.exists():
+                import shutil
+                shutil.rmtree(results_dir)
+        except Exception as e:
+            logger.error(f"Error deleting results directory for job {job_id}: {e}")
+    
+    db.session.delete(job)
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Job deleted'})
+
+
 @app.route('/api/jobs/<job_id>/results')
 @login_required
 def get_job_results(job_id):
