@@ -24,16 +24,17 @@
 <div id="loadingState" class="py-4" style="display: {{ 'block' if job.status in ['pending', 'running'] else 'none' }};">
     <div class="card">
         <div class="card-body text-center py-5">
-            <div class="mb-4 knockout-validation-animation" aria-label="Analysis in progress">
-                <svg viewBox="0 0 320 240" width="288" height="216" role="img" aria-label="Knockout validation: gene removed, cell stays healthy">
+            <div class="mb-4 search-burst-animation" aria-label="Analysis in progress">
+                <svg viewBox="0 0 420 300" width="336" height="240" role="img" aria-label="Multi-database gene search">
                     <defs>
-                        <radialGradient id="cellGrad" cx="35%" cy="35%" r="75%" fx="25%" fy="25%">
-                            <stop offset="0%" style="stop-color:#e0f2fe;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#bae6fd;stop-opacity:1" />
+                        <radialGradient id="coreGrad" cx="35%" cy="35%" r="65%" fx="25%" fy="25%">
+                            <stop offset="0%" style="stop-color:#93c5fd;stop-opacity:1" />
+                            <stop offset="50%" style="stop-color:#3b82f6;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#1d4ed8;stop-opacity:1" />
                         </radialGradient>
-                        <radialGradient id="healthyGlow" cx="50%" cy="50%" r="50%">
-                            <stop offset="0%" style="stop-color:#86efac;stop-opacity:0.7" />
-                            <stop offset="100%" style="stop-color:#22c55e;stop-opacity:0" />
+                        <radialGradient id="nodeGrad" cx="30%" cy="30%" r="70%" fx="20%" fy="20%">
+                            <stop offset="0%" style="stop-color:#e0e7ff;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#6366f1;stop-opacity:1" />
                         </radialGradient>
                         <filter id="glow">
                             <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
@@ -44,36 +45,78 @@
                         </filter>
                     </defs>
 
-                    <!-- Healthy cell glow ring -->
-                    <circle class="cell-glow" cx="160" cy="110" r="95" fill="url(#healthyGlow)" opacity="0"/>
+                    <!-- Outer orbit rings -->
+                    <circle class="orbit-ring" cx="210" cy="150" r="115" fill="none" stroke="#cbd5e1" stroke-width="1.5" opacity="0.4" stroke-dasharray="6 6"/>
+                    <circle class="orbit-ring" cx="210" cy="150" r="140" fill="none" stroke="#94a3b8" stroke-width="1" opacity="0.25" stroke-dasharray="4 8"/>
 
-                    <!-- Cell membrane -->
-                    <circle class="cell-membrane" cx="160" cy="110" r="80" fill="url(#cellGrad)" stroke="#3b82f6" stroke-width="3" opacity="0.9"/>
-
-                    <!-- Gene icon inside cell -->
-                    <g class="gene-icon" transform="translate(160,110)">
-                        <!-- DNA helix icon -->
-                        <path d="M-25,-20 Q-12,-35 0,-20 Q12,-5 25,-20" fill="none" stroke="#3b82f6" stroke-width="3.5" stroke-linecap="round"/>
-                        <path d="M-25,20 Q-12,35 0,20 Q12,5 25,20" fill="none" stroke="#3b82f6" stroke-width="3.5" stroke-linecap="round"/>
-                        <line x1="-8" y1="-14" x2="-8" y2="14" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round"/>
-                        <line x1="8" y1="-14" x2="8" y2="14" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round"/>
-                        <text y="42" font-size="12" font-weight="700" fill="#1e40af" text-anchor="middle">GENE</text>
+                    <!-- Search beams from core to databases -->
+                    <g class="search-beams" stroke="#06b6d4" stroke-width="2" stroke-linecap="round" opacity="0">
+                        <line x1="210" y1="150" x2="210" y2="40"/>
+                        <line x1="210" y1="150" x2="315" y2="95"/>
+                        <line x1="210" y1="150" x2="315" y2="205"/>
+                        <line x1="210" y1="150" x2="210" y2="260"/>
+                        <line x1="210" y1="150" x2="105" y2="205"/>
+                        <line x1="210" y1="150" x2="105" y2="95"/>
                     </g>
 
-                    <!-- Knockout X mark -->
-                    <g class="knockout-x" transform="translate(160,110)" opacity="0">
-                        <circle r="48" fill="none" stroke="#ef4444" stroke-width="3" stroke-dasharray="8 4"/>
-                        <path d="M-18,-18 L18,18 M18,-18 L-18,18" stroke="#ef4444" stroke-width="4" stroke-linecap="round"/>
+                    <!-- Database nodes -->
+                    <g class="db-node" transform="translate(210,40)">
+                        <circle r="28" fill="url(#nodeGrad)" stroke="#4f46e5" stroke-width="2" filter="url(#glow)"/>
+                        <text y="4" font-size="9" font-weight="700" fill="#312e81" text-anchor="middle">QuickGO</text>
+                    </g>
+                    <g class="db-node" transform="translate(315,95)">
+                        <circle r="28" fill="url(#nodeGrad)" stroke="#4f46e5" stroke-width="2" filter="url(#glow)"/>
+                        <text y="4" font-size="9" font-weight="700" fill="#312e81" text-anchor="middle">UniProt</text>
+                    </g>
+                    <g class="db-node" transform="translate(315,205)">
+                        <circle r="28" fill="url(#nodeGrad)" stroke="#4f46e5" stroke-width="2" filter="url(#glow)"/>
+                        <text y="4" font-size="9" font-weight="700" fill="#312e81" text-anchor="middle">NCBI</text>
+                    </g>
+                    <g class="db-node" transform="translate(210,260)">
+                        <circle r="28" fill="url(#nodeGrad)" stroke="#4f46e5" stroke-width="2" filter="url(#glow)"/>
+                        <text y="4" font-size="8" font-weight="700" fill="#312e81" text-anchor="middle">Ensembl</text>
+                    </g>
+                    <g class="db-node" transform="translate(105,205)">
+                        <circle r="28" fill="url(#nodeGrad)" stroke="#4f46e5" stroke-width="2" filter="url(#glow)"/>
+                        <text y="4" font-size="7" font-weight="700" fill="#312e81" text-anchor="middle">Alliance</text>
+                    </g>
+                    <g class="db-node" transform="translate(105,95)">
+                        <circle r="28" fill="url(#nodeGrad)" stroke="#4f46e5" stroke-width="2" filter="url(#glow)"/>
+                        <text y="4" font-size="9" font-weight="700" fill="#312e81" text-anchor="middle">MyGene</text>
                     </g>
 
-                    <!-- Success checkmark -->
-                    <g class="validation-check" transform="translate(160,110)" opacity="0">
-                        <circle cx="0" cy="0" r="28" fill="#22c55e" filter="url(#glow)"/>
-                        <path d="M-10,2 L-3,9 L10,-8" fill="none" stroke="white" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- Returning gene particles -->
+                    <g class="gene-particles">
+                        <circle cx="210" cy="40" r="4" fill="#22c55e" opacity="0" style="--dx:0px;--dy:110px;"/>
+                        <circle cx="315" cy="95" r="4" fill="#22c55e" opacity="0" style="--dx:-105px;--dy:55px;"/>
+                        <circle cx="315" cy="205" r="4" fill="#22c55e" opacity="0" style="--dx:-105px;--dy:-55px;"/>
+                        <circle cx="210" cy="260" r="4" fill="#22c55e" opacity="0" style="--dx:0px;--dy:-110px;"/>
+                        <circle cx="105" cy="205" r="4" fill="#22c55e" opacity="0" style="--dx:105px;--dy:-55px;"/>
+                        <circle cx="105" cy="95" r="4" fill="#22c55e" opacity="0" style="--dx:105px;--dy:55px;"/>
                     </g>
 
-                    <!-- Status label -->
-                    <text class="validation-label" x="160" y="225" font-size="13" font-weight="700" fill="#22c55e" text-anchor="middle" opacity="0">HEALTHY KNOCKOUT</text>
+                    <!-- Central K-Sites core -->
+                    <g class="search-core" transform="translate(210,150)">
+                        <circle r="45" fill="url(#coreGrad)" filter="url(#glow)"/>
+                        <text y="-5" font-size="11" font-weight="700" fill="white" text-anchor="middle">K-Sites</text>
+                        <text y="10" font-size="8" fill="#dbeafe" text-anchor="middle">searching...</text>
+                    </g>
+
+                    <!-- Core pulse ring -->
+                    <circle class="core-pulse" cx="210" cy="150" r="45" fill="none" stroke="#3b82f6" stroke-width="2" opacity="0"/>
+
+                    <!-- Result gene cards -->
+                    <g class="result-genes" transform="translate(210,150)" opacity="0">
+                        <rect x="-35" y="-55" width="70" height="18" rx="9" fill="#22c55e" opacity="0.9"/>
+                        <text x="0" y="-42" font-size="8" font-weight="700" fill="white" text-anchor="middle">SAFE GENE 1</text>
+                        <rect x="-35" y="-30" width="70" height="18" rx="9" fill="#22c55e" opacity="0.9"/>
+                        <text x="0" y="-17" font-size="8" font-weight="700" fill="white" text-anchor="middle">SAFE GENE 2</text>
+                        <rect x="-35" y="-5" width="70" height="18" rx="9" fill="#22c55e" opacity="0.9"/>
+                        <text x="0" y="8" font-size="8" font-weight="700" fill="white" text-anchor="middle">SAFE GENE 3</text>
+                    </g>
+
+                    <!-- Status text -->
+                    <text class="search-status" x="210" y="285" font-size="13" font-weight="700" fill="#3b82f6" text-anchor="middle" opacity="0">QUERIES RETURNING...</text>
                 </svg>
             </div>
             
@@ -378,71 +421,103 @@
         color: #94a3b8 !important;
     }
 
-    /* Knockout validation pulse animation */
-    .knockout-validation-animation svg {
+    /* Multi-database gene search burst animation */
+    .search-burst-animation svg {
         overflow: visible;
     }
 
-    .knockout-validation-animation .cell-membrane {
-        animation: cellBreathe 4s ease-in-out infinite;
+    .search-burst-animation .orbit-ring {
+        animation: orbitSpin 12s linear infinite;
         transform-origin: center;
     }
-    @keyframes cellBreathe {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.02); }
+    .search-burst-animation .orbit-ring:nth-of-type(2) {
+        animation-direction: reverse;
+        animation-duration: 18s;
+    }
+    @keyframes orbitSpin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
 
-    .knockout-validation-animation .gene-icon {
-        animation: geneWarn 4s ease-in-out infinite;
+    .search-burst-animation .search-core {
+        animation: corePulse 2s ease-in-out infinite;
         transform-origin: center;
     }
-    @keyframes geneWarn {
-        0%, 15%, 85%, 100% { opacity: 1; transform: translate(160px, 110px) scale(1); }
-        20% { opacity: 1; transform: translate(160px, 110px) scale(1.05); filter: drop-shadow(0 0 6px #ef4444); }
-        45%, 75% { opacity: 0.2; transform: translate(160px, 110px) scale(0.9); }
+    @keyframes corePulse {
+        0%, 100% { transform: translate(210px, 150px) scale(1); }
+        50% { transform: translate(210px, 150px) scale(1.06); }
     }
 
-    .knockout-validation-animation .knockout-x {
-        animation: xMark 4s ease-in-out infinite;
+    .search-burst-animation .core-pulse {
+        animation: coreRing 2s ease-out infinite;
         transform-origin: center;
     }
-    @keyframes xMark {
-        0%, 20% { opacity: 0; transform: translate(160px, 110px) scale(0.5) rotate(-45deg); }
-        30% { opacity: 1; transform: translate(160px, 110px) scale(1.1) rotate(0deg); }
-        40% { opacity: 1; transform: translate(160px, 110px) scale(1) rotate(0deg); }
-        80%, 100% { opacity: 0; }
+    @keyframes coreRing {
+        0% { opacity: 0.7; transform: scale(1); }
+        100% { opacity: 0; transform: scale(1.6); }
     }
 
-    .knockout-validation-animation .cell-glow {
-        animation: healthyPulse 4s ease-in-out infinite;
+    .search-burst-animation .search-beams {
+        animation: beamFire 4s ease-in-out infinite;
+    }
+    @keyframes beamFire {
+        0%, 10% { opacity: 0; }
+        15% { opacity: 1; }
+        35% { opacity: 0.1; }
+        100% { opacity: 0; }
+    }
+
+    .search-burst-animation .db-node {
+        animation: nodeFlash 4s ease-in-out infinite;
+    }
+    .search-burst-animation .db-node:nth-of-type(2) { animation-delay: 0.1s; }
+    .search-burst-animation .db-node:nth-of-type(3) { animation-delay: 0.25s; }
+    .search-burst-animation .db-node:nth-of-type(4) { animation-delay: 0.4s; }
+    .search-burst-animation .db-node:nth-of-type(5) { animation-delay: 0.55s; }
+    .search-burst-animation .db-node:nth-of-type(6) { animation-delay: 0.7s; }
+    .search-burst-animation .db-node:nth-of-type(7) { animation-delay: 0.85s; }
+    @keyframes nodeFlash {
+        0%, 10% { filter: none; }
+        20% { filter: drop-shadow(0 0 10px #06b6d4); transform: scale(1.1); }
+        35%, 100% { filter: none; transform: scale(1); }
+    }
+
+    .search-burst-animation .gene-particles circle {
+        animation: particleReturn 4s ease-in-out infinite;
+        opacity: 0;
+    }
+    .search-burst-animation .gene-particles circle:nth-child(1) { animation-delay: 0.2s; }
+    .search-burst-animation .gene-particles circle:nth-child(2) { animation-delay: 0.35s; }
+    .search-burst-animation .gene-particles circle:nth-child(3) { animation-delay: 0.5s; }
+    .search-burst-animation .gene-particles circle:nth-child(4) { animation-delay: 0.65s; }
+    .search-burst-animation .gene-particles circle:nth-child(5) { animation-delay: 0.8s; }
+    .search-burst-animation .gene-particles circle:nth-child(6) { animation-delay: 0.95s; }
+    @keyframes particleReturn {
+        0%, 15% { opacity: 0; transform: translate(0, 0) scale(0.5); }
+        25% { opacity: 1; }
+        55% { opacity: 1; transform: translate(var(--dx, 0), var(--dy, 0)) scale(1); }
+        70%, 100% { opacity: 0; transform: translate(var(--dx, 0), var(--dy, 0)) scale(0.5); }
+    }
+
+    .search-burst-animation .result-genes {
+        animation: resultsShow 4s ease-in-out infinite;
         transform-origin: center;
     }
-    @keyframes healthyPulse {
-        0%, 45% { opacity: 0; transform: scale(0.6); }
-        55% { opacity: 1; transform: scale(1.1); }
-        65%, 85% { opacity: 0.6; transform: scale(1.2); }
-        100% { opacity: 0; transform: scale(1.4); }
+    @keyframes resultsShow {
+        0%, 50% { opacity: 0; transform: translate(210px, 150px) scale(0.6); }
+        60% { opacity: 1; transform: translate(210px, 150px) scale(1); }
+        85% { opacity: 1; transform: translate(210px, 150px) scale(1); }
+        100% { opacity: 0; transform: translate(210px, 150px) scale(0.8); }
     }
 
-    .knockout-validation-animation .validation-check {
-        animation: validationCheck 4s ease-in-out infinite;
-        transform-origin: center;
+    .search-burst-animation .search-status {
+        animation: statusFade 4s ease-in-out infinite;
     }
-    @keyframes validationCheck {
-        0%, 55% { opacity: 0; transform: translate(160px, 110px) scale(0.4); }
-        65% { opacity: 1; transform: translate(160px, 110px) scale(1.15); }
-        70%, 90% { opacity: 1; transform: translate(160px, 110px) scale(1); }
-        100% { opacity: 0; transform: translate(160px, 110px) scale(0.8); }
-    }
-
-    .knockout-validation-animation .validation-label {
-        animation: labelShow 4s ease-in-out infinite;
-    }
-    @keyframes labelShow {
-        0%, 60% { opacity: 0; transform: translateY(8px); }
-        70% { opacity: 1; transform: translateY(0); }
-        90% { opacity: 1; transform: translateY(0); }
-        100% { opacity: 0; transform: translateY(-8px); }
+    @keyframes statusFade {
+        0%, 10% { opacity: 0; transform: translateY(10px); }
+        20% { opacity: 1; transform: translateY(0); }
+        80% { opacity: 1; transform: translateY(0); }
+        100% { opacity: 0; transform: translateY(-10px); }
     }
 </style>
 {% endblock %}
