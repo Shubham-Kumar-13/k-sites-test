@@ -24,13 +24,16 @@
 <div id="loadingState" class="py-4" style="display: {{ 'block' if job.status in ['pending', 'running'] else 'none' }};">
     <div class="card">
         <div class="card-body text-center py-5">
-            <div class="mb-4 filter-waterfall-animation" aria-label="Analysis in progress">
-                <svg viewBox="0 0 420 320" width="336" height="256" role="img" aria-label="Gene filtering waterfall">
+            <div class="mb-4 gene-deletion-animation" aria-label="Analysis in progress">
+                <svg viewBox="0 0 400 160" width="320" height="128" role="img" aria-label="Gene deletion and DNA repair animation">
                     <defs>
-                        <linearGradient id="filterGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.9" />
-                            <stop offset="50%" style="stop-color:#06b6d4;stop-opacity:0.95" />
-                            <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0.9" />
+                        <linearGradient id="dnaBlue" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#60a5fa;stop-opacity:1" />
+                        </linearGradient>
+                        <linearGradient id="targetRed" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#f87171;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#ef4444;stop-opacity:1" />
                         </linearGradient>
                         <filter id="glow">
                             <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
@@ -41,69 +44,70 @@
                         </filter>
                     </defs>
 
-                    <!-- Filter layers -->
-                    <g class="filter-layer" transform="translate(0,90)">
-                        <rect x="20" y="0" width="380" height="28" rx="14" fill="url(#filterGrad)" opacity="0.85"/>
-                        <text x="210" y="18" font-size="11" font-weight="700" fill="white" text-anchor="middle">GO ANNOTATION FILTER</text>
-                    </g>
-                    <g class="filter-layer" transform="translate(0,155)">
-                        <rect x="20" y="0" width="380" height="28" rx="14" fill="url(#filterGrad)" opacity="0.85"/>
-                        <text x="210" y="18" font-size="11" font-weight="700" fill="white" text-anchor="middle">PLEIOTROPY FILTER</text>
-                    </g>
-                    <g class="filter-layer" transform="translate(0,220)">
-                        <rect x="20" y="0" width="380" height="28" rx="14" fill="url(#filterGrad)" opacity="0.85"/>
-                        <text x="210" y="18" font-size="11" font-weight="700" fill="white" text-anchor="middle">EVIDENCE FILTER</text>
-                    </g>
-
-                    <!-- Gene particles falling through filters -->
-                    <g class="gene-dots">
-                        <circle cx="60" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:1;"/>
-                        <circle cx="100" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:2;"/>
-                        <circle cx="140" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:0;"/>
-                        <circle cx="180" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:1;"/>
-                        <circle cx="220" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:3;"/>
-                        <circle cx="260" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:2;"/>
-                        <circle cx="300" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:0;"/>
-                        <circle cx="340" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:1;"/>
-                        <circle cx="80" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:2;"/>
-                        <circle cx="120" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:3;"/>
-                        <circle cx="160" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:0;"/>
-                        <circle cx="200" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:1;"/>
-                        <circle cx="240" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:2;"/>
-                        <circle cx="280" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:0;"/>
-                        <circle cx="320" cy="-10" r="5" fill="#3b82f6" style="--end-y:300px;--filter-out:1;"/>
+                    <!-- Full DNA before deletion -->
+                    <g class="dna-full">
+                        <path d="M0,75 L400,75" fill="none" stroke="url(#dnaBlue)" stroke-width="4" stroke-linecap="round"/>
+                        <path d="M0,95 L400,95" fill="none" stroke="url(#dnaBlue)" stroke-width="4" stroke-linecap="round"/>
+                        <g stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round">
+                            <line x1="30" y1="75" x2="30" y2="95"/>
+                            <line x1="70" y1="75" x2="70" y2="95"/>
+                            <line x1="110" y1="75" x2="110" y2="95"/>
+                            <line x1="150" y1="75" x2="150" y2="95"/>
+                            <line x1="190" y1="75" x2="190" y2="95"/>
+                            <line x1="230" y1="75" x2="230" y2="95"/>
+                            <line x1="270" y1="75" x2="270" y2="95"/>
+                            <line x1="310" y1="75" x2="310" y2="95"/>
+                            <line x1="350" y1="75" x2="350" y2="95"/>
+                        </g>
                     </g>
 
-                    <!-- Rejected gene poof effects -->
-                    <g class="reject-poofs">
-                        <circle cx="60" cy="104" r="8" fill="#ef4444" opacity="0"/>
-                        <circle cx="100" cy="169" r="8" fill="#ef4444" opacity="0"/>
-                        <circle cx="180" cy="104" r="8" fill="#ef4444" opacity="0"/>
-                        <circle cx="220" cy="234" r="8" fill="#ef4444" opacity="0"/>
-                        <circle cx="260" cy="169" r="8" fill="#ef4444" opacity="0"/>
-                        <circle cx="340" cy="104" r="8" fill="#ef4444" opacity="0"/>
-                        <circle cx="80" cy="169" r="8" fill="#ef4444" opacity="0"/>
-                        <circle cx="120" cy="234" r="8" fill="#ef4444" opacity="0"/>
-                        <circle cx="200" cy="104" r="8" fill="#ef4444" opacity="0"/>
-                        <circle cx="240" cy="169" r="8" fill="#ef4444" opacity="0"/>
-                        <circle cx="320" cy="104" r="8" fill="#ef4444" opacity="0"/>
+                    <!-- Gene segment to be deleted -->
+                    <g class="gene-segment" filter="url(#glow)">
+                        <path d="M150,75 L250,75" fill="none" stroke="url(#targetRed)" stroke-width="4" stroke-linecap="round"/>
+                        <path d="M150,95 L250,95" fill="none" stroke="url(#targetRed)" stroke-width="4" stroke-linecap="round"/>
+                        <g stroke="#ef4444" stroke-width="2.5" stroke-linecap="round">
+                            <line x1="170" y1="75" x2="170" y2="95"/>
+                            <line x1="190" y1="75" x2="190" y2="95"/>
+                            <line x1="210" y1="75" x2="210" y2="95"/>
+                            <line x1="230" y1="75" x2="230" y2="95"/>
+                        </g>
+                        <text x="200" y="115" font-size="10" font-weight="700" fill="#ef4444" text-anchor="middle">GENE</text>
                     </g>
 
-                    <!-- Safe gene accumulation tray -->
-                    <rect x="20" y="275" width="380" height="35" rx="17" fill="#dcfce7" stroke="#22c55e" stroke-width="2" opacity="0.9"/>
-                    <text x="210" y="298" font-size="12" font-weight="700" fill="#15803d" text-anchor="middle">SAFE TARGET CANDIDATES</text>
-
-                    <!-- Safe gene dots in tray -->
-                    <g class="safe-dots">
-                        <circle cx="80" cy="292" r="5" fill="#22c55e" opacity="0"/>
-                        <circle cx="140" cy="292" r="5" fill="#22c55e" opacity="0"/>
-                        <circle cx="200" cy="292" r="5" fill="#22c55e" opacity="0"/>
-                        <circle cx="260" cy="292" r="5" fill="#22c55e" opacity="0"/>
-                        <circle cx="320" cy="292" r="5" fill="#22c55e" opacity="0"/>
+                    <!-- DNA left and right halves (move together after deletion) -->
+                    <g class="dna-left">
+                        <path d="M0,75 L150,75" fill="none" stroke="url(#dnaBlue)" stroke-width="4" stroke-linecap="round"/>
+                        <path d="M0,95 L150,95" fill="none" stroke="url(#dnaBlue)" stroke-width="4" stroke-linecap="round"/>
+                    </g>
+                    <g class="dna-right">
+                        <path d="M250,75 L400,75" fill="none" stroke="url(#dnaBlue)" stroke-width="4" stroke-linecap="round"/>
+                        <path d="M250,95 L400,95" fill="none" stroke="url(#dnaBlue)" stroke-width="4" stroke-linecap="round"/>
                     </g>
 
-                    <!-- Counter -->
-                    <text class="safe-counter" x="210" y="50" font-size="16" font-weight="700" fill="#22c55e" text-anchor="middle" opacity="0">5 SAFE GENES FOUND</text>
+                    <!-- Repair glow at junction -->
+                    <circle class="repair-glow" cx="200" cy="85" r="30" fill="#22c55e" opacity="0" filter="url(#glow)"/>
+
+                    <!-- Repaired continuous DNA -->
+                    <g class="repaired-dna" opacity="0">
+                        <path d="M0,85 L400,85" fill="none" stroke="#22c55e" stroke-width="4" stroke-linecap="round"/>
+                        <g stroke="#22c55e" stroke-width="2.5" stroke-linecap="round">
+                            <line x1="30" y1="75" x2="30" y2="95"/>
+                            <line x1="70" y1="75" x2="70" y2="95"/>
+                            <line x1="110" y1="75" x2="110" y2="95"/>
+                            <line x1="150" y1="75" x2="150" y2="95"/>
+                            <line x1="190" y1="75" x2="190" y2="95"/>
+                            <line x1="230" y1="75" x2="230" y2="95"/>
+                            <line x1="270" y1="75" x2="270" y2="95"/>
+                            <line x1="310" y1="75" x2="310" y2="95"/>
+                            <line x1="350" y1="75" x2="350" y2="95"/>
+                        </g>
+                    </g>
+
+                    <!-- Success checkmark -->
+                    <g class="repair-check" transform="translate(200,85)" opacity="0">
+                        <circle cx="0" cy="0" r="22" fill="#22c55e" filter="url(#glow)"/>
+                        <path d="M-8,2 L-3,7 L8,-8" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                    </g>
                 </svg>
             </div>
             
@@ -408,92 +412,83 @@
         color: #94a3b8 !important;
     }
 
-    /* Gene filtering waterfall animation */
-    .filter-waterfall-animation svg {
+    /* Gene deletion and repair animation */
+    .gene-deletion-animation svg {
         overflow: visible;
     }
 
-    .filter-waterfall-animation .filter-layer {
-        animation: filterPulse 3s ease-in-out infinite;
+    .gene-deletion-animation .gene-segment {
+        animation: genePulse 4s ease-in-out infinite;
     }
-    .filter-waterfall-animation .filter-layer:nth-of-type(2) { animation-delay: 0.2s; }
-    .filter-waterfall-animation .filter-layer:nth-of-type(3) { animation-delay: 0.4s; }
-    @keyframes filterPulse {
-        0%, 100% { filter: drop-shadow(0 0 0px #3b82f6); opacity: 0.85; }
-        50% { filter: drop-shadow(0 0 8px #06b6d4); opacity: 1; }
+    @keyframes genePulse {
+        0%, 15%, 85%, 100% { opacity: 1; filter: drop-shadow(0 0 2px #ef4444); }
+        8% { opacity: 1; filter: drop-shadow(0 0 10px #ef4444); }
+        35%, 80% { opacity: 0; transform: translateY(25px); }
     }
 
-    .filter-waterfall-animation .gene-dots circle {
-        animation: geneFall 4s linear infinite;
-        opacity: 0;
+    .gene-deletion-animation .gene-segment text {
+        animation: geneText 4s ease-in-out infinite;
     }
-    .filter-waterfall-animation .gene-dots circle:nth-child(1) { animation-delay: 0.0s; }
-    .filter-waterfall-animation .gene-dots circle:nth-child(2) { animation-delay: 0.25s; }
-    .filter-waterfall-animation .gene-dots circle:nth-child(3) { animation-delay: 0.5s; }
-    .filter-waterfall-animation .gene-dots circle:nth-child(4) { animation-delay: 0.75s; }
-    .filter-waterfall-animation .gene-dots circle:nth-child(5) { animation-delay: 1.0s; }
-    .filter-waterfall-animation .gene-dots circle:nth-child(6) { animation-delay: 1.25s; }
-    .filter-waterfall-animation .gene-dots circle:nth-child(7) { animation-delay: 1.5s; }
-    .filter-waterfall-animation .gene-dots circle:nth-child(8) { animation-delay: 1.75s; }
-    .filter-waterfall-animation .gene-dots circle:nth-child(9) { animation-delay: 2.0s; }
-    .filter-waterfall-animation .gene-dots circle:nth-child(10) { animation-delay: 2.25s; }
-    .filter-waterfall-animation .gene-dots circle:nth-child(11) { animation-delay: 2.5s; }
-    .filter-waterfall-animation .gene-dots circle:nth-child(12) { animation-delay: 2.75s; }
-    .filter-waterfall-animation .gene-dots circle:nth-child(13) { animation-delay: 3.0s; }
-    .filter-waterfall-animation .gene-dots circle:nth-child(14) { animation-delay: 3.25s; }
-    .filter-waterfall-animation .gene-dots circle:nth-child(15) { animation-delay: 3.5s; }
-    @keyframes geneFall {
-        0% { opacity: 0; transform: translateY(0); fill: #3b82f6; }
-        5% { opacity: 1; }
-        25% { opacity: 1; transform: translateY(80px); fill: #3b82f6; }
-        28% { opacity: 1; transform: translateY(90px); fill: #ef4444; }
-        32% { opacity: 0; transform: translateY(95px); }
+    @keyframes geneText {
+        0%, 30% { opacity: 1; }
+        40%, 100% { opacity: 0; }
+    }
+
+    .gene-deletion-animation .dna-left {
+        animation: leftMove 4s ease-in-out infinite;
+    }
+    @keyframes leftMove {
+        0%, 35% { transform: translateX(0); }
+        55%, 80% { transform: translateX(50px); }
+        95%, 100% { transform: translateX(0); }
+    }
+
+    .gene-deletion-animation .dna-right {
+        animation: rightMove 4s ease-in-out infinite;
+    }
+    @keyframes rightMove {
+        0%, 35% { transform: translateX(0); }
+        55%, 80% { transform: translateX(-50px); }
+        95%, 100% { transform: translateX(0); }
+    }
+
+    .gene-deletion-animation .dna-full {
+        animation: fullDna 4s ease-in-out infinite;
+    }
+    @keyframes fullDna {
+        0%, 35% { opacity: 1; }
+        45%, 90% { opacity: 0; }
+        100% { opacity: 1; }
+    }
+
+    .gene-deletion-animation .repair-glow {
+        animation: repairFlash 4s ease-in-out infinite;
+    }
+    @keyframes repairFlash {
+        0%, 50% { opacity: 0; transform: scale(0.5); }
+        60% { opacity: 0.8; transform: scale(1.2); }
+        75% { opacity: 0; transform: scale(1.5); }
         100% { opacity: 0; }
     }
 
-    .filter-waterfall-animation .reject-poofs circle {
-        animation: poofFlash 4s ease-out infinite;
+    .gene-deletion-animation .repaired-dna {
+        animation: repairedShow 4s ease-in-out infinite;
     }
-    .filter-waterfall-animation .reject-poofs circle:nth-child(1) { animation-delay: 0.95s; }
-    .filter-waterfall-animation .reject-poofs circle:nth-child(2) { animation-delay: 1.2s; }
-    .filter-waterfall-animation .reject-poofs circle:nth-child(3) { animation-delay: 1.45s; }
-    .filter-waterfall-animation .reject-poofs circle:nth-child(4) { animation-delay: 1.7s; }
-    .filter-waterfall-animation .reject-poofs circle:nth-child(5) { animation-delay: 1.95s; }
-    .filter-waterfall-animation .reject-poofs circle:nth-child(6) { animation-delay: 2.2s; }
-    .filter-waterfall-animation .reject-poofs circle:nth-child(7) { animation-delay: 2.45s; }
-    .filter-waterfall-animation .reject-poofs circle:nth-child(8) { animation-delay: 2.7s; }
-    .filter-waterfall-animation .reject-poofs circle:nth-child(9) { animation-delay: 2.95s; }
-    .filter-waterfall-animation .reject-poofs circle:nth-child(10) { animation-delay: 3.2s; }
-    .filter-waterfall-animation .reject-poofs circle:nth-child(11) { animation-delay: 3.45s; }
-    @keyframes poofFlash {
-        0%, 90% { opacity: 0; transform: scale(0.5); }
-        95% { opacity: 0.8; transform: scale(1.4); }
-        100% { opacity: 0; transform: scale(1.8); }
+    @keyframes repairedShow {
+        0%, 55% { opacity: 0; }
+        65%, 90% { opacity: 1; }
+        100% { opacity: 0; }
     }
 
-    .filter-waterfall-animation .safe-dots circle {
-        animation: safeDotAppear 4s ease-in-out infinite;
-        opacity: 0;
+    .gene-deletion-animation .repair-check {
+        animation: repairCheck 4s ease-in-out infinite;
+        transform-origin: center;
     }
-    .filter-waterfall-animation .safe-dots circle:nth-child(1) { animation-delay: 2.0s; }
-    .filter-waterfall-animation .safe-dots circle:nth-child(2) { animation-delay: 2.4s; }
-    .filter-waterfall-animation .safe-dots circle:nth-child(3) { animation-delay: 2.8s; }
-    .filter-waterfall-animation .safe-dots circle:nth-child(4) { animation-delay: 3.2s; }
-    .filter-waterfall-animation .safe-dots circle:nth-child(5) { animation-delay: 3.6s; }
-    @keyframes safeDotAppear {
-        0%, 60% { opacity: 0; transform: scale(0); }
-        70% { opacity: 1; transform: scale(1.2); }
-        80%, 100% { opacity: 1; transform: scale(1); }
-    }
-
-    .filter-waterfall-animation .safe-counter {
-        animation: counterPulse 4s ease-in-out infinite;
-    }
-    @keyframes counterPulse {
-        0%, 55% { opacity: 0; transform: translateY(10px); }
-        70% { opacity: 1; transform: translateY(0); }
-        90% { opacity: 1; transform: translateY(0); }
-        100% { opacity: 0; transform: translateY(-10px); }
+    @keyframes repairCheck {
+        0%, 60% { opacity: 0; transform: translate(200px, 85px) scale(0.5); }
+        70% { opacity: 1; transform: translate(200px, 85px) scale(1.1); }
+        75%, 90% { opacity: 1; transform: translate(200px, 85px) scale(1); }
+        100% { opacity: 0; transform: translate(200px, 85px) scale(0.5); }
     }
 </style>
 {% endblock %}
