@@ -488,7 +488,8 @@
     if (sc <= 0.01) return;
     const blink = t < 0.9 && !reduce ? (Math.sin(t * 46) > 0 ? 1 : 0.55) : 1;
     const rot = reduce ? 0 : 0.1 * Math.sin(t * 34) * Math.exp(-t * 3.2);
-    const x = xOf(gene.c), y = cy - R - 52 * u, w = 214, h = 50;
+    const x = xOf(gene.c), w = 214, h = 50;
+    const y = Math.max(cy - R - 52 * u, h * 0.5 * u + 8);
     g.save(); g.translate(x, y); g.rotate(rot); g.scale(sc * u, sc * u); g.globalAlpha = badgeA * blink;
     g.shadowColor = P.badgeGl; g.shadowBlur = 22 + 10 * Math.sin(t * 12);
     const bg = g.createLinearGradient(0, -h / 2, 0, h / 2); bg.addColorStop(0, '#fcd34d'); bg.addColorStop(1, '#f59e0b');
