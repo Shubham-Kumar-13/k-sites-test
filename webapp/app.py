@@ -64,7 +64,7 @@ MAX_QUEUE_SIZE = max(1, int(os.environ.get('KSITES_MAX_QUEUE_SIZE', '20')))
 if HOSTED_MODE:
     CORS(app,
          origins=ALLOWED_ORIGINS,
-         methods=['GET', 'POST', 'OPTIONS'],
+         methods=['GET', 'POST', 'OPTIONS', 'DELETE'],
          allow_headers=['Content-Type', 'X-KSites-Token', 'X-KSites-User-Name', 'X-KSites-User-Email', 'ngrok-skip-browser-warning'],
          expose_headers=['Content-Disposition'])
     if not ALLOWED_ORIGINS:
