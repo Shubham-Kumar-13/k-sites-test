@@ -273,7 +273,9 @@
 
   function rungs(g, xa, xb, pass, labels) {
     const gl = gene && gene.alive ? gene : null;
-    const i0 = Math.floor(xa / S + scrollR) - 8, i1 = Math.ceil(xb / S + scrollR) + 2;
+    const maxShift = holes.length * 3;
+    const i0 = Math.floor(xa / S + scrollR) - 8 - Math.ceil(maxShift);
+    const i1 = Math.ceil(xb / S + scrollR) + 2;
     const pulse = 0.82 + 0.18 * Math.sin(clock * 10);
     for (let i = i0; i <= i1; i++) {
       if (gone.has(i)) continue;
