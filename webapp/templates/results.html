@@ -25,7 +25,7 @@
     <div class="card">
         <div class="card-body text-center py-5">
             <div class="mb-4 ko-search-animation" aria-label="Analysis in progress">
-                <svg viewBox="0 0 480 220" width="384" height="176" role="img" aria-label="DNA double helix search and laser knockout animation">
+                <svg viewBox="0 0 480 220" width="384" height="176" role="img" aria-label="DNA double helix search and gene knockout animation">
                     <defs>
                         <linearGradient id="helixBlue" x1="0%" y1="0%" x2="100%" y2="0%">
                             <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
@@ -36,14 +36,9 @@
                             <stop offset="0%" style="stop-color:#f87171;stop-opacity:1" />
                             <stop offset="100%" style="stop-color:#ef4444;stop-opacity:1" />
                         </linearGradient>
-                        <linearGradient id="laserCutter" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" style="stop-color:#1e293b;stop-opacity:1" />
-                            <stop offset="50%" style="stop-color:#475569;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" />
-                        </linearGradient>
-                        <linearGradient id="laserBeam" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" style="stop-color:#22d3ee;stop-opacity:0.95" />
-                            <stop offset="100%" style="stop-color:#22d3ee;stop-opacity:0.2" />
+                        <linearGradient id="scissorGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:#94a3b8;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#64748b;stop-opacity:1" />
                         </linearGradient>
                         <radialGradient id="impactGlow" cx="50%" cy="50%" r="50%">
                             <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:0.9" />
@@ -51,10 +46,6 @@
                         </radialGradient>
                         <radialGradient id="safeGlow" cx="50%" cy="50%" r="50%">
                             <stop offset="0%" style="stop-color:#22c55e;stop-opacity:0.7" />
-                            <stop offset="100%" style="stop-color:#22c55e;stop-opacity:0" />
-                        </radialGradient>
-                        <radialGradient id="healGlow" cx="50%" cy="50%" r="50%">
-                            <stop offset="0%" style="stop-color:#22c55e;stop-opacity:0.8" />
                             <stop offset="100%" style="stop-color:#22c55e;stop-opacity:0" />
                         </radialGradient>
                         <filter id="softGlow">
@@ -71,70 +62,55 @@
                                 <feMergeNode in="SourceGraphic"/>
                             </feMerge>
                         </filter>
-                        <filter id="laserGlow">
-                            <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-                            <feMerge>
-                                <feMergeNode in="coloredBlur"/>
-                                <feMergeNode in="SourceGraphic"/>
-                            </feMerge>
-                        </filter>
                     </defs>
 
-                    <!-- Left DNA half -->
-                    <g class="dna-left">
-                        <path d="M40,160 Q90,100 140,140 T230,140" fill="none" stroke="url(#helixBlue)" stroke-width="5" stroke-linecap="round"/>
-                        <path d="M40,120 Q90,180 140,140 T230,140" fill="none" stroke="url(#helixBlue)" stroke-width="5" stroke-linecap="round"/>
-                        <g stroke="#60a5fa" stroke-width="3" stroke-linecap="round">
-                            <line x1="60" y1="137" x2="60" y2="143"/>
-                            <line x1="100" y1="121" x2="100" y2="159"/>
-                            <line x1="140" y1="113" x2="140" y2="167"/>
-                            <line x1="180" y1="121" x2="180" y2="159"/>
-                        </g>
-                        <g font-size="11" font-weight="800" fill="#3b82f6" text-anchor="middle">
-                            <text x="60" y="108">A</text>
-                            <text x="60" y="178">T</text>
-                            <text x="100" y="108">G</text>
-                            <text x="100" y="178">C</text>
-                            <text x="140" y="100">T</text>
-                            <text x="140" y="186">A</text>
-                            <text x="180" y="108">C</text>
-                            <text x="180" y="178">G</text>
-                        </g>
+                    <!-- Double helix DNA backbones -->
+                    <g class="dna-backbone">
+                        <path d="M40,160 Q90,100 140,140 T240,140 T340,140 T440,160" fill="none" stroke="url(#helixBlue)" stroke-width="5" stroke-linecap="round"/>
+                        <path d="M40,120 Q90,180 140,140 T240,140 T340,140 T440,120" fill="none" stroke="url(#helixBlue)" stroke-width="5" stroke-linecap="round"/>
                     </g>
 
-                    <!-- Right DNA half -->
-                    <g class="dna-right">
-                        <path d="M230,140 T340,140 T440,160" fill="none" stroke="url(#helixBlue)" stroke-width="5" stroke-linecap="round"/>
-                        <path d="M230,140 T340,140 T440,120" fill="none" stroke="url(#helixBlue)" stroke-width="5" stroke-linecap="round"/>
-                        <g stroke="#60a5fa" stroke-width="3" stroke-linecap="round">
-                            <line x1="280" y1="159" x2="280" y2="121"/>
-                            <line x1="340" y1="159" x2="340" y2="121"/>
-                            <line x1="380" y1="143" x2="380" y2="137"/>
-                            <line x1="420" y1="127" x2="420" y2="153"/>
-                        </g>
-                        <g font-size="11" font-weight="800" fill="#3b82f6" text-anchor="middle">
-                            <text x="280" y="178">A</text>
-                            <text x="280" y="108">T</text>
-                            <text x="340" y="178">C</text>
-                            <text x="340" y="108">G</text>
-                            <text x="380" y="178">T</text>
-                            <text x="380" y="108">A</text>
-                            <text x="420" y="116">A</text>
-                            <text x="420" y="170">T</text>
-                        </g>
+                    <!-- Base pairs (rungs) -->
+                    <g class="base-pairs" stroke="#60a5fa" stroke-width="3" stroke-linecap="round">
+                        <line x1="60" y1="137" x2="60" y2="143"/>
+                        <line x1="100" y1="121" x2="100" y2="159"/>
+                        <line x1="140" y1="113" x2="140" y2="167"/>
+                        <line x1="180" y1="121" x2="180" y2="159"/>
+                        <line x1="220" y1="137" x2="220" y2="143"/>
+                        <line x1="260" y1="159" x2="260" y2="121"/>
+                        <line x1="300" y1="167" x2="300" y2="113"/>
+                        <line x1="340" y1="159" x2="340" y2="121"/>
+                        <line x1="380" y1="143" x2="380" y2="137"/>
+                        <line x1="420" y1="127" x2="420" y2="153"/>
                     </g>
 
-                    <!-- Repaired continuous DNA (appears after healing) -->
-                    <g class="dna-healed" opacity="0">
-                        <path d="M40,160 Q90,100 140,140 T240,140 T340,140 T440,160" fill="none" stroke="#22c55e" stroke-width="5" stroke-linecap="round"/>
-                        <path d="M40,120 Q90,180 140,140 T240,140 T340,140 T440,120" fill="none" stroke="#22c55e" stroke-width="5" stroke-linecap="round"/>
+                    <!-- Base letters -->
+                    <g class="base-letters" font-size="11" font-weight="800" fill="#3b82f6" text-anchor="middle">
+                        <text x="60" y="108">A</text>
+                        <text x="60" y="178">T</text>
+                        <text x="100" y="108">G</text>
+                        <text x="100" y="178">C</text>
+                        <text x="140" y="100">T</text>
+                        <text x="140" y="186">A</text>
+                        <text x="180" y="108">C</text>
+                        <text x="180" y="178">G</text>
+                        <text x="260" y="178">A</text>
+                        <text x="260" y="108">T</text>
+                        <text x="300" y="186">G</text>
+                        <text x="300" y="100">C</text>
+                        <text x="340" y="178">C</text>
+                        <text x="340" y="108">G</text>
+                        <text x="380" y="178">T</text>
+                        <text x="380" y="108">A</text>
+                        <text x="420" y="116">A</text>
+                        <text x="420" y="170">T</text>
                     </g>
 
                     <!-- Target nucleotide base that gets found -->
                     <g class="target-base" filter="url(#strongGlow)">
-                        <line x1="230" y1="120" x2="230" y2="160" stroke="#f59e0b" stroke-width="5" stroke-linecap="round"/>
-                        <text x="230" y="112" font-size="13" font-weight="900" fill="#f59e0b" text-anchor="middle">G</text>
-                        <text x="230" y="180" font-size="13" font-weight="900" fill="#f59e0b" text-anchor="middle">C</text>
+                        <line x1="220" y1="120" x2="220" y2="160" stroke="#f59e0b" stroke-width="5" stroke-linecap="round"/>
+                        <text x="220" y="112" font-size="13" font-weight="900" fill="#f59e0b" text-anchor="middle">G</text>
+                        <text x="220" y="180" font-size="13" font-weight="900" fill="#f59e0b" text-anchor="middle">C</text>
                     </g>
 
                     <!-- Target gene segment (red glowing area) -->
@@ -156,24 +132,32 @@
                         <text x="270" y="70" font-size="11" font-weight="900" fill="white" text-anchor="middle">FOUND IT</text>
                     </g>
 
-                    <!-- Laser cutter device -->
-                    <g class="laser-cutter" transform="translate(230, -110)">
-                        <!-- Main body -->
-                        <rect x="-30" y="-45" width="60" height="55" rx="10" fill="url(#laserCutter)" filter="url(#softGlow)"/>
-                        <rect x="-22" y="-38" width="44" height="20" rx="5" fill="#0ea5e9" opacity="0.6"/>
-                        <!-- Side fins -->
-                        <path d="M-30,-25 L-45,-15 L-30,-5 Z" fill="#475569"/>
-                        <path d="M30,-25 L45,-15 L30,-5 Z" fill="#475569"/>
-                        <!-- Targeting lens -->
-                        <circle cx="0" cy="0" r="14" fill="#0f172a" stroke="#22d3ee" stroke-width="3"/>
-                        <circle cx="0" cy="0" r="7" fill="#22d3ee" filter="url(#laserGlow)"/>
-                        <!-- Status lights -->
-                        <circle cx="-18" cy="-28" r="3" fill="#ef4444" class="laser-red-light"/>
-                        <circle cx="0" cy="-28" r="3" fill="#22c55e"/>
-                        <circle cx="18" cy="-28" r="3" fill="#3b82f6"/>
-                        <!-- Laser beam -->
-                        <path class="laser-beam" d="M-4,10 L-4,150 L4,150 L4,10 Z" fill="url(#laserBeam)" opacity="0" filter="url(#laserGlow)"/>
-                        <line class="laser-core" x1="0" y1="10" x2="0" y2="150" stroke="#22d3ee" stroke-width="2" opacity="0" filter="url(#laserGlow)"/>
+                    <!-- Sophisticated CRISPR-style scissors -->
+                    <g class="scissors" transform="translate(230, -90)">
+                        <!-- Guide RNA strand -->
+                        <g class="guide-rna">
+                            <path d="M-14,-35 Q-14,-55 0,-55 Q14,-55 14,-35 L14,15 Q14,28 6,28 L-6,28 Q-14,28 -14,15 Z" fill="none" stroke="#f59e0b" stroke-width="3.5"/>
+                            <line x1="-5" y1="-42" x2="-5" y2="5" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/>
+                            <line x1="0" y1="-42" x2="0" y2="5" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/>
+                            <line x1="5" y1="-42" x2="5" y2="5" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/>
+                        </g>
+                        <!-- Cas9 body -->
+                        <ellipse cx="0" cy="-15" rx="22" ry="16" fill="url(#scissorGrad)" filter="url(#softGlow)"/>
+                        <circle cx="0" cy="-15" r="7" fill="#e2e8f0"/>
+                        <circle cx="0" cy="-15" r="4" fill="#3b82f6"/>
+                        <!-- Blades -->
+                        <g class="scissor-blade-left">
+                            <path d="M-18,5 L-8,45 L-22,62" fill="none" stroke="url(#scissorGrad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M-18,5 L-8,45" fill="none" stroke="#e2e8f0" stroke-width="1.5" opacity="0.5"/>
+                            <circle cx="-22" cy="62" r="5" fill="#475569"/>
+                        </g>
+                        <g class="scissor-blade-right">
+                            <path d="M18,5 L8,45 L22,62" fill="none" stroke="url(#scissorGrad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M18,5 L8,45" fill="none" stroke="#e2e8f0" stroke-width="1.5" opacity="0.5"/>
+                            <circle cx="22" cy="62" r="5" fill="#475569"/>
+                        </g>
+                        <!-- Pivot glow -->
+                        <circle cx="0" cy="5" r="6" fill="#f59e0b" filter="url(#softGlow)"/>
                     </g>
 
                     <!-- Impact burst -->
@@ -191,14 +175,11 @@
                         </g>
                     </g>
 
-                    <!-- Knocked-out gene fragment dropping from helix -->
+                    <!-- Knocked-out gene fragment flying away -->
                     <g class="knocked-fragment" filter="url(#softGlow)">
                         <rect x="200" y="105" width="60" height="80" rx="10" fill="#ef4444"/>
                         <text x="230" y="148" font-size="11" font-weight="900" fill="white" text-anchor="middle">GENE</text>
                     </g>
-
-                    <!-- Healing glow at cut junction -->
-                    <circle class="heal-glow" cx="230" cy="140" r="12" fill="url(#healGlow)" opacity="0"/>
 
                     <!-- Safe glow after knockout -->
                     <circle class="safe-glow" cx="230" cy="140" r="15" fill="url(#safeGlow)" opacity="0"/>
@@ -576,87 +557,49 @@
         55%, 100% { opacity: 0; transform: scale(0.8) translateY(-10px); }
     }
 
-    .ko-search-animation .laser-cutter {
-        animation: laserApproach 5s ease-in-out infinite;
+    .ko-search-animation .scissors {
+        animation: scissorsApproach 5s ease-in-out infinite;
         transform-origin: 230px 0;
     }
-    @keyframes laserApproach {
-        0%, 38% { transform: translate(230px, -170px) rotate(-8deg); opacity: 0; }
-        44% { transform: translate(230px, 0px) rotate(0deg); opacity: 1; }
-        58% { transform: translate(230px, 0px) rotate(0deg); opacity: 1; }
-        64% { transform: translate(230px, -170px) rotate(-8deg); opacity: 1; }
-        72%, 100% { opacity: 0; }
+    @keyframes scissorsApproach {
+        0%, 38% { transform: translate(230px, -150px) rotate(-12deg); opacity: 0; }
+        44% { transform: translate(230px, 75px) rotate(0deg); opacity: 1; }
+        48% { transform: translate(230px, 95px) rotate(0deg); }
+        52% { transform: translate(230px, 75px) rotate(0deg); }
+        58% { transform: translate(230px, -150px) rotate(-12deg); opacity: 1; }
+        64%, 100% { opacity: 0; }
     }
 
-    .ko-search-animation .laser-red-light {
-        animation: laserCharge 5s ease-in-out infinite;
+    .ko-search-animation .scissor-blade-left {
+        animation: bladeSnipLeft 5s ease-in-out infinite;
+        transform-origin: 0 45px;
     }
-    @keyframes laserCharge {
-        0%, 42% { fill: #ef4444; filter: none; }
-        46% { fill: #f87171; filter: drop-shadow(0 0 8px #ef4444); }
-        52%, 100% { fill: #ef4444; filter: none; }
-    }
-
-    .ko-search-animation .laser-beam {
-        animation: laserFire 5s ease-in-out infinite;
-    }
-    @keyframes laserFire {
-        0%, 46% { opacity: 0; transform: scaleY(0); transform-origin: top; }
-        48% { opacity: 0.8; transform: scaleY(1); }
-        54% { opacity: 0.8; transform: scaleY(1); }
-        58% { opacity: 0; transform: scaleY(0); }
-        100% { opacity: 0; }
+    @keyframes bladeSnipLeft {
+        0%, 46% { transform: rotate(0deg); }
+        50% { transform: rotate(-18deg); }
+        54% { transform: rotate(0deg); }
+        100% { transform: rotate(0deg); }
     }
 
-    .ko-search-animation .laser-core {
-        animation: laserCoreFire 5s ease-in-out infinite;
+    .ko-search-animation .scissor-blade-right {
+        animation: bladeSnipRight 5s ease-in-out infinite;
+        transform-origin: 0 45px;
     }
-    @keyframes laserCoreFire {
-        0%, 46% { opacity: 0; }
-        48% { opacity: 1; }
-        54% { opacity: 1; }
-        58% { opacity: 0; }
-        100% { opacity: 0; }
-    }
-
-    .ko-search-animation .dna-left {
-        animation: dnaLeftMove 5s ease-in-out infinite;
-    }
-    @keyframes dnaLeftMove {
-        0%, 48% { transform: translateX(0); }
-        62% { transform: translateX(0); }
-        72% { transform: translateX(38px); }
-        88%, 100% { transform: translateX(0); }
+    @keyframes bladeSnipRight {
+        0%, 46% { transform: rotate(0deg); }
+        50% { transform: rotate(18deg); }
+        54% { transform: rotate(0deg); }
+        100% { transform: rotate(0deg); }
     }
 
-    .ko-search-animation .dna-right {
-        animation: dnaRightMove 5s ease-in-out infinite;
+    .ko-search-animation .guide-rna {
+        animation: guidePulse 5s ease-in-out infinite;
     }
-    @keyframes dnaRightMove {
-        0%, 48% { transform: translateX(0); }
-        62% { transform: translateX(0); }
-        72% { transform: translateX(-38px); }
-        88%, 100% { transform: translateX(0); }
-    }
-
-    .ko-search-animation .dna-healed {
-        animation: dnaHealShow 5s ease-in-out infinite;
-    }
-    @keyframes dnaHealShow {
-        0%, 68% { opacity: 0; }
-        74% { opacity: 1; }
-        86%, 100% { opacity: 0; }
-    }
-
-    .ko-search-animation .heal-glow {
-        animation: healPulse 5s ease-out infinite;
-        transform-origin: center;
-    }
-    @keyframes healPulse {
-        0%, 66% { opacity: 0; transform: scale(0.3); }
-        72% { opacity: 0.9; transform: scale(2); }
-        86% { opacity: 0; transform: scale(4); }
-        100% { opacity: 0; }
+    @keyframes guidePulse {
+        0%, 40% { opacity: 0.7; }
+        48% { opacity: 1; filter: drop-shadow(0 0 6px #f59e0b); }
+        60% { opacity: 1; }
+        70%, 100% { opacity: 0.7; }
     }
 
     .ko-search-animation .impact-burst {
