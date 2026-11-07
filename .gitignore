@@ -167,3 +167,4 @@ node_modules/
 
 # test fixtures recorded from the Python code are kept even though they are CSV files
 !tests/fixtures/**/*.csv
+logs/
