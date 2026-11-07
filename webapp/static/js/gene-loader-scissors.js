@@ -126,7 +126,7 @@
     return -16 * u * Math.exp(-d * d) * Math.exp(-5 * impT) * Math.cos(impT * 22);
   };
   const isCut = r => {
-    for (const h of holes) if (r > h.l && r < h.r) return true;
+    for (const h of holes) if (clock < h.healT && r > h.l && r < h.r) return true;
     for (const n of nicks) if (Math.abs(r - n) < 0.1) return true;
     return false;
   };
@@ -173,10 +173,10 @@
       x: cxm, y: cy, p1, p2, rg, vx: (Math.random() - .5) * 80 * u, vy: -240 * u,
       w: (Math.random() < .5 ? -1 : 1) * (2.2 + Math.random() * 1.5), ang: 0, age: 0
     });
-    holes.push({ l, r }); nicks = nicks.filter(n => n !== l);
+    holes.push({ l, r, healT: clock + 1.0 }); nicks = nicks.filter(n => n !== l);
     gene.alive = false;
     burst(r, 14);
-    holes = holes.filter(h => h.r > scrollR - 40);
+    holes = holes.filter(h => h.healT > clock - 0.5 && h.r > scrollR - 40);
     for (const i of gone) if (i < scrollR - 40) gone.delete(i);
   }
 
@@ -516,7 +516,9 @@
     g.save();
     g.font = `700 ${px}px ${FONT}`;
     const tw = g.measureText(text).width, ic = px * 1.5, pad = px * 1.1, w = tw + ic + pad * 2.4, h = px * 2.7;
-    const x = W / 2, y = cy + A + 112 * u + (1 - clamp(inK, 0, 1.2)) * 14 * u;
+    const x = W / 2;
+    const baseY = Math.min(cy + A + 70 * u, H - h / 2 - 10);
+    const y = baseY + (1 - clamp(inK, 0, 1.2)) * 10 * u;
     g.translate(x, y); g.scale(Math.max(inK, 0.001), Math.max(inK, 0.001)); g.globalAlpha = al;
     g.shadowColor = P.pill.gl; g.shadowBlur = 24;
     g.fillStyle = P.pill.bg;
