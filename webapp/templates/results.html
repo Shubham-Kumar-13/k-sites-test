@@ -132,17 +132,32 @@
                         <text x="270" y="70" font-size="11" font-weight="900" fill="white" text-anchor="middle">FOUND IT</text>
                     </g>
 
-                    <!-- Scissors -->
-                    <g class="scissors" transform="translate(230, -70)">
+                    <!-- Sophisticated CRISPR-style scissors -->
+                    <g class="scissors" transform="translate(230, -90)">
+                        <!-- Guide RNA strand -->
+                        <g class="guide-rna">
+                            <path d="M-14,-35 Q-14,-55 0,-55 Q14,-55 14,-35 L14,15 Q14,28 6,28 L-6,28 Q-14,28 -14,15 Z" fill="none" stroke="#f59e0b" stroke-width="3.5"/>
+                            <line x1="-5" y1="-42" x2="-5" y2="5" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/>
+                            <line x1="0" y1="-42" x2="0" y2="5" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/>
+                            <line x1="5" y1="-42" x2="5" y2="5" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/>
+                        </g>
+                        <!-- Cas9 body -->
+                        <ellipse cx="0" cy="-15" rx="22" ry="16" fill="url(#scissorGrad)" filter="url(#softGlow)"/>
+                        <circle cx="0" cy="-15" r="7" fill="#e2e8f0"/>
+                        <circle cx="0" cy="-15" r="4" fill="#3b82f6"/>
+                        <!-- Blades -->
                         <g class="scissor-blade-left">
-                            <path d="M-5,0 L-5,55 L-18,70" fill="none" stroke="url(#scissorGrad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-                            <circle cx="-18" cy="70" r="5" fill="#475569"/>
+                            <path d="M-18,5 L-8,45 L-22,62" fill="none" stroke="url(#scissorGrad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M-18,5 L-8,45" fill="none" stroke="#e2e8f0" stroke-width="1.5" opacity="0.5"/>
+                            <circle cx="-22" cy="62" r="5" fill="#475569"/>
                         </g>
                         <g class="scissor-blade-right">
-                            <path d="M5,0 L5,55 L18,70" fill="none" stroke="url(#scissorGrad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-                            <circle cx="18" cy="70" r="5" fill="#475569"/>
+                            <path d="M18,5 L8,45 L22,62" fill="none" stroke="url(#scissorGrad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M18,5 L8,45" fill="none" stroke="#e2e8f0" stroke-width="1.5" opacity="0.5"/>
+                            <circle cx="22" cy="62" r="5" fill="#475569"/>
                         </g>
-                        <circle cx="0" cy="8" r="7" fill="#64748b"/>
+                        <!-- Pivot glow -->
+                        <circle cx="0" cy="5" r="6" fill="#f59e0b" filter="url(#softGlow)"/>
                     </g>
 
                     <!-- Impact burst -->
@@ -547,34 +562,44 @@
         transform-origin: 230px 0;
     }
     @keyframes scissorsApproach {
-        0%, 38% { transform: translate(230px, -130px) rotate(-10deg); opacity: 0; }
-        44% { transform: translate(230px, 45px) rotate(0deg); opacity: 1; }
-        48% { transform: translate(230px, 65px) rotate(0deg); }
-        52% { transform: translate(230px, 45px) rotate(0deg); }
-        58% { transform: translate(230px, -130px) rotate(-10deg); opacity: 1; }
+        0%, 38% { transform: translate(230px, -150px) rotate(-12deg); opacity: 0; }
+        44% { transform: translate(230px, 75px) rotate(0deg); opacity: 1; }
+        48% { transform: translate(230px, 95px) rotate(0deg); }
+        52% { transform: translate(230px, 75px) rotate(0deg); }
+        58% { transform: translate(230px, -150px) rotate(-12deg); opacity: 1; }
         64%, 100% { opacity: 0; }
     }
 
     .ko-search-animation .scissor-blade-left {
         animation: bladeSnipLeft 5s ease-in-out infinite;
-        transform-origin: 0 58px;
+        transform-origin: 0 45px;
     }
     @keyframes bladeSnipLeft {
         0%, 46% { transform: rotate(0deg); }
-        50% { transform: rotate(-20deg); }
+        50% { transform: rotate(-18deg); }
         54% { transform: rotate(0deg); }
         100% { transform: rotate(0deg); }
     }
 
     .ko-search-animation .scissor-blade-right {
         animation: bladeSnipRight 5s ease-in-out infinite;
-        transform-origin: 0 58px;
+        transform-origin: 0 45px;
     }
     @keyframes bladeSnipRight {
         0%, 46% { transform: rotate(0deg); }
-        50% { transform: rotate(20deg); }
+        50% { transform: rotate(18deg); }
         54% { transform: rotate(0deg); }
         100% { transform: rotate(0deg); }
+    }
+
+    .ko-search-animation .guide-rna {
+        animation: guidePulse 5s ease-in-out infinite;
+    }
+    @keyframes guidePulse {
+        0%, 40% { opacity: 0.7; }
+        48% { opacity: 1; filter: drop-shadow(0 0 6px #f59e0b); }
+        60% { opacity: 1; }
+        70%, 100% { opacity: 0.7; }
     }
 
     .ko-search-animation .impact-burst {
@@ -589,13 +614,13 @@
     }
 
     .ko-search-animation .knocked-fragment {
-        animation: fragmentKnockout 5s ease-in-out infinite;
+        animation: fragmentDrop 5s ease-in-out infinite;
         transform-origin: center;
     }
-    @keyframes fragmentKnockout {
-        0%, 48% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
-        52% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
-        70% { opacity: 0; transform: translate(-60px, 70px) rotate(-45deg); }
+    @keyframes fragmentDrop {
+        0%, 50% { opacity: 0; transform: translateY(0) rotate(0deg) scale(1); }
+        53% { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
+        75% { opacity: 0; transform: translateY(90px) rotate(15deg) scale(0.85); }
         100% { opacity: 0; }
     }
 
