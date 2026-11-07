@@ -102,8 +102,8 @@ class LiteratureMiner:
     """
     
     def __init__(self):
-        self.email = os.getenv('NCBI_EMAIL', 'kkokay07@gmail.com')
-        self.api_key = os.getenv('NCBI_API_KEY', '')
+        self.email = os.getenv('NCBI_EMAIL') or os.getenv('K_SITES_NCBI_EMAIL') or 'user@example.com'
+        self.api_key = os.getenv('NCBI_API_KEY') or os.getenv('K_SITES_NCBI_API_KEY') or ''
         self.base_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
         self.pmc_base_url = "https://www.ncbi.nlm.nih.gov/pmc/articles/"
         self.oai_base_url = "https://www.ncbi.nlm.nih.gov/pmc/oai/oai.cgi"
