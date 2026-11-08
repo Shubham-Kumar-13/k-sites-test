@@ -1,12 +1,12 @@
 """
 Where the measured knockout evidence comes from.
 
-The data files are built by tools/build_evidence_data.py and published with the K-Sites website (evidence-data/).
-A provider reads them either from a folder or from a web address (and keeps a copy on disk), so the Python package
-and the website use exactly the same files.
+The data files are built by tools/build_evidence_data.py and can be read from a local folder
+or from a web address (with a local cache), so the Python package and the website use exactly
+the same files.
 
     KSITES_EVIDENCE_DIR   a folder with index.json and the organism files (e.g. site/evidence-data)
-    KSITES_EVIDENCE_URL   a web address of that folder (default: the K-Sites website); "off" switches it off
+    KSITES_EVIDENCE_URL   a web address of that folder; "off" switches measured evidence off
 """
 
 import json
@@ -21,7 +21,7 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_URL = "https://shubham-kumar-13.github.io/k-sites-test/evidence-data/"
+DEFAULT_URL = None
 DEFAULT_CACHE = Path.home() / ".k_sites" / "evidence-data"
 
 # Taxon ids that share one evidence file (the file is named after the first)
@@ -156,29 +156,54 @@ class EvidenceProvider:
         return cls(DirectorySource(path))
 
     @classmethod
-    def from_url(cls, url: str = DEFAULT_URL, cache_dir=DEFAULT_CACHE) -> "EvidenceProvider":
+    def from_url(cls, url: str, cache_dir=DEFAULT_CACHE) -> "EvidenceProvider":
         return cls(UrlSource(url, cache_dir))
 
 
 def evidence_disabled() -> bool:
     """True when the environment switches measured evidence off (KSITES_EVIDENCE_URL=off, no directory given)."""
-    return (not os.environ.get("KSITES_EVIDENCE_DIR")
-            and os.environ.get("KSITES_EVIDENCE_URL", DEFAULT_URL).strip().lower() in ("", "off", "none"))
+    if os.environ.get("KSITES_EVIDENCE_DIR"):
+        return False
+    url = os.environ.get("KSITES_EVIDENCE_URL", DEFAULT_URL)
+    if url is None:
+        return False
+    return url.strip().lower() in ("", "off", "none")
 
 
 def default_provider() -> Optional[EvidenceProvider]:
-    """The provider set up by the environment, or None (with a warning) when no evidence can be read."""
+    """The provider set up by the environment.
+
+    Returns None only when measured evidence is explicitly disabled (KSITES_EVIDENCE_URL=off).
+    Raises EvidenceUnavailable when evidence is configured but cannot be read, or when no
+    evidence source is configured at all.
+    """
     directory = os.environ.get("KSITES_EVIDENCE_DIR")
     url = os.environ.get("KSITES_EVIDENCE_URL", DEFAULT_URL)
-    try:
-        if directory:
+
+    if directory:
+        try:
             provider = EvidenceProvider.from_directory(directory)
-        elif evidence_disabled():
-            return None
-        else:
-            provider = EvidenceProvider.from_url(url)
-        provider.index          # read it now so that a problem shows up here
-        return provider
-    except EvidenceUnavailable as error:
-        logger.warning("Measured knockout evidence is not available: %s", error)
+            provider.index          # read it now so that a problem shows up here
+            return provider
+        except EvidenceUnavailable as error:
+            logger.error("KSITES_EVIDENCE_DIR=%s is invalid: %s", directory, error)
+            raise
+
+    if evidence_disabled():
         return None
+
+    if url:
+        try:
+            provider = EvidenceProvider.from_url(url)
+            provider.index
+            return provider
+        except EvidenceUnavailable as error:
+            logger.error("KSITES_EVIDENCE_URL=%s is invalid: %s", url, error)
+            raise
+
+    raise EvidenceUnavailable(
+        "Measured knockout evidence is not configured. "
+        "Set KSITES_EVIDENCE_DIR to a folder containing evidence-data/index.json, "
+        "or set KSITES_EVIDENCE_URL to a working URL. "
+        "Set KSITES_EVIDENCE_URL=off to run without measured evidence."
+    )

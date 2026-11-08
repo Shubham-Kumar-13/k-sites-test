@@ -637,7 +637,7 @@ def search_go_terms_api():
 @login_required
 def evidence_coverage():
     """Whether measured knockout data exist for an organism (shown on the form before the run)."""
-    from k_sites.knockout_evidence import default_provider
+    from k_sites.knockout_evidence import default_provider, EvidenceUnavailable
     taxid = str(request.args.get('taxid', ''))
     try:
         provider = default_provider()
@@ -1321,7 +1321,19 @@ if __name__ == '__main__':
     print(f"Starting server on http://127.0.0.1:{os.environ.get('PORT', 5000)}")
     print(f"Help documentation at: http://127.0.0.1:{os.environ.get('PORT', 5000)}/help")
     print("=" * 70)
-    
+
+    # Fail fast if measured knockout evidence is required but not available.
+    # Local development can switch it off with KSITES_EVIDENCE_URL=off.
+    try:
+        provider_check = default_provider()
+        if provider_check is None:
+            logger.warning("Running without measured knockout evidence (KSITES_EVIDENCE_URL=off).")
+        else:
+            logger.info("Measured knockout evidence loaded: version %s", provider_check.index.get('built'))
+    except Exception as error:
+        logger.error("Cannot start: measured knockout evidence is not available: %s", error)
+        sys.exit(1)
+
     port = int(os.environ.get('PORT', 5000))
     host = os.environ.get('HOST', '0.0.0.0')
     app.run(host=host, port=port, debug=not HOSTED_MODE)
