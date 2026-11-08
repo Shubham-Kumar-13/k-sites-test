@@ -58,8 +58,8 @@ app = Flask(__name__, template_folder='templates', static_folder='static')
 ACCESS_TOKEN = os.environ.get('KSITES_ACCESS_TOKEN', '').strip()
 HOSTED_MODE = bool(ACCESS_TOKEN)
 ALLOWED_ORIGINS = [o.strip().rstrip('/') for o in os.environ.get('KSITES_ALLOWED_ORIGINS', '').split(',') if o.strip()]
-MAX_PARALLEL_JOBS = max(1, int(os.environ.get('KSITES_MAX_PARALLEL_JOBS', '2')))
-MAX_QUEUE_SIZE = max(1, int(os.environ.get('KSITES_MAX_QUEUE_SIZE', '20')))
+MAX_PARALLEL_JOBS = max(1, int(os.environ.get('KSITES_MAX_PARALLEL_JOBS', '6')))
+MAX_QUEUE_SIZE = max(1, int(os.environ.get('KSITES_MAX_QUEUE_SIZE', '50')))
 LLM_PROVIDER_IDS = {'kimi', 'openai', 'anthropic', 'qwen', 'deepseek', 'grok'}
 
 if HOSTED_MODE:
