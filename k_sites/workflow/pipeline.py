@@ -44,6 +44,8 @@ def run_k_sites_pipeline(
     evidence_provider: Any = None,
     use_measured_evidence: bool = True,
     max_predictions: int = 25,
+    llm_provider: Optional[str] = None,
+    llm_api_key: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Execute the complete K-Sites pipeline.
@@ -69,6 +71,10 @@ def run_k_sites_pipeline(
         max_predictions: Maximum number of RAG phenotype predictions to run for genes without measured knockout
             data (default: 25). This limits slow PubMed/LLM calls; additional eligible genes are still rated but
             are at most CAUTION because they have no prediction.
+        llm_provider: Optional hosted LLM provider (kimi, openai, anthropic, qwen, deepseek, grok).
+            When set together with llm_api_key, the backend uses the hosted model instead of the local
+            MiniLM predictor.
+        llm_api_key: API key for the chosen llm_provider. Stored only for the duration of the job.
 
     Returns:
         Dictionary with pipeline results:
@@ -213,17 +219,42 @@ def run_k_sites_pipeline(
         predictions_run = 0
         predictions_over_limit = 0
         excluded_genes = []
+        llm_initialized = False
+        llm_permanently_failed = False
+
+        def _llm_error_should_fallback(error: Exception) -> bool:
+            """Hosted LLM auth/connection failures should fall back to the free local predictor."""
+            text = str(error).lower()
+            return any(marker in text for marker in [
+                "401", "403", "authentication", "unauthorized", "invalid api key",
+                "connection", "timeout", "timed out", "could not connect", "network",
+            ])
 
         def get_phenotype_predictor():
-            nonlocal phenotype_predictor, predict_phenotypes
+            nonlocal phenotype_predictor, predict_phenotypes, llm_initialized
             if phenotype_predictor is None and predict_phenotypes:
-                try:
-                    from k_sites.rag_system.literature_context import RAGPhenotypePredictor
-                    phenotype_predictor = RAGPhenotypePredictor()
-                    logger.info("Initialized RAG-based phenotype predictor")
-                except ImportError as e:
-                    logger.warning(f"Could not initialize phenotype predictor: {e}")
-                    predict_phenotypes = False  # Disable if dependencies missing
+                # Prefer a hosted LLM when the user supplied a key.
+                if llm_provider and llm_api_key and not llm_initialized and not llm_permanently_failed:
+                    try:
+                        from k_sites.rag_system.llm_predictor import LlmPhenotypePredictor
+                        phenotype_predictor = LlmPhenotypePredictor(
+                            provider=llm_provider,
+                            api_key=llm_api_key,
+                        )
+                        llm_initialized = True
+                        logger.info(f"Initialized hosted LLM phenotype predictor ({llm_provider})")
+                    except Exception as e:
+                        logger.warning(f"Could not initialize LLM predictor ({llm_provider}): {e}; falling back to local predictor")
+                        llm_initialized = True
+                # Fall back (or default) to the local MiniLM + keyword predictor.
+                if phenotype_predictor is None:
+                    try:
+                        from k_sites.rag_system.literature_context import RAGPhenotypePredictor
+                        phenotype_predictor = RAGPhenotypePredictor()
+                        logger.info("Initialized local RAG-based phenotype predictor")
+                    except ImportError as e:
+                        logger.warning(f"Could not initialize phenotype predictor: {e}")
+                        predict_phenotypes = False  # Disable if dependencies missing
             return phenotype_predictor
 
         for i, gene_info in enumerate(scored_genes):
@@ -282,6 +313,17 @@ def run_k_sites_pipeline(
                         phenotype_prediction = phenotype_predictor.predict_phenotype(gene_symbol, taxid, aliases=aliases)
                     except Exception as e:
                         logger.warning(f"Failed to predict phenotype for {gene_symbol}: {str(e)}")
+                        # If the hosted LLM fails with auth/connection errors, fall back to the local predictor
+                        # and retry this gene so the user still gets a prediction.
+                        if llm_initialized and _llm_error_should_fallback(e):
+                            logger.warning(f"Hosted LLM failed for {gene_symbol}; falling back to local RAG predictor")
+                            phenotype_predictor = None
+                            llm_permanently_failed = True  # prevent trying the LLM again
+                            if get_phenotype_predictor():
+                                try:
+                                    phenotype_prediction = phenotype_predictor.predict_phenotype(gene_symbol, taxid, aliases=aliases)
+                                except Exception as e2:
+                                    logger.warning(f"Local fallback also failed for {gene_symbol}: {str(e2)}")
 
                 # e. Generate comprehensive safety recommendation using the safety recommender
                 from k_sites.workflow.safety_recommender import SafetyRecommender, get_safety_recommendation

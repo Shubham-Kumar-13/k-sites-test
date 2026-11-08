@@ -60,6 +60,7 @@ HOSTED_MODE = bool(ACCESS_TOKEN)
 ALLOWED_ORIGINS = [o.strip().rstrip('/') for o in os.environ.get('KSITES_ALLOWED_ORIGINS', '').split(',') if o.strip()]
 MAX_PARALLEL_JOBS = max(1, int(os.environ.get('KSITES_MAX_PARALLEL_JOBS', '2')))
 MAX_QUEUE_SIZE = max(1, int(os.environ.get('KSITES_MAX_QUEUE_SIZE', '20')))
+LLM_PROVIDER_IDS = {'kimi', 'openai', 'anthropic', 'qwen', 'deepseek', 'grok'}
 
 if HOSTED_MODE:
     CORS(app,
@@ -171,6 +172,8 @@ class AnalysisJob(db.Model):
     predict_phenotypes = db.Column(db.Boolean, default=False)
     knockout_context = db.Column(db.String(20), default='auto')   # auto, cells or organism
     selected_databases = db.Column(db.Text)
+    llm_provider = db.Column(db.String(50))
+    llm_api_key = db.Column(db.String(500))  # temporary; cleared after job completes
     
     # Results
     total_genes_found = db.Column(db.Integer)
@@ -199,6 +202,7 @@ class AnalysisJob(db.Model):
             'predict_phenotypes': self.predict_phenotypes,
             'knockout_context': self.knockout_context or 'auto',
             'selected_databases': json.loads(self.selected_databases) if self.selected_databases else [],
+            'llm_provider': self.llm_provider,
             'total_genes_found': self.total_genes_found,
             'genes_processed': self.genes_processed,
             'results_path': self.results_path,
@@ -218,15 +222,22 @@ with app.app_context():
             if 'knockout_context' not in column_names:
                 db.session.execute(db.text("ALTER TABLE analysis_jobs ADD COLUMN knockout_context VARCHAR(20) DEFAULT 'auto'"))
                 db.session.commit()
+            if 'llm_provider' not in column_names:
+                db.session.execute(db.text("ALTER TABLE analysis_jobs ADD COLUMN llm_provider VARCHAR(50)"))
+                db.session.commit()
+            if 'llm_api_key' not in column_names:
+                db.session.execute(db.text("ALTER TABLE analysis_jobs ADD COLUMN llm_api_key VARCHAR(500)"))
+                db.session.commit()
     except Exception as migration_error:
         db.session.rollback()
-        logger.warning(f"Could not add the knockout_context column: {migration_error}")
+        logger.warning(f"Could not add the required columns: {migration_error}")
     try:
         interrupted = AnalysisJob.query.filter(AnalysisJob.status.in_(['pending', 'queued', 'running'])).all()
         for stale in interrupted:
             stale.status = 'failed'
             stale.current_step = 'Failed'
             stale.error_message = 'The server restarted while this job was running. Please submit it again.'
+            stale.llm_api_key = None  # clear temporary keys left by a crash/restart
         if interrupted:
             db.session.commit()
     except Exception as startup_error:  # a fresh database may not have every column yet
@@ -918,6 +929,8 @@ def start_analysis():
             predict_phenotypes=data.get('predict_phenotypes', False),
             knockout_context=data.get('knockout_context') if data.get('knockout_context') in ('auto', 'cells', 'organism') else 'auto',
             selected_databases=json.dumps(data.get('databases', ['quickgo'])),
+            llm_provider=data.get('llm_provider') if data.get('llm_provider') in LLM_PROVIDER_IDS else None,
+            llm_api_key=data.get('llm_api_key', '').strip() or None,
             status='queued',
             current_step='Queued',
             progress_percent=0,
@@ -1097,7 +1110,9 @@ def _execute_analysis_job(job_id: str):
                 predict_phenotypes=job.predict_phenotypes,
                 knockout_context=job.knockout_context or 'auto',
                 databases=json.loads(job.selected_databases) if job.selected_databases else None,
-                progress_callback=report_progress
+                progress_callback=report_progress,
+                llm_provider=job.llm_provider,
+                llm_api_key=job.llm_api_key,
             )
             pipeline_output['potential_candidates'] = select_potential_candidates(pipeline_output.get('genes', []))
             
@@ -1141,6 +1156,7 @@ def _execute_analysis_job(job_id: str):
             job.progress_percent = 100
             job.genes_processed = len(pipeline_output.get('genes', []))
             job.results_path = str(job_results_dir)
+            job.llm_api_key = None  # clear temporary key
             db.session.commit()
             
             # Send completion email
@@ -1153,6 +1169,7 @@ def _execute_analysis_job(job_id: str):
             job.status = 'failed'
             job.current_step = 'Failed'
             job.error_message = str(e)
+            job.llm_api_key = None  # clear temporary key
             db.session.commit()
             
             # Send failure email
