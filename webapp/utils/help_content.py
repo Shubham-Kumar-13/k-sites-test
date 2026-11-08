@@ -417,9 +417,7 @@ ANALYTICAL_TERMS = {
             <ul>
                 <li><strong>UniProt</strong> — curated protein function and GO annotations</li>
                 <li><strong>NCBI Entrez (Gene)</strong> — gene-specific GO annotations</li>
-                <li><strong>Alliance of Genome Resources</strong> — integrated model-organism gene data</li>
                 <li><strong>MyGene.info</strong> — aggregations of several gene-centric sources</li>
-                <li><strong>Ensembl</strong> — gene annotation and orthology-linked GO terms</li>
             </ul>
 
             <h6>How it affects the result:</h6>
@@ -434,7 +432,7 @@ ANALYTICAL_TERMS = {
                 for a comprehensive search, select all sources.
             </div>
         """,
-        "reference": "QuickGO, UniProt, NCBI Entrez, Alliance of Genome Resources, MyGene.info, Ensembl"
+        "reference": "QuickGO, UniProt, NCBI Entrez, MyGene.info"
     },
 
     "potential_candidates": {
@@ -525,9 +523,9 @@ METHODOLOGY_SECTIONS = [
             <strong>QuickGO is mandatory</strong> and is always queried.</p>
 
             <p>You can additionally select other databases to broaden the search for biological-process annotations:
-            <strong>UniProt</strong>, <strong>NCBI Entrez</strong>, <strong>Alliance of Genome Resources</strong>,
-            <strong>MyGene.info</strong> and <strong>Ensembl</strong>. Selecting more databases usually raises the
-            pleiotropy score and improves search quality, but each extra source adds query time.</p>
+            <strong>UniProt</strong>, <strong>NCBI Entrez</strong> and <strong>MyGene.info</strong>. Selecting more
+            databases usually raises the pleiotropy score and improves search quality, but each extra source adds
+            query time.</p>
 
             <p>Users can also filter by evidence type:</p>
             <ul>
@@ -677,7 +675,7 @@ FAQ_ITEMS = [
     },
     {
         "question": "How do the database selection options work?",
-        "answer": "QuickGO is mandatory and always queried. You can toggle the other databases (UniProt, NCBI Entrez, Alliance of Genome Resources, MyGene.info, Ensembl) on or off. More databases can raise the pleiotropy score and improve annotation coverage, but each extra source makes the analysis slower. The disclaimer below the database cards reminds you of this trade-off."
+        "answer": "QuickGO is mandatory and always queried. You can toggle the other databases (UniProt, NCBI Entrez, MyGene.info) on or off. More databases can raise the pleiotropy score and improve annotation coverage, but each extra source makes the analysis slower. The disclaimer below the database cards reminds you of this trade-off."
     },
     {
         "question": "What is the Potential Candidates tab?",
