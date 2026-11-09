@@ -194,12 +194,6 @@
             vertical-align: middle;
         }
 
-        .navbar-logo { display: none; }
-        html[data-bs-theme="light"] .navbar-logo.logo-light-mode,
-        html[data-bs-theme="dark"] .navbar-logo.logo-dark-mode {
-            display: inline-block;
-        }
-        
         .results-summary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -495,8 +489,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
             <a class="navbar-brand d-flex flex-column align-items-start" href="/">
-                <img src="{{ url_for('static', filename='assets/logo/ksites-katana-lockup-on-light.svg') }}?v=1.3.2" alt="K-Sites" height="42" class="mb-1 navbar-logo logo-light-mode">
-                <img src="{{ url_for('static', filename='assets/logo/ksites-katana-lockup-on-dark.svg') }}?v=1.3.2" alt="K-Sites" height="42" class="mb-1 navbar-logo logo-dark-mode">
+                <img src="{{ url_for('static', filename='assets/logo/ksites-katana-lockup-on-dark.svg') }}?v=1.3.2" alt="K-Sites" height="42" class="mb-1">
                 <small class="d-none d-md-inline text-white-50">by School of Bioinformatics and Computational Biology, ICAR-IIAB</small>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
