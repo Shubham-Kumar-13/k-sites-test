@@ -17,6 +17,11 @@ import traceback
 # Set up logging
 logger = logging.getLogger(__name__)
 
+
+class JobCancelled(Exception):
+    """Raised when the user requests cancellation of a running job."""
+
+
 # Genes are listed safest first, then by knockout-evidence reliability and composite score.
 SAFETY_TIER = {"SAFE": 0, "CAUTION": 1, "MODERATE_CONCERN": 2, "HIGH_CONCERN": 3, "AVOID": 4}
 EVIDENCE_TIER = {"measured": 0, "essentiality": 1, "ortholog": 2, "distant": 2,
@@ -46,6 +51,7 @@ def run_k_sites_pipeline(
     max_predictions: int = 25,
     llm_provider: Optional[str] = None,
     llm_api_key: Optional[str] = None,
+    is_cancelled: Optional[Callable[[], bool]] = None,
 ) -> Dict[str, Any]:
     """
     Execute the complete K-Sites pipeline.
@@ -183,6 +189,12 @@ def run_k_sites_pipeline(
                 return {"conservation": known["conservation"]["score"] if known["conservation"] else None,
                         "literature_count": known["literature"]["count"] if known["literature"] else None}
 
+        def _check_cancelled():
+            if is_cancelled and is_cancelled():
+                raise JobCancelled("Job cancelled by user")
+
+        _check_cancelled()
+
         # Step 3: Rank genes by specificity using multi-database integration
         logger.info("Step 3: Ranking genes by specificity (multi-database query)...")
         from k_sites.gene_analysis.pleiotropy_scorer import rank_genes_by_specificity
@@ -258,6 +270,7 @@ def run_k_sites_pipeline(
             return phenotype_predictor
 
         for i, gene_info in enumerate(scored_genes):
+            _check_cancelled()
             gene_symbol = gene_info.get("symbol", "unknown")
             logger.info(f"Processing gene {i+1}/{len(scored_genes)}: {gene_symbol}")
             if progress_callback:

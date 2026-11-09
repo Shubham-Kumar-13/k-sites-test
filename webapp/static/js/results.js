@@ -81,10 +81,30 @@ function stopStatusPolling() {
 
 async function cancelJob(jobId) {
     if (!confirm('Stop this analysis? It cannot be resumed; you would start a new one.')) return;
+    const btn = document.getElementById('cancelJobButton');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Cancelling...';
+    }
     try {
-        await ksFetch(`/api/jobs/${jobId}/cancel`, { method: 'POST' });
+        const response = await ksFetch(`/api/jobs/${jobId}/cancel`, { method: 'POST' });
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            alert(data.error || 'Could not cancel the analysis.');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-stop-circle me-2"></i>Cancel this analysis';
+            }
+            return;
+        }
     } catch (error) {
         console.error('Error cancelling the job:', error);
+        alert('Could not cancel the analysis. Please try again.');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-stop-circle me-2"></i>Cancel this analysis';
+        }
+        return;
     }
     window.location.reload();
 }
@@ -110,6 +130,9 @@ async function checkJobStatus(jobId) {
         } else if (data.status === 'failed') {
             stopStatusPolling();
             showError(data.error_message);
+        } else if (data.status === 'cancelled' || data.status === 'cancelling') {
+            stopStatusPolling();
+            showCancelled(data);
         }
         
     } catch (error) {
@@ -204,6 +227,16 @@ function showError(message) {
     document.getElementById('resultsContent').style.display = 'none';
     document.getElementById('errorState').style.display = 'block';
     document.getElementById('errorMessage').textContent = message || 'Unknown error occurred';
+}
+
+function showCancelled(job) {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('resultsContent').style.display = 'none';
+    document.getElementById('errorState').style.display = 'block';
+    const msg = job.status === 'cancelling'
+        ? 'Cancelling the analysis... The page will update once it stops.'
+        : 'This analysis was cancelled. You can start a new one from the home page.';
+    document.getElementById('errorMessage').textContent = msg;
 }
 
 function addLogEntry(message) {

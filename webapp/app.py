@@ -29,7 +29,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from k_sites.data_retrieval.organism_resolver import resolve_organism, search_organisms, search_organisms_ncbi
 from k_sites.data_retrieval.go_gene_mapper import get_genes_for_go_term, search_go_terms
 from k_sites.data_retrieval.cache import start_cache_tracking, get_cache_events
-from k_sites.workflow.pipeline import run_k_sites_pipeline
+from k_sites.workflow.pipeline import JobCancelled, run_k_sites_pipeline
 from k_sites.reporting.report_generator import generate_html_report
 from k_sites.reporting.csv_export import generate_comprehensive_csv_report
 from k_sites.knockout_evidence import default_provider
@@ -180,6 +180,7 @@ class AnalysisJob(db.Model):
     genes_processed = db.Column(db.Integer)
     results_path = db.Column(db.String(500))
     error_message = db.Column(db.Text)
+    cancel_requested = db.Column(db.Boolean, default=False)
     
     def to_dict(self):
         return {
@@ -206,7 +207,8 @@ class AnalysisJob(db.Model):
             'total_genes_found': self.total_genes_found,
             'genes_processed': self.genes_processed,
             'results_path': self.results_path,
-            'error_message': self.error_message
+            'error_message': self.error_message,
+            'cancel_requested': bool(self.cancel_requested)
         }
 
 
@@ -227,6 +229,9 @@ with app.app_context():
                 db.session.commit()
             if 'llm_api_key' not in column_names:
                 db.session.execute(db.text("ALTER TABLE analysis_jobs ADD COLUMN llm_api_key VARCHAR(500)"))
+                db.session.commit()
+            if 'cancel_requested' not in column_names:
+                db.session.execute(db.text("ALTER TABLE analysis_jobs ADD COLUMN cancel_requested BOOLEAN DEFAULT FALSE"))
                 db.session.commit()
     except Exception as migration_error:
         db.session.rollback()
@@ -1102,6 +1107,11 @@ def _execute_analysis_job(job_id: str):
                     last_reported['percent'] = percent
                 db.session.commit()
 
+            def is_job_cancelled():
+                with app.app_context():
+                    refreshed = AnalysisJob.query.get(job_id)
+                    return refreshed is not None and bool(refreshed.cancel_requested)
+
             pipeline_output = run_k_sites_pipeline(
                 go_term=job.go_term,
                 organism=job.organism,
@@ -1113,6 +1123,7 @@ def _execute_analysis_job(job_id: str):
                 progress_callback=report_progress,
                 llm_provider=job.llm_provider,
                 llm_api_key=job.llm_api_key,
+                is_cancelled=is_job_cancelled,
             )
             pipeline_output['potential_candidates'] = select_potential_candidates(pipeline_output.get('genes', []))
             
@@ -1163,7 +1174,17 @@ def _execute_analysis_job(job_id: str):
             send_job_notification(job, 'completed')
             
             logger.info(f"Analysis job {job_id} completed successfully")
-            
+
+        except JobCancelled:
+            logger.info(f"Analysis job {job_id} cancelled by user")
+            job.status = 'cancelled'
+            job.current_step = 'Cancelled'
+            job.error_message = 'Analysis cancelled by user.'
+            job.progress_percent = 0
+            job.llm_api_key = None  # clear temporary key
+            db.session.commit()
+            # Do not send failure email for user-initiated cancellations.
+
         except Exception as e:
             logger.error(f"Analysis job {job_id} failed: {e}")
             job.status = 'failed'
@@ -1220,6 +1241,29 @@ def delete_job(job_id):
     db.session.delete(job)
     db.session.commit()
     return jsonify({'success': True, 'message': 'Job deleted'})
+
+
+@app.route('/api/jobs/<job_id>/cancel', methods=['POST'])
+@login_required
+def cancel_job(job_id):
+    """Request cancellation of a pending or running analysis job."""
+    job = AnalysisJob.query.get(job_id)
+    if not job:
+        return jsonify({'error': 'Job not found'}), 404
+    if job.status not in ('pending', 'queued', 'running'):
+        return jsonify({'error': f'Job is {job.status} and cannot be cancelled'}), 400
+
+    job.cancel_requested = True
+    if job.status == 'queued':
+        # A queued job has not started yet; mark it cancelled immediately.
+        job.status = 'cancelled'
+        job.current_step = 'Cancelled'
+        job.progress_percent = 0
+    else:
+        job.status = 'cancelling'
+        job.current_step = 'Cancelling...'
+    db.session.commit()
+    return jsonify({'success': True, 'status': job.status, 'message': 'Cancellation requested'})
 
 
 @app.route('/api/jobs/<job_id>/results')
