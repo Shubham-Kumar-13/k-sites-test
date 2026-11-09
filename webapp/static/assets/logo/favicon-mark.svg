@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="12 0 120 120" role="img" aria-label="K-sites">
+<title>K-sites</title>
+<polygon points="26,20 32,10 44,10 44,100 38,110 26,110" fill="#F4FBFF" stroke="#00F0FF" stroke-width="2" stroke-linejoin="miter"/>
+<polygon points="48,50 108,8 66,66 48,70" fill="#F4FBFF" stroke="#00F0FF" stroke-width="2" stroke-linejoin="miter"/>
+<polygon points="48,70 108,112 66,54 48,50" fill="#F4FBFF" stroke="#FF2BD6" stroke-width="2" stroke-linejoin="miter"/>
+<g fill="#39FF88">
+<rect x="111" y="15" width="3.4" height="3.4"/>
+<rect x="115" y="24" width="2.4" height="2.4"/>
+<rect x="111" y="101" width="3.4" height="3.4"/>
+<rect x="115" y="93" width="2.4" height="2.4"/>
+<rect x="103" y="2" width="2.4" height="2.4"/>
+<rect x="103" y="116" width="2.4" height="2.4"/>
+</g>
+</svg>
