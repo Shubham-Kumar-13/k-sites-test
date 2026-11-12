@@ -2,9 +2,10 @@
 Pipeline tests with the data sources mocked.
 """
 
+import pytest
 from unittest.mock import patch
 
-from k_sites.workflow.pipeline import run_k_sites_pipeline
+from k_sites.workflow.pipeline import JobCancelled, run_k_sites_pipeline
 
 
 def scored(symbol, pleiotropy, specificity):
@@ -93,3 +94,19 @@ class TestCoverageAndProgress:
         assessing = [e for e in events if e[0] == "Assessing genes"]
         assert assessing[0] == ("Assessing genes", 0, 2)
         assert assessing[-1] == ("Assessing genes", 2, 2)
+
+
+class TestCancellation:
+    def test_cancellation_during_progress_stops_pipeline(self):
+        events = []
+
+        def progress_callback(stage, done, total):
+            events.append((stage, done, total))
+
+        def is_cancelled():
+            # Cancel after the first progress event so the pipeline has started.
+            return len(events) >= 1
+
+        with pytest.raises(JobCancelled):
+            run([scored("A", 1.0, 0.9), scored("B", 2.0, 0.8)], max_pleiotropy=5,
+                progress_callback=progress_callback, is_cancelled=is_cancelled)

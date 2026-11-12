@@ -155,13 +155,23 @@ def run_k_sites_pipeline(
                 logger.warning(f"Measured knockout data for this organism could not be loaded: {error}")
                 provider = None
         
+        # Helper to abort as soon as the user hits Cancel
+        def _check_cancelled():
+            if is_cancelled and is_cancelled():
+                raise JobCancelled("Job cancelled by user")
+
+        def _progress(stage, done, total):
+            _check_cancelled()
+            if progress_callback:
+                progress_callback(stage, done, total)
+
         # Step 2: Map GO term to genes with evidence filtering
         logger.info(f"Step 2: Mapping GO term to genes with {evidence_filter} evidence...")
         from k_sites.data_retrieval.go_gene_mapper import get_genes_for_go_term_with_coverage
         genes, annotation_coverage = get_genes_for_go_term_with_coverage(
             go_term, taxid, evidence_filter,
             max_annotations=max_annotations,
-            progress_callback=progress_callback
+            progress_callback=_progress
         )
         warnings = []
         if annotation_coverage.get("message"):
@@ -179,7 +189,7 @@ def run_k_sites_pipeline(
                 f"K-Sites has no measured knockout data for {organism_info['scientific_name']}, so every verdict rests on "
                 "annotations and predictions alone and none is rated better than CAUTION.")
         logger.info(f"Found {len(genes)} genes associated with GO term {go_term} with {evidence_filter} evidence")
-        
+
         # What the evidence files know about each gene without searching a database: in how many model species it has
         # an ortholog (conservation) and how many PubMed articles are linked to it (literature)
         facts_lookup = None
@@ -189,24 +199,20 @@ def run_k_sites_pipeline(
                 return {"conservation": known["conservation"]["score"] if known["conservation"] else None,
                         "literature_count": known["literature"]["count"] if known["literature"] else None}
 
-        def _check_cancelled():
-            if is_cancelled and is_cancelled():
-                raise JobCancelled("Job cancelled by user")
-
         _check_cancelled()
 
         # Step 3: Rank genes by specificity using multi-database integration
         logger.info("Step 3: Ranking genes by specificity (multi-database query)...")
         from k_sites.gene_analysis.pleiotropy_scorer import rank_genes_by_specificity
         ranked_genes = rank_genes_by_specificity(
-            genes, 
+            genes,
             taxid,
             target_go_term=go_term,
             evidence_filter=evidence_filter,
             include_literature=True,  # Real PubMed queries
             include_cross_species=species_validation is not None,
             max_pleiotropy_threshold=max_pleiotropy,
-            progress_callback=progress_callback,
+            progress_callback=_progress,
             facts_lookup=facts_lookup,
             databases=databases
         )
@@ -273,8 +279,7 @@ def run_k_sites_pipeline(
             _check_cancelled()
             gene_symbol = gene_info.get("symbol", "unknown")
             logger.info(f"Processing gene {i+1}/{len(scored_genes)}: {gene_symbol}")
-            if progress_callback:
-                progress_callback("Assessing genes", i, len(scored_genes))
+            _progress("Assessing genes", i, len(scored_genes))
             
             try:
                 # a. Pleiotropy score from the ranking step (computed once, from the same data)
@@ -395,8 +400,7 @@ def run_k_sites_pipeline(
                 logger.debug(f"Traceback: {traceback.format_exc()}")
                 continue  # Skip this gene and continue with others
         
-        if progress_callback:
-            progress_callback("Assessing genes", len(scored_genes), len(scored_genes))
+        _progress("Assessing genes", len(scored_genes), len(scored_genes))
 
         if predictions_over_limit:
             warnings.append(
