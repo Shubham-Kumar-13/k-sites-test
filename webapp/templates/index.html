@@ -520,4 +520,28 @@
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/main.js') }}?v=1.3.2"></script>
 <script src="{{ url_for('static', filename='js/ksites-hero.js') }}?v=1.0.0"></script>
+<script>
+(function () {
+  function setStatus(id, ok, text) {
+    const panel = document.getElementById(id);
+    if (!panel) return;
+    const st = panel.querySelector('.ks-st');
+    if (!st) return;
+    st.classList.toggle('ok', ok);
+    st.innerHTML = '<i></i>' + text;
+  }
+  function updateStatuses() {
+    const org = document.getElementById('organism');
+    const go = document.getElementById('go_term');
+    setStatus('s1', org && org.value, org && org.value ? 'Complete' : 'In progress');
+    setStatus('s2', go && go.value, go && go.value ? 'Complete' : 'In progress');
+    setStatus('s3', true, 'Complete');
+    setStatus('s4', false, 'In progress');
+  }
+  document.addEventListener('DOMContentLoaded', updateStatuses);
+  document.addEventListener('change', function (e) {
+    if (['organism','taxid','go_term','go_term_name'].indexOf(e.target.id) >= 0) updateStatuses();
+  });
+})();
+</script>
 {% endblock %}

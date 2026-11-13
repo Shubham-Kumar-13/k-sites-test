@@ -577,45 +577,52 @@ async function loadDatabases() {
         const response = await ksFetch('/api/databases');
         const data = await response.json();
         
-        container.innerHTML = data.databases.map(db => `
-            <div class="col-12 col-md-6 col-lg-4">
-                <div class="card database-card h-100 ${db.required ? 'selected' : ''} ${!db.enabled ? 'disabled opacity-50' : ''}"
-                     data-id="${db.id}"
-                     ${!db.enabled ? 'onclick="return false;" style="cursor: not-allowed;"' : 'onclick="toggleDatabase(this)" style="cursor: pointer;"'}>
-                    <div class="card-body d-flex flex-column">
-                        <div class="d-flex align-items-center mb-2">
-                            <input type="checkbox"
-                                   class="form-check-input me-2 database-checkbox"
-                                   value="${db.id}"
-                                   ${db.required ? 'checked disabled' : ''}
-                                   ${!db.enabled ? 'disabled' : ''}
-                                   onchange="updateDatabaseCard(this)">
-                            <h6 class="card-title mb-0">${db.name}</h6>
-                            ${db.required ? '<span class="badge bg-primary ms-2" style="font-size: 0.65rem;">Required</span>' : ''}
-                        </div>
-                        <p class="card-text small text-muted">${db.description}</p>
-                        ${!db.enabled ? '<span class="badge bg-secondary mt-auto" style="font-size: 0.65rem;">Not Available</span>' : ''}
-                    </div>
+        container.innerHTML = data.databases.map(db => {
+            const on = db.required;
+            const disabled = !db.enabled;
+            return `
+            <div class="ks-dbrow ${on ? 'on' : ''} ${disabled ? 'disabled' : ''}"
+                 role="checkbox"
+                 aria-checked="${on}"
+                 ${disabled ? 'aria-disabled="true"' : 'tabindex="0"'}
+                 data-id="${db.id}"
+                 ${disabled ? 'onclick="return false;"' : 'onclick="toggleDatabaseRow(this)"'}
+                 ${disabled ? '' : 'onkeydown="if(event.key===\' \'||event.key===\'Enter\'){event.preventDefault();toggleDatabaseRow(this)}"'}>
+                <span class="ks-cb">${on ? '&#10003;' : ''}</span>
+                <div>
+                    <b>${db.name}</b>
+                    ${db.required ? '<span class="ks-req">Required</span>' : ''}
+                    <small>${db.description}</small>
                 </div>
+                <input type="checkbox"
+                       class="database-checkbox"
+                       value="${db.id}"
+                       ${on ? 'checked disabled' : ''}
+                       ${disabled ? 'disabled' : ''}
+                       onchange="updateDatabaseRow(this)"
+                       style="position:absolute;opacity:0;width:1px;height:1px;">
             </div>
-        `).join('');
+        `}).join('');
         
     } catch (error) {
         console.error('Error loading databases:', error);
     }
 }
 
-function toggleDatabase(card) {
-    const checkbox = card.querySelector('.database-checkbox:not(:disabled)');
+function toggleDatabaseRow(row) {
+    const checkbox = row.querySelector('.database-checkbox:not(:disabled)');
     if (checkbox) {
         checkbox.checked = !checkbox.checked;
-        card.classList.toggle('selected', checkbox.checked);
+        updateDatabaseRow(checkbox);
     }
 }
 
-function updateDatabaseCard(checkbox) {
-    const card = checkbox.closest('.database-card');
-    card.classList.toggle('selected', checkbox.checked);
+function updateDatabaseRow(checkbox) {
+    const row = checkbox.closest('.ks-dbrow');
+    const on = checkbox.checked;
+    row.classList.toggle('on', on);
+    row.setAttribute('aria-checked', on);
+    row.querySelector('.ks-cb').innerHTML = on ? '&#10003;' : '';
 }
 
 // ============================================================================
