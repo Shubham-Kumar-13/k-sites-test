@@ -12,7 +12,6 @@
 - **Non-Pleiotropic Gene Identification**: Multi-database integration (GO, UniProt)
 - **RAG-Based Phenotype Prediction**: Literature mining with semantic search
 - **Web Application**: Flask-based UI with hierarchical selection
-- **Email Notifications**: Analysis completion alerts
 - **Multiple Export Formats**: CSV, Excel, HTML
 
 ### Installation Options

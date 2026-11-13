@@ -27,13 +27,11 @@ A web interface for K-Sites, a tool that helps scientists pick a safe gene for k
 - **Multi-Database Evidence**: GO (QuickGO), UniProt data per gene; PubMed is used only when RAG phenotype prediction is enabled
 - **RAG Phenotype Prediction**: AI-powered literature-based phenotype prediction
 - **Smart Gene Limiting**: Real-time gene count validation with suggestions
-- **Email Notifications**: Get notified when analysis starts and completes
 
 ### 📈 Enhanced Progress Tracking
 - **Visual Progress Bar**: Shows exact percentage completion
 - **Step-by-Step Status**: See which analysis step is currently running
 - **ETA Calculation**: Estimated time of completion based on parameters
-- **Email Alerts**: Automatic notifications on job status changes
 
 ### 📚 Comprehensive Documentation
 - **Help Page**: Detailed explanations of all analytical terms
@@ -46,7 +44,6 @@ A web interface for K-Sites, a tool that helps scientists pick a safe gene for k
 ### Prerequisites
 - Python 3.8+
 - K-Sites package installed (`pip install -e ..` from parent directory)
-- Optional: SMTP server for email notifications
 
 ### Setup
 
@@ -60,12 +57,6 @@ pip install -r requirements.txt
 ```bash
 # Required
 export K_SITES_NCBI_EMAIL="your-email@example.com"
-
-# Optional: Email notifications
-export MAIL_USERNAME="your-email@gmail.com"
-export MAIL_PASSWORD="your-app-password"
-export MAIL_SERVER="smtp.gmail.com"
-export MAIL_PORT=587
 ```
 
 3. Start the server:
@@ -79,23 +70,22 @@ export MAIL_PORT=587
 
 ### Starting an Analysis
 
-1. **Enter Email** (optional): For notifications
-2. **Select Organism**:
+1. **Select Organism**:
    - Click kingdom (e.g., "Animals")
    - Filter/scroll to find species (e.g., "Mus musculus")
    - Click to select
-3. **Select GO Term**:
+2. **Select GO Term**:
    - Click category (e.g., "Biological Process")
    - Filter to find term (e.g., "DNA repair")
    - Or enter GO:0006281 directly
-4. **Choose Databases**: QuickGO is always used; add UniProt as needed
-5. **Set Parameters**:
+3. **Choose Databases**: QuickGO is always used; add UniProt as needed
+4. **Set Parameters**:
    - Max genes: 10-50 (lower = faster)
    - Max pleiotropy: 0-10 cutoff on the pleiotropy score (lower = only more specific genes)
    - Enable RAG prediction (optional, adds ~1 min/gene)
-6. **Review Gene Count**: See available genes and estimated time
-7. **Start Analysis**: Submit and wait for completion
-8. **View Results**: Interactive dashboard with safety levels for every gene
+5. **Review Gene Count**: See available genes and estimated time
+6. **Start Analysis**: Submit and wait for completion
+7. **View Results**: Interactive dashboard with safety levels for every gene
 
 ### Understanding Results
 
@@ -120,18 +110,6 @@ Visit `/help` for detailed explanations of:
 - `GET /api/jobs/{id}/status` - Get job status with progress
 - `GET /api/jobs/{id}/results` - Get completed results
 - `GET /api/jobs/{id}/download/{format}` - Download HTML/JSON
-
-## Email Notifications
-
-Configure email to receive:
-1. **Submission confirmation** with job ID
-2. **Completion notification** with results summary
-3. **Failure alert** with error details
-
-### Gmail Setup
-1. Enable 2-Factor Authentication
-2. Generate App Password: https://support.google.com/accounts/answer/185833
-3. Use App Password (not your regular password)
 
 ## Architecture
 
@@ -163,17 +141,12 @@ Tracks all analysis jobs with:
 - Job ID, status, timestamps
 - Current step and progress percentage
 - Estimated completion time
-- User email for notifications
+- Optional user email (metadata only)
 - All input parameters
 - Results summary
 - Error messages
 
 ## Troubleshooting
-
-### Email not working
-- Check MAIL_USERNAME and MAIL_PASSWORD are set
-- For Gmail, use App Password, not account password
-- Check firewall allows outbound SMTP
 
 ### No genes found
 - Try a broader GO term

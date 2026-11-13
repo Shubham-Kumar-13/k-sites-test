@@ -21,16 +21,8 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get('KSITES_DATABASE_URI') or f'sqlite:///{RESULTS_DIR}/ksites_jobs.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
-    # Email Configuration
-    MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
-    MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
-    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', '1', 'yes']
-    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER') or MAIL_USERNAME
-    
     # K-Sites Configuration
-    K_SITES_NCBI_EMAIL = os.environ.get('K_SITES_NCBI_EMAIL') or MAIL_USERNAME or 'user@example.com'
+    K_SITES_NCBI_EMAIL = os.environ.get('K_SITES_NCBI_EMAIL') or 'user@example.com'
     K_SITES_NCBI_API_KEY = os.environ.get('K_SITES_NCBI_API_KEY')
     
 

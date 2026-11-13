@@ -61,8 +61,6 @@ setup(
             "flask>=3.0.0",
             "flask-sqlalchemy>=3.0.0",
             "flask-cors>=4.0.0",
-            "flask-mail>=0.9.1",
-            "email-validator>=2.1.0",
             "jinja2>=3.1.0",
         ],
         "all": [
@@ -71,8 +69,6 @@ setup(
             "flask>=3.0.0",
             "flask-sqlalchemy>=3.0.0",
             "flask-cors>=4.0.0",
-            "flask-mail>=0.9.1",
-            "email-validator>=2.1.0",
             "jinja2>=3.1.0",
             "python-dotenv>=1.0.0",
         ],

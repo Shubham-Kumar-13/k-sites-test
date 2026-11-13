@@ -157,8 +157,7 @@ Navigate to: `http://localhost:5000`
 1. **Celery Integration**: Replace threading with proper task queue
 2. **Redis Caching**: Cache GO term and organism searches
 3. **User Authentication**: Multi-user support with login
-4. **Email Notifications**: Alert when analysis completes
-5. **Bulk Analysis**: Upload list of GO terms
+4. **Bulk Analysis**: Upload list of GO terms
 6. **Comparison Mode**: Compare results across organisms
 7. **Export Formats**: Excel, PDF reports
 8. **Visualization**: Charts for gene networks

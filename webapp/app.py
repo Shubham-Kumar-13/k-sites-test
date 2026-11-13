@@ -19,7 +19,6 @@ from typing import Dict, List, Any, Optional
 from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, session, flash
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
-from flask_mail import Mail, Message
 from functools import wraps
 
 # Add parent directory to path for K-Sites imports
@@ -86,20 +85,11 @@ DATABASE_URI = os.environ.get('KSITES_DATABASE_URI') or f'sqlite:///{RESULTS_DIR
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Email configuration
-app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
-app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'ksites@example.com')
-
 # Initialize extensions
 db = SQLAlchemy(app)
-mail = Mail(app)
 
-# Default configuration
-os.environ.setdefault('K_SITES_NCBI_EMAIL', os.environ.get('MAIL_USERNAME', 'user@example.com'))
+# Default NCBI contact email if the deployment has not set one.
+os.environ.setdefault('K_SITES_NCBI_EMAIL', 'user@example.com')
 
 # Preload organisms in background for faster response
 def _preload_organisms():
@@ -248,89 +238,6 @@ with app.app_context():
     except Exception as startup_error:  # a fresh database may not have every column yet
         db.session.rollback()
         logger.warning(f"Could not clean up interrupted jobs: {startup_error}")
-
-
-# ============================================================================
-# Email Functions
-# ============================================================================
-
-def send_job_notification(job: AnalysisJob, notification_type: str):
-    """Send email notification to user"""
-    if not job.user_email or not app.config['MAIL_USERNAME']:
-        return
-    
-    try:
-        if notification_type == 'submitted':
-            subject = f"K-Sites Analysis Started - Job {job.id[:8]}"
-            body = f"""
-Dear User,
-
-Your K-Sites analysis has been submitted successfully!
-
-Job Details:
-- Job ID: {job.id}
-- Organism: {job.organism}
-- GO Term: {job.go_term} ({job.go_term_name or 'N/A'})
-- Max Genes: {job.max_genes}
-- Submitted: {job.created_at.strftime('%Y-%m-%d %H:%M:%S')}
-
-You can track progress at: http://localhost:5000/results/{job.id}
-
-You will receive another email when the analysis is complete.
-
-Best regards,
-K-Sites Team
-"""
-        elif notification_type == 'completed':
-            subject = f"K-Sites Analysis Complete - Job {job.id[:8]}"
-            body = f"""
-Dear User,
-
-Your K-Sites analysis has been completed successfully!
-
-Job Details:
-- Job ID: {job.id}
-- Organism: {job.organism}
-- GO Term: {job.go_term} ({job.go_term_name or 'N/A'})
-- Genes Analyzed: {job.genes_processed}
-- Completion Time: {job.updated_at.strftime('%Y-%m-%d %H:%M:%S')}
-
-View your results: http://localhost:5000/results/{job.id}
-
-Thank you for using K-Sites!
-
-Best regards,
-K-Sites Team
-"""
-        elif notification_type == 'failed':
-            subject = f"K-Sites Analysis Failed - Job {job.id[:8]}"
-            body = f"""
-Dear User,
-
-We regret to inform you that your K-Sites analysis has failed.
-
-Job Details:
-- Job ID: {job.id}
-- Organism: {job.organism}
-- GO Term: {job.go_term}
-- Error: {job.error_message}
-
-Please try again or contact support if the issue persists.
-
-View details: http://localhost:5000/results/{job.id}
-
-Best regards,
-K-Sites Team
-"""
-        else:
-            return
-        
-        msg = Message(subject, recipients=[job.user_email], body=body)
-        mail.send(msg)
-        logger.info(f"Email sent to {job.user_email} for job {job.id}")
-        
-    except Exception as e:
-        logger.error(f"Failed to send email: {e}")
 
 
 # ============================================================================
@@ -902,8 +809,20 @@ def start_analysis():
         # Generate job ID
         job_id = str(uuid.uuid4())
         
-        # Estimate completion time
-        taxid = data.get('taxid')
+        # Estimate completion time based on every gene of the GO term, not just max_genes.
+        try:
+            organism_info = resolve_organism(data.get('organism', ''))
+            taxid = data.get('taxid') or organism_info['taxid']
+            genes_for_estimate = get_genes_for_go_term(
+                data.get('go_term', ''), taxid,
+                evidence_filter=data.get('evidence_filter', 'experimental')
+            )
+            gene_count_for_estimate = len(genes_for_estimate)
+        except Exception as e:
+            logger.warning(f"Could not count genes for time estimate: {e}")
+            taxid = data.get('taxid')
+            gene_count_for_estimate = int(data.get('max_genes', 10))
+
         try:
             provider = default_provider()
             organism_record = provider.organism(taxid) if provider and taxid else None
@@ -912,20 +831,20 @@ def start_analysis():
             has_measured_evidence = False
         databases = data.get('databases') or ['quickgo']
         estimated_seconds = estimate_analysis_time(
-            int(data.get('max_genes', 10)),
+            gene_count_for_estimate,
             predict_phenotypes=data.get('predict_phenotypes', False),
             has_measured_evidence=has_measured_evidence,
             database_count=max(1, len(databases))
         )
         estimated_completion = datetime.utcnow() + timedelta(seconds=estimated_seconds)
-        
+
         # Create job record
         job = AnalysisJob(
             id=job_id,
             user_id=session.get('user_id'),
             user_email=session.get('user_email') or data.get('user_email') or request.headers.get('X-KSites-User-Email'),
             organism=data.get('organism'),
-            taxid=data.get('taxid'),
+            taxid=taxid or data.get('taxid'),
             go_term=data.get('go_term'),
             go_term_name=data.get('go_term_name'),
             max_genes=int(data.get('max_genes', 10)),
@@ -944,9 +863,6 @@ def start_analysis():
         
         db.session.add(job)
         db.session.commit()
-        
-        # Send notification email
-        send_job_notification(job, 'submitted')
         
         # Submit to the analysis queue
         if not analysis_queue.submit(job_id):
@@ -1170,9 +1086,6 @@ def _execute_analysis_job(job_id: str):
             job.llm_api_key = None  # clear temporary key
             db.session.commit()
             
-            # Send completion email
-            send_job_notification(job, 'completed')
-            
             logger.info(f"Analysis job {job_id} completed successfully")
 
         except JobCancelled:
@@ -1192,9 +1105,6 @@ def _execute_analysis_job(job_id: str):
             job.error_message = str(e)
             job.llm_api_key = None  # clear temporary key
             db.session.commit()
-            
-            # Send failure email
-            send_job_notification(job, 'failed')
 
 
 # ============================================================================

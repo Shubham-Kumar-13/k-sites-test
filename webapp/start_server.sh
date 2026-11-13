@@ -23,8 +23,6 @@ fi
 echo ""
 echo "Configuration:"
 echo "  NCBI Email: $K_SITES_NCBI_EMAIL"
-echo "  Mail Server: ${MAIL_SERVER:-Not configured (email disabled)}"
-
 
 echo ""
 
@@ -51,23 +49,6 @@ fi
 
 echo "✓ Dependencies OK"
 echo ""
-
-# Print environment setup instructions if email not configured
-if [ -z "$MAIL_USERNAME" ]; then
-    echo "============================================================"
-    echo "  Email Notifications (Optional)"
-    echo "============================================================"
-    echo "To enable email notifications, set these environment variables:"
-    echo ""
-    echo "  export MAIL_USERNAME='your-email@gmail.com'"
-    echo "  export MAIL_PASSWORD='your-app-password'"
-    echo "  export MAIL_SERVER='smtp.gmail.com'"
-    echo "  export MAIL_PORT=587"
-    echo ""
-    echo "For Gmail, use an App Password:"
-    echo "  https://support.google.com/accounts/answer/185833"
-    echo ""
-fi
 
 echo "============================================================"
 echo "  Starting K-Sites Web Server"

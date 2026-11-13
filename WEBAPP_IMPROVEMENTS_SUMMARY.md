@@ -10,9 +10,7 @@ This document summarizes all the improvements made to the K-Sites web applicatio
 ### 1. **Python Package Updates**
 - **File**: `requirements.txt`
 - **Added packages**:
-  - `Flask-Mail==0.9.1` - Email notifications
   - `Celery==5.3.4` & `Redis==5.0.1` - Task queue (prepared for future)
-  - `email-validator==2.1.0` - Email validation
 
 ### 3. **Hierarchical Organism Selection**
 - **Files**: `utils/hierarchical_data.py`, `templates/index.html`, `static/js/main.js`, `app.py`
@@ -65,16 +63,9 @@ This document summarizes all the improvements made to the K-Sites web applicatio
   - Real-time updates via polling
   - Color-coded step indicators
 
-### 7. **Email Notification System**
-- **Files**: `app.py`, `templates/index.html`, `config.py`
-- **Features**:
-  - Optional email input on submission form
-  - Confirmation email on job submission (with Job ID)
-  - Completion email with results summary
-  - Failure email with error details
-  - Gmail/App Password support
-  - Configurable via environment variables
-  - Graceful handling when email not configured
+### 7. **Email Notification System** (removed)
+- Email notifications were previously implemented with Flask-Mail but have been removed.
+- The optional email field on the submission form is retained only as metadata.
 
 ### 8. **New Tagline and Branding**
 - **Files**: `templates/base.html`, `app.py`, `README.md`
