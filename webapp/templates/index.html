@@ -190,233 +190,169 @@
             </section>
             
             <!-- Step 4: Analysis Parameters -->
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">
-                        <span class="step-number">4</span>
-                        Analysis Parameters
-                    </h5>
+            <section class="ks-panel" id="s4">
+                <div class="ks-ph">
+                    <div>
+                        <div class="ks-tag">Step 04</div>
+                        <h2>Analysis Parameters</h2>
+                    </div>
+                    <div class="ks-st"><i></i>In progress</div>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="max_genes" class="form-label">
-                                <i class="fas fa-list-ol me-2"></i>Genes to Report
-                                <a href="/help#faq" class="text-decoration-none" target="_blank">
-                                    <i class="fas fa-question-circle text-muted"></i>
-                                </a>
-                            </label>
-                            <input type="number" 
-                                   class="form-control" 
-                                   id="max_genes" 
-                                   name="max_genes"
-                                   value="10"
-                                   min="1"
-                                   max="500"
-                                   required>
-                            <div class="form-text">
+                <div class="ks-pb">
+                    <div class="ks-two">
+                        <div>
+                            <div class="ks-lab">Genes to Report</div>
+                            <div class="ks-field ks-mono">
+                                <input type="number" id="max_genes" name="max_genes" value="10" min="1" max="500" required>
+                            </div>
+                            <div class="ks-formtext">
                                 How many genes to show in the report (1-500), safest first. Every gene of the
                                 GO term is assessed, so this does not change the run time; the others are listed
                                 as "not shown" with their measured knockout result, so nothing is hidden.
-                                <button type="button" class="btn btn-link btn-sm p-0 align-baseline" id="showAllGenes">Show all genes</button>
-                                <span id="showAllNote" class="text-success" style="display:none">All genes will be shown (500 is the largest possible report, shown here as the number).</span>
+                                <button type="button" class="ks-linkbtn" id="showAllGenes">Show all genes</button>
+                                <span id="showAllNote" style="display:none;color:var(--ks-green);margin-left:6px;">All genes will be shown (500 is the largest possible report, shown here as the number).</span>
                             </div>
                         </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            <label for="max_pleiotropy" class="form-label">
-                                <i class="fas fa-filter me-2"></i>Max Pleiotropy Score
-                                <a href="/help#pleiotropy_score" class="text-decoration-none" target="_blank">
-                                    <i class="fas fa-question-circle text-muted"></i>
-                                </a>
-                            </label>
-                            <input type="number" 
-                                   class="form-control" 
-                                   id="max_pleiotropy" 
-                                   name="max_pleiotropy"
-                                   value="5"
-                                   min="0"
-                                   max="10"
-                                   required>
-                            <div class="form-text">
+                        <div>
+                            <div class="ks-lab">Max Pleiotropy Score</div>
+                            <div class="ks-field ks-mono">
+                                <input type="number" id="max_pleiotropy" name="max_pleiotropy" value="5" min="0" max="10" required>
+                            </div>
+                            <div class="ks-formtext">
                                 Cutoff on the 0-10 pleiotropy score: genes scoring above it are left out.
                                 0 = only the most specific genes, 10 = keep everything.
                                 <a href="/help#pleiotropy_score" target="_blank">Learn more</a>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="evidence_filter" class="form-label">
-                                <i class="fas fa-check-double me-2"></i>Evidence Filter
-                            </label>
-                            <select class="form-select" id="evidence_filter" name="evidence_filter">
+
+                    <div class="ks-two" style="margin-top:26px;">
+                        <div>
+                            <div class="ks-lab">Evidence Filter</div>
+                            <select class="ks-select" id="evidence_filter" name="evidence_filter" aria-label="Evidence Filter">
                                 <option value="experimental">Experimental only</option>
                                 <option value="computational">Computational only</option>
                                 <option value="all">All evidence types</option>
                             </select>
-                            <div class="form-text">
+                            <div class="ks-formtext">
                                 <strong>Experimental:</strong> only roles proven in lab experiments (strict, but can make
                                 poorly studied genes look more specific than they are).<br>
                                 <strong>Computational:</strong> only predicted roles.<br>
                                 <strong>All:</strong> every known role (most cautious about pleiotropy).
                             </div>
                         </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label for="knockout_context" class="form-label">
-                                <i class="fas fa-vial me-2"></i>What will you knock out?
-                                <a href="/help#knockout_context" class="text-decoration-none" target="_blank">
-                                    <i class="fas fa-question-circle text-muted"></i>
-                                </a>
-                            </label>
-                            <select class="form-select" id="knockout_context" name="knockout_context">
+                        <div>
+                            <div class="ks-lab">What will you knock out?</div>
+                            <select class="ks-select" id="knockout_context" name="knockout_context" aria-label="What will you knock out?">
                                 <option value="auto" selected>Automatic (cultured cells for human, whole organism otherwise)</option>
                                 <option value="cells">Cultured cells (CRISPR knockout in a cell line)</option>
                                 <option value="organism">Whole organism (animal, plant or yeast)</option>
                             </select>
-                            <div class="form-text">
+                            <div class="ks-formtext">
                                 Decides which measurement the verdict follows: cell-line essentiality (DepMap) or whole-organism
                                 knockout survival (MGI, IMPC, SGD, ZFIN, FlyBase, WormBase). Both are shown for every gene.
                             </div>
                         </div>
                     </div>
 
-                    <div class="row my-4">
-                        <div class="col-12 py-2">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="predict_phenotypes" name="predict_phenotypes">
-                                <label class="form-check-label" for="predict_phenotypes">
-                                    <i class="fas fa-brain me-2" id="ragBrainIcon"></i>Enable RAG Phenotype Prediction
-                                    <span class="badge bg-secondary ms-2 fw-normal">Optional</span>
-                                    <a href="/help#phenotype_prediction" class="text-decoration-none" target="_blank"
-                                       title="When to use, limitations, and the optional API key">
-                                        <i class="fas fa-question-circle text-muted"></i>
-                                    </a>
-                                </label>
-                            </div>
-                            <div class="form-text">
-                                Guess phenotypes from PubMed abstracts for unmeasured genes only. Each unmeasured gene takes about 1 minute to read and is capped at 25 genes per run to keep the analysis manageable. Literature-derived predictions are advisory only and do not elevate the overall recommendation above CAUTION.
-                            </div>
-                            <div id="llmKeySection" class="collapse mt-3">
-                                <div class="card llm-key-card">
-                                    <div class="card-body">
-                                        <h6 class="card-title mb-3">
-                                            <i class="fas fa-key me-2"></i>Enhance with a hosted AI model <span class="text-muted fw-normal small">(your own API key)</span>
-                                        </h6>
+                    <!-- RAG phenotype prediction -->
+                    <div class="ks-rag">
+                        <div class="ks-switch">
+                            <input type="checkbox" id="predict_phenotypes" name="predict_phenotypes">
+                            <span class="ks-tog"></span>
+                            <label class="ks-switch-label" for="predict_phenotypes">
+                                <span class="ks-brain" id="ragBrainIcon">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 2 5 3 3 0 0 0 3 3 2 2 0 0 0 3-1V5a2 2 0 0 0-3-1z"/><path d="M15 4a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-2 5 3 3 0 0 1-3 3 2 2 0 0 1-3-1"/></svg>
+                                </span>
+                                Enable RAG Phenotype Prediction
+                                <span class="ks-opt-badge">Optional</span>
+                                <a href="/help#phenotype_prediction" target="_blank" title="When to use, limitations, and the optional API key" style="font-weight:400;">(?)</a>
+                            </label>
+                        </div>
+                        <div class="ks-formtext">
+                            Guess phenotypes from PubMed abstracts for unmeasured genes only. Each unmeasured gene takes about 1 minute to read and is capped at 25 genes per run to keep the analysis manageable. Literature-derived predictions are advisory only and do not elevate the overall recommendation above CAUTION.
+                        </div>
+                        <div id="llmKeySection" class="collapse">
+                            <div class="ks-keycard">
+                                <h6>
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="8" r="3.5"/><path d="M8.5 8H15M13 8v3M11 8v2"/></svg>
+                                    Enhance with a hosted AI model <small>(your own API key)</small>
+                                </h6>
 
-                                        <input type="hidden" id="llm_provider" name="llm_provider" value="kimi">
+                                <input type="hidden" id="llm_provider" name="llm_provider" value="kimi">
 
-                                        <!-- Step 1: open the provider list -->
-                                        <div id="llmProviderTrigger" class="llm-provider-trigger"
-                                             onclick="toggleLlmProviderPanel()">
-                                            <span id="llmProviderTriggerText">Pick a model to read abstracts</span>
-                                            <i class="fas fa-chevron-down" id="llmProviderTriggerIcon"></i>
+                                <button type="button" id="llmProviderTrigger" class="ks-trigger" onclick="toggleLlmProviderPanel()">
+                                    <span id="llmProviderTriggerText">Pick a model to read abstracts</span>
+                                    <i class="fas fa-chevron-down" id="llmProviderTriggerIcon"></i>
+                                </button>
+
+                                <div id="llmProviderOptions" class="d-none">
+                                    <div class="ks-provs">
+                                        <div class="provider-option" data-provider="kimi" onclick="selectLlmProvider('kimi')">
+                                            <strong>Kimi</strong>
+                                            <span class="small text-muted">Moonshot</span>
                                         </div>
-
-                                        <!-- Step 2: choose a provider -->
-                                        <div id="llmProviderOptions" class="d-none mt-2">
-                                            <div class="row g-2">
-                                                <div class="col-6 col-md-4">
-                                                    <div class="card provider-option h-100" data-provider="kimi" onclick="selectLlmProvider('kimi')">
-                                                        <div class="card-body text-center py-2">
-                                                            <strong>Kimi</strong>
-                                                            <div class="small text-muted">Moonshot</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-6 col-md-4">
-                                                    <div class="card provider-option h-100" data-provider="openai" onclick="selectLlmProvider('openai')">
-                                                        <div class="card-body text-center py-2">
-                                                            <strong>OpenAI</strong>
-                                                            <div class="small text-muted">GPT</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-6 col-md-4">
-                                                    <div class="card provider-option h-100" data-provider="anthropic" onclick="selectLlmProvider('anthropic')">
-                                                        <div class="card-body text-center py-2">
-                                                            <strong>Anthropic</strong>
-                                                            <div class="small text-muted">Claude</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-6 col-md-4">
-                                                    <div class="card provider-option h-100" data-provider="qwen" onclick="selectLlmProvider('qwen')">
-                                                        <div class="card-body text-center py-2">
-                                                            <strong>Qwen</strong>
-                                                            <div class="small text-muted">Alibaba</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-6 col-md-4">
-                                                    <div class="card provider-option h-100" data-provider="deepseek" onclick="selectLlmProvider('deepseek')">
-                                                        <div class="card-body text-center py-2">
-                                                            <strong>DeepSeek</strong>
-                                                            <div class="small text-muted">Chat</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-6 col-md-4">
-                                                    <div class="card provider-option h-100" data-provider="grok" onclick="selectLlmProvider('grok')">
-                                                        <div class="card-body text-center py-2">
-                                                            <strong>Grok</strong>
-                                                            <div class="small text-muted">xAI</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                        <div class="provider-option" data-provider="openai" onclick="selectLlmProvider('openai')">
+                                            <strong>OpenAI</strong>
+                                            <span class="small text-muted">GPT</span>
                                         </div>
-
-                                        <!-- Step 3: paste the key (appears only after a provider is selected) -->
-                                        <div id="llmApiKeyWrapper" class="collapse mt-3">
-                                            <label for="llm_api_key" class="form-label small text-muted mb-1">
-                                                API key for <span id="llmSelectedProviderName">Kimi (Moonshot)</span>
-                                            </label>
-                                            <input type="password" class="form-control" id="llm_api_key" name="llm_api_key"
-                                                   placeholder="sk-..." autocomplete="off">
+                                        <div class="provider-option" data-provider="anthropic" onclick="selectLlmProvider('anthropic')">
+                                            <strong>Anthropic</strong>
+                                            <span class="small text-muted">Claude</span>
                                         </div>
-
-                                        <div class="form-text mt-2">
-                                            Paste your own API key for the selected provider to let a larger language model read the abstracts.
-                                            This improves accuracy (better negation handling, context understanding, and conflict resolution) compared with the default free browser model.
-                                            <strong>If the field is left blank, or if the API fails, K-Sites automatically uses the default browser-based model instead.</strong>
-                                            The key is used only in this browser and is never sent to our server.
-                                            <a href="/help#phenotype_prediction" target="_blank">How to get an API key</a>.
+                                        <div class="provider-option" data-provider="qwen" onclick="selectLlmProvider('qwen')">
+                                            <strong>Qwen</strong>
+                                            <span class="small text-muted">Alibaba</span>
                                         </div>
+                                        <div class="provider-option" data-provider="deepseek" onclick="selectLlmProvider('deepseek')">
+                                            <strong>DeepSeek</strong>
+                                            <span class="small text-muted">Chat</span>
+                                        </div>
+                                        <div class="provider-option" data-provider="grok" onclick="selectLlmProvider('grok')">
+                                            <strong>Grok</strong>
+                                            <span class="small text-muted">xAI</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="llmApiKeyWrapper" class="collapse">
+                                    <label class="ks-formtext" for="llm_api_key" style="display:block;margin:16px 0 6px;">
+                                        API key for <span id="llmSelectedProviderName">Kimi (Moonshot)</span>
+                                    </label>
+                                    <div class="ks-field ks-mono">
+                                        <input type="password" id="llm_api_key" name="llm_api_key" placeholder="sk-..." autocomplete="off">
+                                    </div>
+                                    <div class="ks-formtext">
+                                        Paste your own API key for the selected provider to let a larger language model read the abstracts.
+                                        This improves accuracy (better negation handling, context understanding, and conflict resolution) compared with the default free browser model.
+                                        <strong>If the field is left blank, or if the API fails, K-Sites automatically uses the default browser-based model instead.</strong>
+                                        The key is used only in this browser and is never sent to our server.
+                                        <a href="/help#phenotype_prediction" target="_blank">How to get an API key</a>.
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-
                     <!-- Gene Count Preview -->
-                    <div id="geneCountPreview" class="alert alert-info mt-3" style="display: none;">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
-                            <div>
-                                <i class="fas fa-dna me-2"></i>
-                                <strong>Gene Count:</strong> <span id="geneCountValue">-</span> genes found
-                            </div>
-                            <button type="button" class="btn btn-sm btn-outline-primary" id="refreshGeneCount">
-                                <i class="fas fa-sync me-1"></i>Refresh
-                            </button>
+                    <div id="geneCountPreview" class="ks-gcount" style="display:none;">
+                        <div class="row">
+                            <span><b>Gene Count:</b> <span id="geneCountValue" class="ks-mono">-</span> genes found</span>
+                            <button type="button" class="ks-btn-s" id="refreshGeneCount">Refresh</button>
                         </div>
-                        <div id="estimatedTime" class="mb-2" style="display: none;">
-                            <i class="fas fa-clock me-2"></i>
-                            <strong>Estimated Time:</strong> <span id="estimatedTimeValue">-</span>
+                        <div class="row" id="estimatedTime" style="display:none;">
+                            <span><b>Estimated Time:</b> <span id="estimatedTimeValue" class="ks-mono">-</span></span>
                         </div>
-                        <div id="geneCountWarning" class="alert alert-warning py-2 px-3 mb-0 mt-2" style="display: none;">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            <span id="geneCountWarningText"></span>
+                        <div id="geneCountWarning" class="ks-note ks-warn" style="display:none;margin-top:8px;">
+                            <span class="ks-grow" id="geneCountWarningText"></span>
                         </div>
-                        <div id="geneCountStatus" class="mt-2 text-end" style="display: none;">
-                            <small id="geneCountStatusText" class="text-muted"></small>
+                        <div id="geneCountStatus" class="row" style="display:none;">
+                            <small id="geneCountStatusText" style="color:var(--ks-muted);"></small>
                         </div>
+                        <div class="ks-bar-anim" aria-hidden="true"><i></i></div>
                     </div>
                 </div>
-            </div>
+            </section>
             
             <!-- Validation Alerts -->
             <div id="validationAlerts"></div>
@@ -449,70 +385,6 @@
     html[data-bs-theme="light"] .ksites-header-logo.logo-light-mode,
     html[data-bs-theme="dark"] .ksites-header-logo.logo-dark-mode {
         display: inline-block;
-    }
-
-    /* RAG phenotype prediction section */
-    #ragBrainIcon {
-        transition: color 0.2s ease;
-        display: inline-block;
-    }
-    #ragBrainIcon.active {
-        color: #f6ad55;
-    }
-    #ragBrainIcon.pop {
-        animation: brainPop 0.35s ease;
-    }
-    @keyframes brainPop {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.35); }
-        100% { transform: scale(1); }
-    }
-
-    .llm-key-card {
-        border: 1px solid #e2e8f0;
-        background-color: #ffffff;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    }
-
-    .llm-provider-trigger {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0.75rem 1rem;
-        border: 1px dashed #cbd5e0;
-        border-radius: 8px;
-        background-color: #f8fafc;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-    .llm-provider-trigger:hover {
-        background-color: #edf2f7;
-        border-color: #a0aec0;
-    }
-    .llm-provider-trigger.open {
-        border-style: solid;
-        border-color: #2c5282;
-        background-color: #ebf8ff;
-    }
-    .llm-provider-trigger.open #llmProviderTriggerIcon {
-        transform: rotate(180deg);
-    }
-    #llmProviderTriggerIcon {
-        transition: transform 0.2s ease;
-    }
-
-    .provider-option {
-        cursor: pointer;
-        border: 2px solid transparent;
-        transition: all 0.15s ease;
-    }
-    .provider-option:hover {
-        border-color: #2c5282;
-        transform: translateY(-1px);
-    }
-    .provider-option.selected {
-        border-color: #48bb78;
-        background-color: #f0fff4;
     }
 </style>
 {% endblock %}
