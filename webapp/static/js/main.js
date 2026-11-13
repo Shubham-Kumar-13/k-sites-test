@@ -737,6 +737,13 @@ function initializeEventListeners() {
     
     // Form submission
     document.getElementById('analysisForm')?.addEventListener('submit', handleFormSubmit);
+
+    // Dock summary: keep it in sync with the form
+    updateDockSummary();
+    ['organism','go_term','max_genes','max_pleiotropy','predict_phenotypes'].forEach(id => {
+        document.getElementById(id)?.addEventListener('change', updateDockSummary);
+    });
+    document.getElementById('databaseContainer')?.addEventListener('change', updateDockSummary);
 }
 
 // ============================================================================
@@ -1031,4 +1038,40 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
+}
+
+
+function updateDockSummary() {
+    const organism = document.getElementById('organism')?.value?.trim() || '—';
+    const goTerm = document.getElementById('go_term')?.value?.trim() || '—';
+    const maxGenes = document.getElementById('max_genes')?.value || '10';
+    const maxPleiotropy = document.getElementById('max_pleiotropy')?.value || '5';
+    const ragOn = document.getElementById('predict_phenotypes')?.checked || false;
+
+    const selectedDbs = Array.from(
+        document.querySelectorAll('.database-checkbox:checked')
+    ).map(cb => {
+        const map = {
+            quickgo: 'QuickGO',
+            uniprot: 'UniProt',
+            mygene: 'MyGene.info',
+            ncbi: 'NCBI Gene'
+        };
+        return map[cb.value] || cb.value;
+    });
+    const dbLabel = selectedDbs.length > 0 ? selectedDbs.join(', ') : 'QuickGO';
+
+    const orgEl = document.getElementById('dockOrg');
+    const goEl = document.getElementById('dockGo');
+    const dbEl = document.getElementById('dockDb');
+    const nEl = document.getElementById('dockN');
+    const pEl = document.getElementById('dockP');
+    const ragEl = document.getElementById('dockRag');
+
+    if (orgEl) orgEl.textContent = organism;
+    if (goEl) goEl.textContent = goTerm;
+    if (dbEl) dbEl.textContent = dbLabel;
+    if (nEl) nEl.textContent = maxGenes;
+    if (pEl) pEl.textContent = maxPleiotropy;
+    if (ragEl) ragEl.textContent = ragOn ? 'RAG on' : 'RAG off';
 }

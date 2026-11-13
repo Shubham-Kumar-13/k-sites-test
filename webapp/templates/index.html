@@ -15,7 +15,7 @@
 </header>
 
 <div class="row">
-    <div class="col-lg-11 mx-auto">
+    <div class="col-lg-11 mx-auto ks-form-wrap">
         
         <form id="analysisForm" class="needs-validation" novalidate>
             
@@ -356,14 +356,19 @@
             
             <!-- Validation Alerts -->
             <div id="validationAlerts"></div>
-            
-            <!-- Submit Button -->
-            <div class="d-grid gap-2">
-                <button type="submit" class="btn btn-primary btn-lg" id="startAnalysis">
-                    <i class="fas fa-play me-2"></i>Start Analysis
-                </button>
-            </div>
         </form>
+    </div>
+</div>
+
+<!-- Fixed bottom dock -->
+<div class="ks-dock">
+    <div class="ks-wrap">
+        <p id="dockSummary">
+            <b id="dockOrg">—</b><i>/</i><b id="dockGo">—</b><i>/</i><span id="dockDb">QuickGO</span><i>/</i>top <b id="dockN">10</b><i>/</i>score &le; <b id="dockP">5</b><i>/</i><span id="dockRag">RAG off</span>
+        </p>
+        <button type="submit" form="analysisForm" class="ks-dock-btn" id="startAnalysis">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M3 1.5v13l11-6.5z"/></svg>Start Analysis
+        </button>
     </div>
 </div>
 
