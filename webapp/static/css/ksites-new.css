@@ -31,13 +31,13 @@
   --ks-f-sans:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
   --ks-f-mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
 
-  /* fixed bottom dock */
-  --ks-dock-bg:rgba(10,15,30,.94);
-  --ks-dock-fg:#dfe9f2;
-  --ks-dock-line:rgba(255,255,255,.12);
-  --ks-dock-acc:#4fd8f2;
-  --ks-dock-b:#fff;
-  --ks-dock-mut:#9fb1c3;
+  /* fixed bottom dock (light mode) */
+  --ks-dock-bg:var(--ks-panel);
+  --ks-dock-fg:var(--ks-fg);
+  --ks-dock-line:var(--ks-line);
+  --ks-dock-acc:var(--ks-link);
+  --ks-dock-b:var(--ks-fg);
+  --ks-dock-mut:var(--ks-muted);
 
   /* colour-vision-safe verdict palette */
   --v-safe:#009E73;
@@ -1095,6 +1095,7 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   backdrop-filter:blur(10px);
   color:var(--ks-dock-fg);
   border-top:1px solid var(--ks-dock-line);
+  box-shadow:0 -4px 24px rgba(10,15,30,.08);
   padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
 }
 .ks-dock .ks-wrap {
