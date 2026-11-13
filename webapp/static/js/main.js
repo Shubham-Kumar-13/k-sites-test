@@ -828,58 +828,71 @@ async function checkGeneCount() {
 // Form Submission
 // ============================================================================
 
+const FORM_REQUEST_TIMEOUT_MS = 90000;
+
+function fetchWithTimeout(url, options) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), FORM_REQUEST_TIMEOUT_MS);
+    return ksFetch(url, Object.assign({}, options, { signal: controller.signal }))
+        .finally(() => clearTimeout(timeoutId));
+}
+
 async function handleFormSubmit(e) {
     e.preventDefault();
-    
+
     // Show loading
     showLoading('Validating parameters...');
-    
+
     // Collect form data
     const formData = collectFormData();
-    
+
     // Validate
     try {
-        const validation = await ksFetch('/api/analyze/validate', {
+        const validation = await fetchWithTimeout('/api/analyze/validate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
         });
-        
+
         const validationData = await validation.json();
-        
+
         if (!validationData.valid) {
             hideLoading();
             showValidationErrors(validationData.errors);
             return;
         }
-        
+
         if (validationData.warnings && validationData.warnings.length > 0) {
             showValidationWarnings(validationData.warnings);
         }
-        
+
         // Start analysis
         showLoading('Starting analysis...');
-        
-        const response = await ksFetch('/api/analyze/start', {
+
+        const response = await fetchWithTimeout('/api/analyze/start', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
         });
-        
+
         const data = await response.json();
-        
+
         hideLoading();
-        
+
         if (data.success) {
             window.location.href = ksPage('results', { job: data.job_id });
         } else {
             showValidationErrors([data.error || 'Failed to start analysis']);
         }
-        
+
     } catch (error) {
         hideLoading();
-        console.error('Error:', error);
-        showValidationErrors(['Network error. Please try again.']);
+        if (error.name === 'AbortError') {
+            showValidationErrors(['The request timed out. The analysis server may be waking up or the network is slow. Please try again in a moment.']);
+        } else {
+            console.error('Error:', error);
+            showValidationErrors(['Network error. Please try again.']);
+        }
     }
 }
 

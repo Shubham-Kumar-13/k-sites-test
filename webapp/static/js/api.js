@@ -70,7 +70,7 @@
         if (!el) {
             el = document.createElement('div');
             el.id = 'ksitesBanner';
-            el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2000;text-align:center;padding:8px 12px;font-size:0.95rem;';
+            el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:10001;text-align:center;padding:8px 12px;font-size:0.95rem;';
             (document.body || document.documentElement).appendChild(el);
         }
         el.className = 'alert alert-' + (kind || 'warning') + ' mb-0 rounded-0';
