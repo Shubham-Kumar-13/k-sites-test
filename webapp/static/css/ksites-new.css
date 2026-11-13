@@ -737,11 +737,11 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
 
 
 /* --------------------------------------------------------------------------
-   Database selection rows
+   Database selection cards
    -------------------------------------------------------------------------- */
 .ks-dbs {
-  display:flex;
-  flex-direction:column;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
   gap:12px;
 }
 .ks-dbrow {
