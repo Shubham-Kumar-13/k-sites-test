@@ -1393,3 +1393,181 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
 .ks-tp { display:none; padding:24px; }
 .ks-tp.show { display:block; animation:ks-fade .45s both; }
 @keyframes ks-fade { from { opacity:0; } to { opacity:1; } }
+
+
+/* --------------------------------------------------------------------------
+   Results gene cards
+   -------------------------------------------------------------------------- */
+.ks-gcard {
+  display:grid;
+  grid-template-columns:52px minmax(0,1fr);
+  gap:0;
+  border:1px solid var(--ks-line);
+  background:var(--ks-panel);
+  border-radius:12px;
+  overflow:hidden;
+  box-shadow:var(--ks-shadow);
+  margin-bottom:18px;
+}
+.ks-rk {
+  display:grid;
+  place-items:center;
+  background:var(--ks-well);
+  border-right:1px solid var(--ks-line2);
+  font:600 22px var(--ks-f-sans);
+  color:var(--ks-muted);
+}
+.ks-gbody { padding:18px 20px; }
+.ks-ghead {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  margin-bottom:14px;
+}
+.ks-ghead h5 {
+  font:600 18px var(--ks-f-sans);
+  margin:0 0 4px;
+  color:var(--ks-fg);
+}
+.ks-ghead p {
+  margin:0;
+  color:var(--ks-muted);
+  font-size:13.5px;
+}
+.ks-gright {
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:8px;
+  flex:none;
+}
+.ks-gauge {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:12.5px;
+  color:var(--ks-muted);
+}
+.ks-gauge .tr {
+  display:block;
+  width:70px;
+  height:6px;
+  background:var(--ks-line);
+  border-radius:3px;
+  overflow:hidden;
+}
+.ks-gauge .tr i {
+  display:block;
+  height:100%;
+  border-radius:3px;
+}
+.ks-gauge b { font:600 14px var(--ks-f-mono); color:var(--ks-fg); }
+.ks-b {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-weight:600;
+  font-size:12.5px;
+  padding:3px 10px;
+  border-radius:5px;
+  white-space:nowrap;
+}
+.ks-b.safe { color:var(--ks-safe); background:var(--ks-safe-bg); }
+.ks-b.info { color:var(--ks-info); background:var(--ks-info-bg); }
+.ks-b.warn { color:var(--ks-warn); background:var(--ks-warn-bg); }
+.ks-b.bad { color:var(--ks-bad); background:var(--ks-bad-bg); }
+.ks-b.gray { color:var(--ks-muted); background:var(--ks-well); border:1px solid var(--ks-line); }
+.ks-b.big { font-size:13.5px; padding:4px 12px; }
+
+.ks-rec {
+  font-size:15px;
+  margin:14px 0 8px;
+}
+.ks-rec + ul,
+.ks-concerns ul,
+.ks-mitigation ul {
+  margin:6px 0 0;
+  padding-left:18px;
+  font-size:13.5px;
+  color:var(--ks-muted);
+}
+.ks-concerns {
+  font-size:13.5px;
+  color:var(--ks-muted);
+  margin-top:10px;
+}
+.ks-mitigation {
+  margin-top:12px;
+  font-size:13.5px;
+  color:var(--ks-muted);
+}
+.ks-mitigation summary { cursor:pointer; color:var(--ks-link); font-weight:500; }
+
+/* composite formula */
+.ks-formula {
+  border:1px solid var(--ks-line);
+  background:var(--ks-well);
+  border-radius:8px;
+  padding:10px 14px;
+  font-size:13.5px;
+  margin-bottom:14px;
+}
+.ks-formula strong { color:var(--ks-fg); }
+
+/* evidence panel */
+.ks-evp {
+  border:1px solid var(--ks-line);
+  border-radius:10px;
+  padding:14px 16px;
+  background:var(--ks-well);
+  margin-bottom:14px;
+}
+.ks-evtop {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-bottom:10px;
+}
+.ks-evgrid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  margin-bottom:12px;
+}
+.ks-ev {
+  border:1px solid var(--ks-line2);
+  border-radius:8px;
+  padding:10px 12px;
+  background:var(--ks-panel);
+}
+.ks-ev .t {
+  font-size:12px;
+  color:var(--ks-muted);
+  margin-bottom:4px;
+}
+.ks-ichips {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin:10px 0;
+}
+.ks-ichip {
+  border:1px solid var(--ks-line2);
+  background:var(--ks-panel);
+  border-radius:8px;
+  padding:8px 12px;
+  font-size:12.5px;
+}
+.ks-ichip b { display:block; color:var(--ks-fg); }
+.ks-ichip span { color:var(--ks-muted); }
+
+@media (max-width:800px) {
+  .ks-gcard { grid-template-columns:40px minmax(0,1fr); }
+  .ks-rk { font-size:18px; }
+  .ks-ghead { flex-direction:column; }
+  .ks-gright { align-items:flex-start; }
+  .ks-evgrid { grid-template-columns:1fr; }
+}

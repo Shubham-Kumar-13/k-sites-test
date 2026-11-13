@@ -380,13 +380,13 @@ function compositeFormulaLine(gene) {
     const l = (gene.literature_support ?? 0).toFixed(2);
     const c = (gene.conservation_score ?? 0).toFixed(2);
     const comp = (gene.composite_score ?? 0).toFixed(2);
-    return `<div class="mt-2 p-2 bg-white border rounded small shadow-sm composite-formula">
-        <span class="fw-semibold"><i class="fas fa-chart-line me-1 text-primary"></i>Composite ${comp}</span>
-        <span class="text-muted"> = 
-            0.40 × <i class="fas fa-star me-1 text-warning"></i>Specificity <strong>${s}</strong> +
-            0.25 × <i class="fas fa-check-circle me-1 text-success"></i>Evidence <strong>${e}</strong> +
-            0.20 × <i class="fas fa-book me-1 text-info"></i>Literature <strong>${l}</strong> +
-            0.15 × <i class="fas fa-sitemap me-1 text-secondary"></i>Conservation <strong>${c}</strong>
+    return `<div class="ks-formula">
+        <strong>Composite ${comp}</strong>
+        <span style="color:var(--ks-muted);"> = 
+            0.40 × Specificity <strong>${s}</strong> +
+            0.25 × Evidence <strong>${e}</strong> +
+            0.20 × Literature <strong>${l}</strong> +
+            0.15 × Conservation <strong>${c}</strong>
         </span>
     </div>`;
 }
@@ -643,10 +643,10 @@ function evidencePanel(gene) {
     </details>` : '';
 
     return `
-        <div class="evidence-panel border rounded p-2 mb-3 small bg-light">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="text-muted small"><i class="fas fa-microscope me-1"></i>Evidence basis · Context: <strong>${esc(contextLabel)}</strong></span>
-                <span class="badge ${BASIS_BADGES[safety.evidence_basis || 'none'][0]}">${BASIS_BADGES[safety.evidence_basis || 'none'][1]}</span>
+        <div class="ks-evp">
+            <div class="ks-evtop">
+                <span style="font-size:12.5px;color:var(--ks-muted);"><i class="fas fa-microscope me-1"></i>Evidence basis · Context: <strong>${esc(contextLabel)}</strong></span>
+                <span class="ks-b ${basisKsClass(safety.evidence_basis || 'none')}">${BASIS_BADGES[safety.evidence_basis || 'none'][1]}</span>
             </div>
             <div class="row g-2">${sections.join('')}${estimateSection}</div>
             ${noDataSection}
@@ -737,13 +737,47 @@ function safetyBadgeClass(level) {
     }
 }
 
+function safetyKsClass(level) {
+    switch (level) {
+        case 'SAFE': return 'safe';
+        case 'CAUTION': return 'info';
+        case 'MODERATE_CONCERN': return 'warn';
+        case 'HIGH_CONCERN':
+        case 'AVOID': return 'bad';
+        default: return 'gray';
+    }
+}
+
+function basisKsClass(basis) {
+    switch (basis) {
+        case 'measured': return 'safe';
+        case 'essentiality':
+        case 'ortholog': return 'info';
+        case 'predicted': return 'warn';
+        default: return 'gray';
+    }
+}
+
+function pleiotropyPercent(score) {
+    if (!score && score !== 0) return 0;
+    return Math.min(100, Math.max(0, (score / 10) * 100));
+}
+
+function pleiotropyColor(score) {
+    if (!score && score !== 0) return 'var(--ks-muted)';
+    if (score <= 2) return 'var(--v-safe)';
+    if (score <= 5) return 'var(--v-info)';
+    if (score <= 7) return 'var(--v-warn)';
+    return 'var(--v-bad)';
+}
+
 function renderGenes(genes) {
     const container = document.getElementById('genesContainer');
     
     if (!genes || genes.length === 0) {
         container.innerHTML = `
-            <div class="alert alert-warning">
-                <i class="fas fa-exclamation-triangle me-2"></i>No genes passed the filters.
+            <div class="ks-note ks-warn">
+                <span class="ks-grow">No genes passed the filters.</span>
             </div>
         `;
         return;
@@ -755,41 +789,33 @@ function renderGenes(genes) {
         const justification = (safety.justification || []).map(j => `<li>${esc(j)}</li>`).join('');
         const mitigation = (safety.mitigation_strategies || []).map(m => `<li>${esc(m)}</li>`).join('');
         const alternatives = (safety.alternative_recommendations || []).length
-            ? ` <span class="text-muted small">(alternatives: ${esc(safety.alternative_recommendations.join('; '))})</span>` : '';
+            ? ` <span style="color:var(--ks-muted);font-size:13px;">(alternatives: ${esc(safety.alternative_recommendations.join('; '))})</span>` : '';
         return `
-        <div class="card mb-3">
-            <div class="card-body">
-                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-3 gap-2">
-                    <div class="flex-grow-1">
-                        <h5 class="mb-1">
-                            <span class="badge bg-secondary me-2">#${index + 1}</span>
-                            ${esc(gene.symbol)}
-                        </h5>
-                        <p class="text-muted mb-0 small">${esc(gene.description || 'No description available')}</p>
+        <article class="ks-gcard">
+            <div class="ks-rk">${index + 1}</div>
+            <div class="ks-gbody">
+                <div class="ks-ghead">
+                    <div>
+                        <h5>${esc(gene.symbol)}</h5>
+                        <p>${esc(gene.description || 'No description available')}</p>
                     </div>
-                    <div class="text-md-end">
-                        <div class="mb-1">
-                            <span class="score-badge ${getPleiotropyClass(gene.pleiotropy_score)}">
-                                Pleiotropy: ${gene.pleiotropy_score?.toFixed(2) || 'N/A'}
-                            </span>
+                    <div class="ks-gright">
+                        <div class="ks-gauge">
+                            <span>Pleiotropy</span>
+                            <span class="tr"><i style="width:${pleiotropyPercent(gene.pleiotropy_score)}%;background:${pleiotropyColor(gene.pleiotropy_score)}"></i></span>
+                            <b>${gene.pleiotropy_score?.toFixed(2) || 'N/A'}</b>
                         </div>
-                        <div>
-                            <span class="badge ${safetyBadgeClass(safety.safety_level)}">
-                                ${safetyLabel(safety.safety_level)}
-                            </span>
-                        </div>
+                        <span class="ks-b ${safetyKsClass(safety.safety_level)}">${safetyLabel(safety.safety_level)}</span>
                     </div>
                 </div>
-                
                 ${compositeFormulaLine(gene)}
-                
                 ${evidencePanel(gene)}
-                ${safety.primary_recommendation ? `<p class="mb-2"><strong>Recommendation:</strong> ${esc(safety.primary_recommendation)}${alternatives}</p>` : ''}
-                ${justification ? `<ul class="small mb-2">${justification}</ul>` : ''}
-                ${concerns ? `<div class="small text-muted">Concerns:<ul class="mb-0">${concerns}</ul></div>` : ''}
-                ${mitigation ? `<details class="small mt-2"><summary>What to do about it</summary><ul class="mb-0 mt-1">${mitigation}</ul></details>` : ''}
+                ${safety.primary_recommendation ? `<p class="ks-rec"><strong>Recommendation:</strong> ${esc(safety.primary_recommendation)}${alternatives}</p>` : ''}
+                ${justification ? `<ul>${justification}</ul>` : ''}
+                ${concerns ? `<div class="ks-concerns">Concerns:<ul>${concerns}</ul></div>` : ''}
+                ${mitigation ? `<details class="ks-mitigation"><summary>What to do about it</summary><ul>${mitigation}</ul></details>` : ''}
             </div>
-        </div>`;
+        </article>`;
     }).join('');
     initializeTooltips(container);
 }
