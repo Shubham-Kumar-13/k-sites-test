@@ -98,99 +98,76 @@
             </section>
             
             <!-- Step 2: GO Term Selection -->
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">
-                        <span class="step-number active">2</span>
-                        Select GO Term
-                    </h5>
+            <section class="ks-panel" id="s2">
+                <div class="ks-ph">
+                    <div>
+                        <div class="ks-tag">Step 02</div>
+                        <h2>Select GO Term</h2>
+                    </div>
+                    <div class="ks-st"><i></i>In progress</div>
                 </div>
-                <div class="card-body">
+                <div class="ks-pb">
                     <!-- GO Category Selection -->
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">
-                            <i class="fas fa-sitemap me-2"></i>Step A: Choose GO Category
-                        </label>
-                        <div id="goCategoryContainer" class="row g-3">
+                    <div class="ks-block">
+                        <div class="ks-lab"><span class="ks-k">A</span>Choose GO Category</div>
+                        <div id="goCategoryContainer" class="ks-tiles">
                             <!-- Categories loaded dynamically -->
-                            <div class="text-center py-3">
-                                <div class="spinner-border spinner-border-sm text-primary"></div>
+                            <div class="text-center py-3 text-muted">
+                                <span class="spinner-border spinner-border-sm text-primary"></span>
                                 <span class="ms-2">Loading categories...</span>
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Alternative: Direct GO ID input -->
                     <div id="goDirectInputSection">
-                        <div class="d-flex align-items-center mb-3">
-                            <hr class="flex-grow-1 border-primary opacity-50" style="border-width: 2px;">
-                            <span class="mx-3 text-primary fw-bold">OR enter directly</span>
-                            <hr class="flex-grow-1 border-primary opacity-50" style="border-width: 2px;">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Enter GO Term ID</label>
-                            <input type="text" 
-                                   class="form-control" 
-                                   id="go_term_direct" 
-                                   placeholder="GO:0006281"
-                                   pattern="GO:\d{7}">
-                            <div class="form-text">Format: GO: followed by 7 digits</div>
+                        <div class="ks-divider">or enter directly</div>
+                        <div class="ks-block">
+                            <div class="ks-lab">Enter GO Term ID</div>
+                            <label class="ks-field ks-mono">
+                                <input type="text" id="go_term_direct" placeholder="GO:0006281" pattern="GO:\d{7}">
+                            </label>
+                            <div class="ks-formtext">Format: GO: followed by 7 digits</div>
                         </div>
                     </div>
-                    
+
                     <!-- GO Terms Selection -->
-                    <div id="goTermsSection" class="mb-4" style="display: none;">
-                        <label class="form-label fw-bold">
-                            <i class="fas fa-list me-2"></i>Step B: Select GO Term
-                        </label>
-                        
+                    <div id="goTermsSection" class="ks-block" style="display:none;">
+                        <div class="ks-lab"><span class="ks-k">B</span>Select GO Term</div>
+
                         <!-- Selected category display -->
-                        <div id="selectedCategoryDisplay" class="alert alert-info d-flex align-items-center mb-3">
-                            <span id="selectedCategoryName"></span>
-                            <button type="button" class="btn btn-sm btn-outline-primary ms-auto" onclick="resetCategorySelection()">
-                                <i class="fas fa-undo me-1"></i>Change
-                            </button>
+                        <div id="selectedCategoryDisplay" class="ks-note ks-info" style="display:none;">
+                            <span class="ks-grow"><b id="selectedCategoryName"></b></span>
+                            <button type="button" class="ks-btn-s" onclick="resetCategorySelection()">Change</button>
                         </div>
-                        
+
                         <!-- Search/Filter -->
-                        <div class="mb-3">
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-search"></i></span>
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="goTermSearch" 
-                                       placeholder="Search all GO terms (e.g., 'DNA repair', 'kinase', 'nucleus')...">
-                            </div>
-                            <div class="form-text">
-                                <i class="fas fa-info-circle me-1"></i>
-                                Type at least 2 characters to search thousands of GO terms
-                            </div>
-                        </div>
-                        
+                        <label class="ks-field" style="margin-top:12px;">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="5"/><path d="M11 11l4 4"/></svg>
+                            <input type="text" id="goTermSearch" placeholder="Search all GO terms (e.g., 'DNA repair', 'kinase', 'nucleus')...">
+                        </label>
+                        <div class="ks-formtext">Type at least 2 characters to search thousands of GO terms</div>
+
                         <!-- GO Terms list -->
-                        <div id="goTermsList" class="list-group" style="max-height: 300px; overflow-y: auto;">
+                        <div id="goTermsList" class="ks-list" style="max-height:300px;overflow-y:auto;">
                             <!-- Terms loaded dynamically -->
                         </div>
                     </div>
-                    
+
                     <!-- Selected GO term display -->
-                    <div id="selectedGoTermDisplay" class="alert alert-success" style="display: none;">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-check-circle me-2 fa-lg"></i>
-                            <div>
-                                <strong>Selected:</strong> <span id="selectedGoTermId"></span>
-                                <br><span id="selectedGoTermName" class="text-muted"></span>
-                            </div>
-                            <button type="button" class="btn btn-sm btn-outline-success ms-auto" onclick="resetGoTermSelection()">
-                                <i class="fas fa-edit me-1"></i>Change
-                            </button>
-                        </div>
+                    <div id="selectedGoTermDisplay" class="ks-note ks-ok" style="display:none;">
+                        <svg class="ks-tick" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+                        <span class="ks-grow">
+                            <b>Selected:</b> <span id="selectedGoTermId" class="ks-mono"></span>
+                            <br><small id="selectedGoTermName"></small>
+                        </span>
+                        <button type="button" class="ks-btn-s" onclick="resetGoTermSelection()">Change</button>
                     </div>
-                    
+
                     <input type="hidden" id="go_term" name="go_term" required>
                     <input type="hidden" id="go_term_name" name="go_term_name">
                 </div>
-            </div>
+            </section>
             
             <!-- Step 3: Database Selection -->
             <div class="card mb-4">
