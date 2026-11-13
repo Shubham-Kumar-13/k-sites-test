@@ -867,8 +867,12 @@ function renderInsufficientData(genes) {
 function renderSummary(data) {
     const container = document.getElementById('summaryContainer');
     const genes = data.genes || [];
-    
-    // Calculate statistics
+
+    if (!genes.length) {
+        container.innerHTML = '<div class="text-center py-5" style="color:var(--ks-muted);">No gene results to summarise.</div>';
+        return;
+    }
+
     const stats = {
         totalGenes: genes.length,
         avgPleiotropy: genes.reduce((sum, g) => sum + (g.pleiotropy_score || 0), 0) / genes.length || 0
@@ -876,68 +880,48 @@ function renderSummary(data) {
     const levelCounts = {};
     genes.forEach(g => { const level = (g.safety_recommendation || {}).safety_level; levelCounts[level] = (levelCounts[level] || 0) + 1; });
     const levelRows = ['SAFE', 'CAUTION', 'MODERATE_CONCERN', 'HIGH_CONCERN', 'AVOID'].filter(level => levelCounts[level]).map(level => `
-                            <tr>
-                                <td class="text-muted"><span class="badge ${safetyBadgeClass(level)}">${safetyLabel(level)}</span></td>
-                                <td class="fw-bold">${levelCounts[level]}</td>
-                            </tr>`).join('');
-    // counted over the genes shown (the statistics cover every gene assessed, which can be more than the report shows)
+        <tr>
+            <td><span class="ks-b ${safetyKsClass(level)}">${safetyLabel(level)}</span></td>
+            <td style="text-align:right;font-weight:600;">${levelCounts[level]}</td>
+        </tr>`).join('');
     const basisOf = (g) => (g.safety_recommendation || {}).evidence_basis;
     const measuredCount = genes.filter(g => ['measured', 'essentiality'].includes(basisOf(g))).length;
     const orthologCount = genes.filter(g => basisOf(g) === 'ortholog').length;
     const estimateCount = genes.filter(g => basisOf(g) === 'estimate').length;
-    
+
+    const topSpecific = [...genes]
+        .sort((a, b) => (b.specificity_score || 0) - (a.specificity_score || 0))
+        .slice(0, 5)
+        .map((g, i) => `
+            <div class="ks-rank">
+                <span class="ks-rank-n">${i + 1}</span>
+                <span class="ks-rank-l">${esc(g.symbol)}</span>
+                <span class="ks-rank-v">${g.specificity_score?.toFixed(2) || 'N/A'}</span>
+            </div>`).join('');
+
     container.innerHTML = `
-        <div class="row g-4">
-            <div class="col-md-6">
-                <div class="card h-100">
-                    <div class="card-header bg-primary text-white">
-                        <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Statistics</h6>
-                    </div>
-                    <div class="card-body">
-                        <table class="table table-borderless">
-                            <tr>
-                                <td class="text-muted">Total Genes:</td>
-                                <td class="fw-bold">${stats.totalGenes}</td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">Average Pleiotropy:</td>
-                                <td class="fw-bold">${stats.avgPleiotropy.toFixed(2)}</td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted">Verdict based on a measurement:</td>
-                                <td class="fw-bold">${measuredCount + orthologCount} of ${stats.totalGenes}</td>
-                            </tr>
-                            ${estimateCount ? `<tr>
-                                <td class="text-muted">Verdict based on an estimate:</td>
-                                <td class="fw-bold">${estimateCount} of ${stats.totalGenes}</td>
-                            </tr>` : ''}
+        <div class="ks-sum-grid">
+            <section class="ks-panel">
+                <div class="ks-ph"><div><div class="ks-tag">Overview</div><h2><i class="fas fa-chart-bar me-2"></i>Statistics</h2></div></div>
+                <div class="ks-pb">
+                    <table class="ks-table">
+                        <tbody>
+                            <tr><td>Total genes shown</td><td style="text-align:right;font-weight:600;">${stats.totalGenes}</td></tr>
+                            <tr><td>Average pleiotropy</td><td style="text-align:right;font-weight:600;">${stats.avgPleiotropy.toFixed(2)}</td></tr>
+                            <tr><td>Verdict based on a measurement</td><td style="text-align:right;font-weight:600;">${measuredCount + orthologCount} of ${stats.totalGenes}</td></tr>
+                            ${estimateCount ? `<tr><td>Verdict based on an estimate</td><td style="text-align:right;font-weight:600;">${estimateCount} of ${stats.totalGenes}</td></tr>` : ''}
                             ${levelRows}
-                        </table>
-                    </div>
+                        </tbody>
+                    </table>
                 </div>
-            </div>
-            
-            <div class="col-md-6">
-                <div class="card h-100">
-                    <div class="card-header bg-success text-white">
-                        <h6 class="mb-0"><i class="fas fa-trophy me-2"></i>Most Specific Genes</h6>
-                    </div>
-                    <div class="card-body">
-                        <h6 class="text-muted">Highest Specificity Genes</h6>
-                        <ul class="list-group list-group-flush mb-3">
-                            ${[...genes]
-                                .sort((a, b) => (b.specificity_score || 0) - (a.specificity_score || 0))
-                                .slice(0, 3)
-                                .map(g => `
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        ${esc(g.symbol)}
-                                        <span class="badge bg-success">${g.specificity_score?.toFixed(2)}</span>
-                                    </li>
-                                `).join('')}
-                        </ul>
-                    </div>
+            </section>
+
+            <section class="ks-panel">
+                <div class="ks-ph"><div><div class="ks-tag">Top performers</div><h2><i class="fas fa-trophy me-2"></i>Most Specific Genes</h2></div></div>
+                <div class="ks-pb">
+                    <div class="ks-ranks">${topSpecific}</div>
                 </div>
-            </div>
+            </section>
         </div>
     `;
 }

@@ -1700,10 +1700,54 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
 .ks-prov li { margin-bottom:4px; }
 .ks-prov a { color:var(--ks-link); }
 
+/* summary tab grid */
+.ks-sum-grid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:20px;
+}
+
+/* ranked list (summary tab) */
+.ks-ranks {
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.ks-rank {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 12px;
+  background:var(--ks-well);
+  border:1px solid var(--ks-line2);
+  border-radius:8px;
+}
+.ks-rank-n {
+  width:24px;
+  height:24px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:var(--ks-panel);
+  border:1px solid var(--ks-line);
+  font:600 12px var(--ks-f-mono);
+  color:var(--ks-muted);
+}
+.ks-rank-l {
+  font-weight:600;
+  color:var(--ks-fg);
+  flex:1;
+}
+.ks-rank-v {
+  font:600 14px var(--ks-f-mono);
+  color:var(--ks-safe);
+}
+
 @media (max-width:800px) {
   .ks-gcard { grid-template-columns:40px minmax(0,1fr); }
   .ks-rk { font-size:18px; }
   .ks-ghead { flex-direction:column; }
   .ks-gright { align-items:flex-start; }
   .ks-evgrid { grid-template-columns:1fr; }
+  .ks-sum-grid { grid-template-columns:1fr; }
 }
