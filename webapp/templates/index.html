@@ -21,111 +21,81 @@
             
             
             <!-- Step 1: Organism Selection -->
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">
-                        <span class="step-number active">1</span>
-                        Select Organism
-                    </h5>
+            <section class="ks-panel" id="s1">
+                <div class="ks-ph">
+                    <div>
+                        <div class="ks-tag">Step 01</div>
+                        <h2>Select Organism</h2>
+                    </div>
+                    <div class="ks-st"><i></i>In progress</div>
                 </div>
-                <div class="card-body">
+                <div class="ks-pb">
                     <!-- Direct organism entry -->
-                    <div class="mb-4" id="organismDirectSection">
-                        <label class="form-label fw-bold">
-                            <i class="fas fa-keyboard me-2"></i>Search organism by name or TaxID
+                    <div class="ks-block" id="organismDirectSection">
+                        <div class="ks-lab">Search organism by name or TaxID</div>
+                        <label class="ks-field ks-mono">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="5"/><path d="M11 11l4 4"/></svg>
+                            <input type="text" id="organismDirectSearch" placeholder="e.g., 'Apis mellifera' or '7460'" autocomplete="off">
                         </label>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text"><i class="fas fa-search"></i></span>
-                            <input type="text"
-                                   class="form-control"
-                                   id="organismDirectSearch"
-                                   placeholder="e.g., 'Apis mellifera' or '7460'"
-                                   autocomplete="off">
-                        </div>
-                        <div id="organismDirectResults" class="list-group" style="max-height: 200px; overflow-y: auto;">
+                        <div id="organismDirectResults" class="ks-list" style="max-height:200px;overflow-y:auto;">
                             <!-- Results loaded dynamically -->
                         </div>
-                        <div class="form-text">
-                            <i class="fas fa-info-circle me-1"></i>
-                            Type at least 2 characters to search NCBI Taxonomy directly.
-                        </div>
+                        <div class="ks-formtext">Type at least 2 characters to search NCBI Taxonomy directly.</div>
                     </div>
 
-                    <div class="d-flex align-items-center mb-3">
-                        <hr class="flex-grow-1 border-primary opacity-50" style="border-width: 2px;">
-                        <span class="mx-3 text-primary fw-bold">OR browse by category</span>
-                        <hr class="flex-grow-1 border-primary opacity-50" style="border-width: 2px;">
-                    </div>
+                    <div class="ks-divider">or browse by category</div>
 
                     <!-- Kingdom Selection -->
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">
-                            <i class="fas fa-sitemap me-2"></i>Step A: Choose Kingdom/Category
-                        </label>
-                        <div id="kingdomContainer" class="row g-3">
+                    <div class="ks-block">
+                        <div class="ks-lab"><span class="ks-k">A</span>Choose Kingdom/Category</div>
+                        <div id="kingdomContainer" class="ks-tiles">
                             <!-- Kingdoms loaded dynamically -->
-                            <div class="text-center py-3">
-                                <div class="spinner-border spinner-border-sm text-primary"></div>
+                            <div class="text-center py-3 text-muted">
+                                <span class="spinner-border spinner-border-sm text-primary"></span>
                                 <span class="ms-2">Loading categories...</span>
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Species Selection -->
-                    <div id="speciesSection" class="mb-4" style="display: none;">
-                        <label class="form-label fw-bold">
-                            <i class="fas fa-microscope me-2"></i>Step B: Select Species
-                        </label>
-                        
+                    <div id="speciesSection" class="ks-block" style="display:none;">
+                        <div class="ks-lab"><span class="ks-k">B</span>Select Species</div>
+
                         <!-- Selected kingdom display -->
-                        <div id="selectedKingdomDisplay" class="alert alert-info d-flex align-items-center mb-3">
-                            <span id="selectedKingdomName"></span>
-                            <button type="button" class="btn btn-sm btn-outline-primary ms-auto" onclick="resetKingdomSelection()">
-                                <i class="fas fa-undo me-1"></i>Change
-                            </button>
+                        <div id="selectedKingdomDisplay" class="ks-note ks-info" style="display:none;">
+                            <span class="ks-grow"><b id="selectedKingdomName"></b></span>
+                            <button type="button" class="ks-btn-s" onclick="resetKingdomSelection()">Change</button>
                         </div>
-                        
+
                         <!-- Search/Filter -->
-                        <div class="mb-3">
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-search"></i></span>
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="speciesSearch" 
-                                       placeholder="Search all KEGG species (e.g., 'mouse', 'E. coli', 'zebrafish')...">
-                            </div>
-                            <div class="form-text">
-                                <i class="fas fa-info-circle me-1"></i>
-                                Type to search through all organisms from KEGG database
-                            </div>
-                        </div>
-                        
+                        <label class="ks-field" style="margin-top:12px;">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="5"/><path d="M11 11l4 4"/></svg>
+                            <input type="text" id="speciesSearch" placeholder="Search all KEGG species (e.g., 'mouse', 'E. coli', 'zebrafish')...">
+                        </label>
+                        <div class="ks-formtext">Type to search through all organisms from KEGG database</div>
+
                         <!-- Species list -->
-                        <div id="speciesList" class="list-group" style="max-height: 300px; overflow-y: auto;">
+                        <div id="speciesList" class="ks-list" style="max-height:300px;overflow-y:auto;">
                             <!-- Species loaded dynamically -->
                         </div>
                     </div>
-                    
+
                     <!-- Selected organism display -->
-                    <div id="selectedOrganismDisplay" class="alert alert-success" style="display: none;">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-check-circle me-2 fa-lg"></i>
-                            <div>
-                                <strong>Selected:</strong> <span id="selectedOrganismName"></span>
-                                <br><small class="text-muted">TaxID: <span id="selectedOrganismTaxid"></span></small>
-                            </div>
-                            <button type="button" class="btn btn-sm btn-outline-success ms-auto" onclick="resetOrganismSelection()">
-                                <i class="fas fa-edit me-1"></i>Change
-                            </button>
-                        </div>
+                    <div id="selectedOrganismDisplay" class="ks-note ks-ok" style="display:none;">
+                        <svg class="ks-tick" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+                        <span class="ks-grow">
+                            <b>Selected:</b> <span id="selectedOrganismName"></span>
+                            <br><small class="ks-mono">TaxID: <span id="selectedOrganismTaxid"></span></small>
+                        </span>
+                        <button type="button" class="ks-btn-s" onclick="resetOrganismSelection()">Change</button>
                     </div>
-                    
-                    <div id="evidenceCoverageNote" class="alert alert-light border small" style="display: none;"></div>
+
+                    <div id="evidenceCoverageNote" class="ks-note ks-plain" style="display:none;"></div>
 
                     <input type="hidden" id="organism" name="organism" required>
                     <input type="hidden" id="taxid" name="taxid">
                 </div>
-            </div>
+            </section>
             
             <!-- Step 2: GO Term Selection -->
             <div class="card mb-4">
