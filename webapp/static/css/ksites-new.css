@@ -332,3 +332,95 @@ html[data-bs-theme="dark"] .ks-top .ks-logo.ks-logo-dark { display:block; }
 
 @keyframes ks-bkp { 50% { opacity:.35; } }
 @keyframes ks-bks { to { transform:rotate(360deg); } }
+
+/* --------------------------------------------------------------------------
+   Hero section (home page only)
+   -------------------------------------------------------------------------- */
+.ks-hero {
+  position:relative;
+  overflow:hidden;
+  color:#fff;
+  background:
+    radial-gradient(1100px 420px at 78% -12%,#bfe5f2 0%,transparent 62%),
+    linear-gradient(#f4fafc,#e9f3f8);
+}
+html[data-bs-theme="dark"] .ks-hero {
+  background:
+    radial-gradient(1200px 400px at 75% 0%,#0f2f45 0%,transparent 60%),
+    #0a0f1e;
+}
+.ks-hero::after {
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg,rgba(244,250,252,.95) 0%,rgba(244,250,252,.66) 42%,transparent 72%);
+  z-index:1;
+  pointer-events:none;
+}
+html[data-bs-theme="dark"] .ks-hero::after {
+  background:linear-gradient(90deg,rgba(10,15,30,.9) 0%,rgba(10,15,30,.6) 42%,transparent 72%);
+}
+.ks-hero canvas {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  display:block;
+}
+.ks-hero .ks-wrap {
+  position:relative;
+  z-index:2;
+  padding-block:56px 64px;
+  display:grid;
+  grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);
+  gap:32px;
+  align-items:end;
+}
+.ks-kicker {
+  font:500 12px var(--ks-f-mono);
+  letter-spacing:1.6px;
+  text-transform:uppercase;
+  color:#00708f;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:16px;
+}
+.ks-kicker::before {
+  content:"";
+  width:28px;
+  height:1px;
+  background:#00708f;
+}
+html[data-bs-theme="dark"] .ks-kicker,
+html[data-bs-theme="dark"] .ks-kicker::before {
+  color:#4fd8f2;
+  background:#4fd8f2;
+}
+.ks-hero h1 {
+  font:600 clamp(30px,4.4vw,50px)/1.08 var(--ks-f-sans);
+  letter-spacing:-1.2px;
+  max-width:17ch;
+  text-wrap:balance;
+  color:#0b1626;
+  margin:0;
+}
+html[data-bs-theme="dark"] .ks-hero h1 {
+  color:#fff;
+}
+.ks-hero .ks-lede {
+  margin-top:16px;
+  max-width:52ch;
+  color:#3e5468;
+  font-size:16.5px;
+}
+html[data-bs-theme="dark"] .ks-hero .ks-lede {
+  color:#c6d4e1;
+}
+
+@media (max-width:900px) {
+  .ks-hero .ks-wrap {
+    grid-template-columns:1fr;
+    padding-block:40px 44px;
+  }
+}
