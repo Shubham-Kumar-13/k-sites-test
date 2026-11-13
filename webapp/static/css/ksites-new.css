@@ -1008,13 +1008,23 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   gap:12px;
   flex-wrap:wrap;
 }
-.ks-gcount .row.head { flex-wrap:nowrap; }
+.ks-gcount .row.head {
+  display:flex;
+  flex-wrap:nowrap;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
 .ks-gcount .row.head .grow {
   flex:1;
   min-width:0;
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;
+}
+.ks-gcount .row.head .ks-btn-s {
+  flex:0 0 auto;
+  width:auto;
 }
 .ks-gcount .row + .row { margin-top:6px; }
 .ks-gcount .row.status { justify-content:flex-start; }
