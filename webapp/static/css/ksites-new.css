@@ -740,19 +740,11 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
    Database selection rows
    -------------------------------------------------------------------------- */
 .ks-dbs {
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  display:flex;
+  flex-direction:column;
   gap:12px;
 }
-.ks-dbs .col-12,
-.ks-dbs .col-md-6,
-.ks-dbs .col-lg-4 {
-  width:auto;
-  padding:0;
-  flex:none;
-  max-width:none;
-}
-.database-card {
+.ks-dbrow {
   display:flex;
   gap:14px;
   align-items:flex-start;
@@ -762,47 +754,51 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   cursor:pointer;
   transition:all .2s;
   background:var(--ks-panel);
-  height:auto !important;
+  position:relative;
 }
-.database-card:hover { border-color:#9db2c5; }
-.database-card.selected {
+.ks-dbrow:hover { border-color:#9db2c5; }
+.ks-dbrow.on {
   border-color:var(--ks-green);
   background:var(--ks-safe-bg);
 }
-.database-card.disabled,
-.database-card:has(.database-checkbox:disabled):not(.selected) {
+.ks-dbrow.disabled {
   opacity:0.55;
   cursor:not-allowed;
 }
-.database-card .card-body {
-  display:flex;
-  flex-direction:column;
-  gap:2px;
-  padding:0;
-  flex:1;
-  min-width:0;
-}
-.database-card .database-checkbox {
+.ks-dbrow .ks-cb {
   width:20px;
   height:20px;
   border:2px solid #7b8da0;
   border-radius:5px;
   flex:none;
-  margin:1px 0 0;
-  accent-color:var(--ks-green);
-  cursor:pointer;
+  margin-top:1px;
+  display:grid;
+  place-items:center;
+  font-size:13px;
+  line-height:1;
+  color:#fff;
+  transition:all .2s;
 }
-.database-card.disabled .database-checkbox,
-.database-card .database-checkbox:disabled { cursor:not-allowed; }
-.database-card .card-title {
+.ks-dbrow.on .ks-cb {
+  background:var(--ks-green);
+  border-color:var(--ks-green);
+}
+.ks-dbrow.disabled .ks-cb { border-color:var(--ks-muted); }
+.ks-dbrow > div {
+  flex:1;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.ks-dbrow b {
   font:600 15px var(--ks-f-sans);
-  margin:0;
   display:flex;
   align-items:center;
   gap:8px;
   flex-wrap:wrap;
 }
-.database-card .badge.bg-primary {
+.ks-dbrow .ks-req {
   font:600 10.5px var(--ks-f-mono);
   text-transform:uppercase;
   letter-spacing:.6px;
@@ -812,15 +808,7 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   padding:1px 7px;
   border-radius:4px;
 }
-.database-card .card-text {
+.ks-dbrow small {
   color:var(--ks-muted);
   font-size:13.5px;
-  margin:0;
-}
-.database-card .badge.bg-secondary {
-  font-size:11px;
-  background:var(--ks-neutral-bg) !important;
-  color:var(--ks-neutral) !important;
-  margin-top:4px;
-  align-self:flex-start;
 }
