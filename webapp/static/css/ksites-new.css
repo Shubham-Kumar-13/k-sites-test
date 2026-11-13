@@ -139,7 +139,12 @@ html[data-bs-theme="dark"] .ks-top .ks-logo.ks-logo-dark { display:block; }
 }
 
 /* backend status chip */
-.ks-bk-wrap { position:relative; }
+.ks-bk-wrap {
+  position:relative;
+  display:flex;
+  align-items:center;
+  height:24px;
+}
 .ks-bk {
   display:inline-flex;
   align-items:center;
@@ -148,12 +153,13 @@ html[data-bs-theme="dark"] .ks-top .ks-logo.ks-logo-dark { display:block; }
   font-weight:600;
   font-size:11px;
   line-height:1;
-  padding:4px 9px;
+  height:24px;
+  min-height:24px;
+  padding:0 10px;
   border-radius:99px;
   border:1px solid currentColor;
   background:transparent;
   cursor:pointer;
-  min-height:22px;
   color:var(--ks-muted);
 }
 .ks-bk .ks-bk-dot {
