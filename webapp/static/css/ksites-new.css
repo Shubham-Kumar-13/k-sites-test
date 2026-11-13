@@ -787,18 +787,13 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
 .ks-dbrow > div {
   flex:1;
   min-width:0;
-  display:flex;
-  flex-direction:column;
-  gap:2px;
 }
 .ks-dbrow b {
   font:600 15px var(--ks-f-sans);
-  display:flex;
-  align-items:center;
-  gap:8px;
-  flex-wrap:wrap;
+  color:var(--ks-fg);
 }
 .ks-dbrow .ks-req {
+  display:inline-block;
   font:600 10.5px var(--ks-f-mono);
   text-transform:uppercase;
   letter-spacing:.6px;
@@ -807,8 +802,12 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   background:transparent;
   padding:1px 7px;
   border-radius:4px;
+  margin-left:8px;
+  vertical-align:1px;
 }
 .ks-dbrow small {
+  display:block;
   color:var(--ks-muted);
   font-size:13.5px;
+  margin-top:2px;
 }
