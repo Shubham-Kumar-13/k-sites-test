@@ -1410,6 +1410,72 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   box-shadow:var(--ks-shadow);
   margin-bottom:18px;
 }
+
+/* gene landscape (safety-level distribution) */
+.ks-landscape {
+  width:100%;
+}
+.ks-landscape .bar {
+  display:flex;
+  width:100%;
+  height:10px;
+  border-radius:5px;
+  overflow:hidden;
+  background:var(--ks-line);
+}
+.ks-landscape .bar i {
+  display:block;
+  height:100%;
+  min-width:2px;
+}
+.ks-landscape .bar i + i { border-left:1px solid var(--ks-panel); }
+.ks-landscape .leg {
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:center;
+  font:500 11px var(--ks-f-sans);
+  color:var(--ks-muted);
+  margin-top:8px;
+}
+.ks-landscape .leg span { display:inline-flex; align-items:center; gap:5px; }
+.ks-landscape .leg b {
+  width:8px;
+  height:8px;
+  border-radius:50%;
+}
+
+/* clean data tables */
+.ks-table {
+  width:100%;
+  border-collapse:collapse;
+  font-size:13.5px;
+}
+.ks-table th,
+.ks-table td {
+  padding:10px 12px;
+  text-align:left;
+  border-bottom:1px solid var(--ks-line2);
+  vertical-align:top;
+}
+.ks-table th {
+  font:600 12px var(--ks-f-sans);
+  color:var(--ks-muted);
+  background:var(--ks-well);
+  text-transform:uppercase;
+  letter-spacing:.4px;
+}
+.ks-table tbody tr:last-child td { border-bottom:0; }
+.ks-table td code {
+  font-family:var(--ks-f-mono);
+  font-size:12.5px;
+  background:var(--ks-well);
+  padding:2px 5px;
+  border-radius:4px;
+}
+.ks-table .ks-b {
+  margin:1px 0;
+}
 .ks-rk {
   display:grid;
   place-items:center;
@@ -1564,6 +1630,75 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
 }
 .ks-ichip b { display:block; color:var(--ks-fg); }
 .ks-ichip span { color:var(--ks-muted); }
+
+/* evidence card variants */
+.ks-ev.driver {
+  border-color:var(--ks-warn);
+  box-shadow:0 0 0 1px var(--ks-warn);
+}
+.ks-ev .b {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+  margin-bottom:6px;
+}
+.ks-ev .b .ks-b {
+  margin:0;
+}
+
+/* detailed source records */
+.ks-det {
+  border:1px solid var(--ks-line);
+  border-radius:8px;
+  padding:12px 14px;
+  background:var(--ks-panel);
+  margin-bottom:10px;
+}
+.ks-det .ks-dh {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:6px;
+}
+.ks-det .ks-dh strong {
+  font:600 13.5px var(--ks-f-sans);
+  color:var(--ks-fg);
+}
+.ks-det .ks-dm {
+  font-size:12px;
+  color:var(--ks-muted);
+  margin-bottom:6px;
+}
+.ks-det .ks-dl {
+  font-size:13px;
+  color:var(--ks-fg);
+  margin-bottom:4px;
+}
+.ks-det .ks-dr {
+  font-size:12px;
+  color:var(--ks-muted);
+  margin-top:6px;
+}
+.ks-det .ks-dr a {
+  color:var(--ks-link);
+}
+
+/* data provenance */
+.ks-prov {
+  font-size:13.5px;
+  color:var(--ks-muted);
+}
+.ks-prov strong {
+  color:var(--ks-fg);
+}
+.ks-prov ul {
+  margin:8px 0 0;
+  padding-left:18px;
+}
+.ks-prov li { margin-bottom:4px; }
+.ks-prov a { color:var(--ks-link); }
 
 @media (max-width:800px) {
   .ks-gcard { grid-template-columns:40px minmax(0,1fr); }
