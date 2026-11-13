@@ -299,10 +299,10 @@ function renderPotentialCandidates(data) {
     const cards = candidates.map((gene, index) => {
         const safety = gene.safety_recommendation || {};
         return `<article class="ks-gcard">
-            <div class="ks-rk">${index + 1}</div>
             <div class="ks-gbody">
                 <div class="ks-ghead">
-                    <div>
+                    <div class="ks-rk">${index + 1}</div>
+                    <div class="ks-gtitle">
                         <h5>${esc(gene.symbol)}</h5>
                         <p>${esc(gene.description || 'No description available')}</p>
                     </div>
@@ -485,20 +485,22 @@ function detailedEvidenceHtml(data) {
         const references = (record.references || []).map(pmid =>
             `<a href="https://pubmed.ncbi.nlm.nih.gov/${Number(pmid)}/" target="_blank" rel="noopener">PMID ${Number(pmid)}</a>`).join(', ');
         const alleles = (record.alleles || []).map(allele => `${esc(allele.symbol)} (${esc(allele.class || 'unknown')})`).join(', ');
+        const geneticDetails = [
+            record.genotype ? `genotype ${esc(record.genotype)}` : '',
+            alleles ? `alleles ${alleles}` : '',
+            record.background ? `background ${esc(record.background)}` : ''
+        ].filter(Boolean).join(' · ');
         const impc = [record.phenotyping_center, record.parameter_stable_id,
             record.p_value ? `p=${record.p_value}` : null].filter(Boolean).map(esc).join(' · ');
         return `<div class="ks-det">
             <div class="ks-dh">${callBadge(record.call)}<strong>${esc(record.source)}: ${esc(record.source_record_id)}</strong></div>
-            <div class="ks-dm">${metadata}</div>
-            ${record.genotype ? `<div class="ks-dm">Genotype: ${esc(record.genotype)}</div>` : ''}
-            ${alleles ? `<div class="ks-dm">Alleles: ${alleles}</div>` : ''}
-            ${record.background ? `<div class="ks-dm">Background: ${esc(record.background)}</div>` : ''}
+            <div class="ks-dm">${metadata}${geneticDetails ? ` · ${geneticDetails}` : ''}</div>
             <div class="ks-dl">${esc(record.phenotype)}</div>
             ${impc ? `<div class="ks-dr">${impc}</div>` : ''}
             ${references ? `<div class="ks-dr">${references}</div>` : ''}
         </div>`;
     }).join('');
-    return `<div class="ks-note ks-plain" style="margin-bottom:10px;"><i class="fas fa-database" style="color:var(--ks-muted);"></i><span class="ks-grow">${esc(evidence.call)} · ${evidence.records.length} source record(s) · release ${esc(data.version)}</span></div>${records}`;
+    return `<div class="ks-note ks-plain" style="margin-bottom:8px;padding:8px 12px;"><i class="fas fa-database" style="color:var(--ks-muted);"></i><span class="ks-grow">${esc(evidence.call)} · ${evidence.records.length} source record(s) · release ${esc(data.version)}</span></div>${records}`;
 }
 
 async function loadDetailTaxids() {
@@ -808,10 +810,10 @@ function renderGenes(genes) {
             ? ` <span style="color:var(--ks-muted);font-size:13px;">(alternatives: ${esc(safety.alternative_recommendations.join('; '))})</span>` : '';
         return `
         <article class="ks-gcard">
-            <div class="ks-rk">${index + 1}</div>
             <div class="ks-gbody">
                 <div class="ks-ghead">
-                    <div>
+                    <div class="ks-rk">${index + 1}</div>
+                    <div class="ks-gtitle">
                         <h5>${esc(gene.symbol)}</h5>
                         <p>${esc(gene.description || 'No description available')}</p>
                     </div>

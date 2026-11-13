@@ -1400,9 +1400,7 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
    Results gene cards
    -------------------------------------------------------------------------- */
 .ks-gcard {
-  display:grid;
-  grid-template-columns:52px minmax(0,1fr);
-  gap:0;
+  display:block;
   border:1px solid var(--ks-line);
   background:var(--ks-panel);
   border-radius:12px;
@@ -1477,27 +1475,26 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   margin:1px 0;
 }
 .ks-rk {
-  display:grid;
-  place-items:center;
-  background:var(--ks-well);
-  border-right:1px solid var(--ks-line2);
-  font:600 22px var(--ks-f-sans);
+  font:600 20px var(--ks-f-sans);
   color:var(--ks-muted);
+  line-height:1;
+  min-width:24px;
 }
 .ks-gbody { padding:18px 20px; }
 .ks-ghead {
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  gap:16px;
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  gap:14px;
+  align-items:start;
   margin-bottom:14px;
 }
-.ks-ghead h5 {
+.ks-gtitle { min-width:0; }
+.ks-gtitle h5 {
   font:600 18px var(--ks-f-sans);
   margin:0 0 4px;
   color:var(--ks-fg);
 }
-.ks-ghead p {
+.ks-gtitle p {
   margin:0;
   color:var(--ks-muted);
   font-size:13.5px;
@@ -1650,36 +1647,37 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
 /* detailed source records */
 .ks-det {
   border:1px solid var(--ks-line);
-  border-radius:8px;
-  padding:12px 14px;
+  border-radius:6px;
+  padding:8px 10px;
   background:var(--ks-panel);
-  margin-bottom:10px;
+  margin-bottom:6px;
+  font-size:12.5px;
 }
 .ks-det .ks-dh {
   display:flex;
   align-items:center;
-  gap:8px;
+  gap:6px;
   flex-wrap:wrap;
-  margin-bottom:6px;
+  margin-bottom:2px;
 }
 .ks-det .ks-dh strong {
-  font:600 13.5px var(--ks-f-sans);
+  font:600 13px var(--ks-f-sans);
   color:var(--ks-fg);
 }
 .ks-det .ks-dm {
-  font-size:12px;
+  font-size:11.5px;
   color:var(--ks-muted);
-  margin-bottom:6px;
+  margin-bottom:2px;
 }
 .ks-det .ks-dl {
-  font-size:13px;
+  font-size:12.5px;
   color:var(--ks-fg);
-  margin-bottom:4px;
+  margin-bottom:2px;
 }
 .ks-det .ks-dr {
-  font-size:12px;
+  font-size:11px;
   color:var(--ks-muted);
-  margin-top:6px;
+  margin-top:3px;
 }
 .ks-det .ks-dr a {
   color:var(--ks-link);
@@ -1744,10 +1742,9 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
 }
 
 @media (max-width:800px) {
-  .ks-gcard { grid-template-columns:40px minmax(0,1fr); }
+  .ks-ghead { grid-template-columns:auto 1fr; gap:10px; }
   .ks-rk { font-size:18px; }
-  .ks-ghead { flex-direction:column; }
-  .ks-gright { align-items:flex-start; }
+  .ks-gright { grid-column:1 / -1; flex-direction:row; align-items:center; justify-content:space-between; }
   .ks-evgrid { grid-template-columns:1fr; }
   .ks-sum-grid { grid-template-columns:1fr; }
 }
