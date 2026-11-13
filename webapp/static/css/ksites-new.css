@@ -414,9 +414,10 @@ html[data-bs-theme="dark"] .ks-hero::after {
   height:1px;
   background:#00708f;
 }
-html[data-bs-theme="dark"] .ks-kicker,
-html[data-bs-theme="dark"] .ks-kicker::before {
+html[data-bs-theme="dark"] .ks-kicker {
   color:#4fd8f2;
+}
+html[data-bs-theme="dark"] .ks-kicker::before {
   background:#4fd8f2;
 }
 .ks-hero h1 {
