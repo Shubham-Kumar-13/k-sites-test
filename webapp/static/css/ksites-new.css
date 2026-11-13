@@ -848,21 +848,27 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   font-size:inherit;
   text-decoration:underline;
 }
-.ks-select {
+.ks-select,
+.ks-input {
   appearance:none;
   -webkit-appearance:none;
   width:100%;
   border:1px solid var(--ks-line);
-  background:var(--ks-well) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%2393a3b5' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 14px center;
+  background:var(--ks-well);
   border-radius:8px;
   height:44px;
-  padding:0 38px 0 14px;
+  padding:0 14px;
   font-size:15px;
   color:var(--ks-fg);
-  cursor:pointer;
   transition:border-color .2s,box-shadow .2s,background .2s;
 }
-.ks-select:focus {
+.ks-select {
+  cursor:pointer;
+  background:var(--ks-well) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%2393a3b5' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 14px center;
+  padding-right:38px;
+}
+.ks-select:focus,
+.ks-input:focus {
   border-color:var(--ks-cyan);
   outline:0;
   box-shadow:0 0 0 3px rgba(0,168,204,.2);
@@ -1683,6 +1689,32 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   color:var(--ks-link);
 }
 
+/* status badges */
+.ks-status {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font:600 11px var(--ks-f-sans);
+  text-transform:uppercase;
+  letter-spacing:.5px;
+  padding:4px 10px;
+  border-radius:99px;
+  border:1px solid transparent;
+}
+.ks-status::before {
+  content:"";
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:currentColor;
+}
+.ks-status.completed { color:var(--ks-safe); background:var(--ks-safe-bg); border-color:var(--ks-safe); }
+.ks-status.running,
+.ks-status.pending { color:var(--ks-info); background:var(--ks-info-bg); border-color:var(--ks-info); }
+.ks-status.cancelled,
+.ks-status.cancelling { color:var(--ks-warn); background:var(--ks-warn-bg); border-color:var(--ks-warn); }
+.ks-status.failed { color:var(--ks-bad); background:var(--ks-bad-bg); border-color:var(--ks-bad); }
+
 /* data provenance */
 .ks-prov {
   font-size:13.5px;
@@ -1747,4 +1779,5 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   .ks-gright { grid-column:1 / -1; flex-direction:row; align-items:center; justify-content:space-between; }
   .ks-evgrid { grid-template-columns:1fr; }
   .ks-sum-grid { grid-template-columns:1fr; }
+  .ks-filter-grid { grid-template-columns:1fr !important; }
 }

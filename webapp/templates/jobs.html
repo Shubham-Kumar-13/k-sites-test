@@ -3,26 +3,26 @@
 {% block title %}Job History - K-Sites{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="fas fa-list me-2 text-primary"></i>Analysis Job History</h2>
-    <a href="/" class="btn btn-primary">
-        <i class="fas fa-plus me-2"></i>New Analysis
-    </a>
-</div>
+<section class="ks-panel" style="margin-bottom:20px;">
+    <div class="ks-ph">
+        <div>
+            <div class="ks-tag">History</div>
+            <h2><i class="fas fa-list me-2"></i>Analysis Job History</h2>
+        </div>
+        <a href="/" class="ks-btn">
+            <i class="fas fa-plus"></i>New Analysis
+        </a>
+    </div>
+    <div class="ks-pb">
+        <div class="ks-note ks-info" data-hosted-note style="display: none;">
+            <i class="fas fa-database"></i>
+            <span class="ks-grow">Jobs and results are stored <strong>in this browser only</strong>. Clearing the site data removes them, and they do not appear on other computers. Download the files you want to keep.</span>
+        </div>
 
-<div class="alert alert-info" data-hosted-note style="display: none;">
-    <i class="fas fa-database me-2"></i>
-    Jobs and results are stored <strong>in this browser only</strong>. Clearing the site data removes them, and they do not appear
-    on other computers. Download the files you want to keep.
-</div>
-
-<!-- Filters -->
-<div class="card mb-4">
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-4">
-                <label class="form-label">Filter by Status</label>
-                <select class="form-select" id="statusFilter">
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:20px;" class="ks-filter-grid">
+            <div>
+                <label class="ks-lab" for="statusFilter">Filter by Status</label>
+                <select class="ks-select" id="statusFilter">
                     <option value="">All Statuses</option>
                     <option value="completed">Completed</option>
                     <option value="running">Running</option>
@@ -32,25 +32,20 @@
                     <option value="failed">Failed</option>
                 </select>
             </div>
-            <div class="col-md-4">
-                <label class="form-label">Search</label>
-                <input type="text" class="form-control" id="searchFilter" placeholder="Search by organism or GO term...">
+            <div>
+                <label class="ks-lab" for="searchFilter">Search</label>
+                <input type="text" class="ks-input" id="searchFilter" placeholder="Organism or GO term...">
             </div>
-            <div class="col-md-4 d-flex align-items-end">
-                <button class="btn btn-outline-secondary" id="refreshBtn">
-                    <i class="fas fa-sync me-2"></i>Refresh
+            <div style="display:flex;align-items:flex-end;">
+                <button class="ks-btn out" id="refreshBtn" type="button">
+                    <i class="fas fa-sync"></i>Refresh
                 </button>
             </div>
         </div>
-    </div>
-</div>
 
-<!-- Jobs Table -->
-<div class="card">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0" id="jobsTable">
-                <thead class="table-light">
+        <div style="overflow-x:auto;">
+            <table class="ks-table" id="jobsTable">
+                <thead>
                     <tr>
                         <th>Job ID</th>
                         <th>Organism</th>
@@ -63,7 +58,7 @@
                 </thead>
                 <tbody id="jobsTableBody">
                     <tr>
-                        <td colspan="7" class="text-center py-5 text-muted">
+                        <td colspan="7" class="text-center py-5" style="color:var(--ks-muted);">
                             <div class="spinner-border mb-3" role="status">
                                 <span class="visually-hidden">Loading...</span>
                             </div>
@@ -74,16 +69,16 @@
             </table>
         </div>
     </div>
-</div>
+</section>
 
 <!-- Empty State (hidden by default) -->
 <div id="emptyState" class="text-center py-5" style="display: none;">
-    <div class="display-1 text-muted mb-3">
+    <div style="font-size:64px;color:var(--ks-muted);margin-bottom:16px;">
         <i class="fas fa-inbox"></i>
     </div>
-    <h4 class="text-muted">No Jobs Found</h4>
-    <p class="text-muted">Start your first analysis to see results here.</p>
-    <a href="/" class="btn btn-primary">
+    <h4 style="color:var(--ks-muted);">No Jobs Found</h4>
+    <p style="color:var(--ks-muted);">Start your first analysis to see results here.</p>
+    <a href="/" class="ks-btn">
         <i class="fas fa-play me-2"></i>Start New Analysis
     </a>
 </div>
@@ -93,7 +88,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     loadJobs();
-    
+
     // Setup filters
     document.getElementById('statusFilter')?.addEventListener('change', filterJobs);
     document.getElementById('searchFilter')?.addEventListener('input', debounce(filterJobs, 300));
@@ -106,25 +101,25 @@ async function loadJobs() {
     const tbody = document.getElementById('jobsTableBody');
     tbody.innerHTML = `
         <tr>
-            <td colspan="7" class="text-center py-5 text-muted">
+            <td colspan="7" class="text-center py-5" style="color:var(--ks-muted);">
                 <div class="spinner-border mb-3" role="status"></div>
                 <p>Loading jobs...</p>
             </td>
         </tr>
     `;
-    
+
     try {
         const response = await ksFetch('/api/jobs');
         const data = await response.json();
-        
+
         allJobs = data.jobs || [];
         renderJobs(allJobs);
-        
+
     } catch (error) {
         console.error('Error loading jobs:', error);
         tbody.innerHTML = `
             <tr>
-                <td colspan="7" class="text-center py-5 text-danger">
+                <td colspan="7" class="text-center py-5" style="color:var(--ks-bad);">
                     <i class="fas fa-exclamation-circle fa-2x mb-3"></i>
                     <p>Error loading jobs. Please try again.</p>
                 </td>
@@ -136,37 +131,31 @@ async function loadJobs() {
 function renderJobs(jobs) {
     const tbody = document.getElementById('jobsTableBody');
     const emptyState = document.getElementById('emptyState');
-    
+
     if (jobs.length === 0) {
         tbody.innerHTML = '';
         emptyState.style.display = 'block';
         return;
     }
-    
+
     emptyState.style.display = 'none';
-    
+
     tbody.innerHTML = jobs.map(job => `
         <tr data-status="${job.status}" data-search="${(job.organism + ' ' + job.go_term + ' ' + (job.go_term_name || '')).toLowerCase()}">
+            <td><code style="font-family:var(--ks-f-mono);font-size:12.5px;background:var(--ks-well);padding:2px 6px;border-radius:4px;">${job.id.substring(0, 8)}...</code></td>
+            <td>${esc(job.organism)}</td>
             <td>
-                <code class="small">${job.id.substring(0, 8)}...</code>
-            </td>
-            <td>${job.organism}</td>
-            <td>
-                ${job.go_term}
-                ${job.go_term_name ? `<br><small class="text-muted">${job.go_term_name}</small>` : ''}
+                ${esc(job.go_term)}
+                ${job.go_term_name ? `<br><span style="color:var(--ks-muted);font-size:12.5px;">${esc(job.go_term_name)}</span>` : ''}
             </td>
             <td>${job.genes_processed !== null ? job.genes_processed : '-'}</td>
+            <td><span class="ks-status ${job.status}">${job.status.toUpperCase()}</span></td>
+            <td style="color:var(--ks-muted);font-size:12.5px;">${formatDate(job.created_at)}</td>
             <td>
-                <span class="status-badge status-${job.status}">${job.status.toUpperCase()}</span>
-            </td>
-            <td>
-                <small class="text-muted">${formatDate(job.created_at)}</small>
-            </td>
-            <td>
-                <a href="${ksPage('results', { job: job.id })}" class="btn btn-sm btn-primary" title="View results">
+                <a href="${ksPage('results', { job: job.id })}" class="ks-btn sm" title="View results">
                     <i class="fas fa-eye"></i>
                 </a>
-                <button class="btn btn-sm btn-outline-danger ms-1" title="Delete job" onclick="deleteJob('${job.id}', this)">
+                <button class="ks-btn sm" type="button" style="background:var(--ks-bad-bg);color:var(--ks-bad);border:1px solid var(--ks-bad);" title="Delete job" onclick="deleteJob('${job.id}', this)">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>
@@ -176,11 +165,11 @@ function renderJobs(jobs) {
 
 async function deleteJob(jobId, btn) {
     if (!confirm('Delete this job permanently? This cannot be undone.')) return;
-    
+
     const row = btn.closest('tr');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    
+
     try {
         const response = await ksFetch('/api/jobs/' + encodeURIComponent(jobId), { method: 'DELETE' });
         if (!response.ok) {
@@ -200,15 +189,15 @@ async function deleteJob(jobId, btn) {
 function filterJobs() {
     const statusFilter = document.getElementById('statusFilter').value;
     const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
-    
+
     const filtered = allJobs.filter(job => {
         const matchesStatus = !statusFilter || job.status === statusFilter;
         const searchText = (job.organism + ' ' + job.go_term + ' ' + (job.go_term_name || '')).toLowerCase();
         const matchesSearch = !searchFilter || searchText.includes(searchFilter);
-        
+
         return matchesStatus && matchesSearch;
     });
-    
+
     renderJobs(filtered);
 }
 
@@ -219,6 +208,10 @@ function formatDate(dateString) {
         day: '2-digit', month: '2-digit', year: 'numeric',
         hour: '2-digit', minute: '2-digit', second: '2-digit'
     });
+}
+
+function esc(value) {
+    return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function debounce(func, wait) {
