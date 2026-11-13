@@ -153,65 +153,47 @@
     </section>
     
     <!-- Gene Results Tabs -->
-    <div class="card">
-        <div class="card-header">
-            <ul class="nav nav-tabs card-header-tabs" id="resultsTabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="genes-tab" data-bs-toggle="tab" data-bs-target="#genes" type="button">
-                        <i class="fas fa-dna me-2"></i>Gene Results
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button">
-                        <i class="fas fa-chart-pie me-2"></i>Summary
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="potential-tab" data-bs-toggle="tab" data-bs-target="#potential" type="button">
-                        <i class="fas fa-lightbulb me-2"></i>Potential Candidates
-                    </button>
-                </li>
-            </ul>
+    <section class="ks-panel">
+        <div class="ks-tabs" role="tablist" id="resultsTabs">
+            <button type="button" role="tab" aria-selected="true" data-t="genes" data-bs-target="#genes" id="genes-tab">Gene Results</button>
+            <button type="button" role="tab" aria-selected="false" data-t="summary" data-bs-target="#summary" id="summary-tab">Summary</button>
+            <button type="button" role="tab" aria-selected="false" data-t="potential" data-bs-target="#potential" id="potential-tab">Potential Candidates</button>
+            <span class="ks-tab-ind" id="resultsTabInd"></span>
         </div>
-        <div class="card-body">
-            <div class="tab-content" id="resultsTabContent">
-                <!-- Genes Tab -->
-                <div class="tab-pane fade show active" id="genes" role="tabpanel">
-                    <div id="genesContainer">
-                        <div class="text-center py-5 text-muted">
-                            <div class="spinner-border mb-3" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <p>Loading gene results...</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Summary Tab -->
-                <div class="tab-pane fade" id="summary" role="tabpanel">
-                    <div id="summaryContainer">
-                        <div class="text-center py-5 text-muted">
-                            <div class="spinner-border mb-3" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <p>Loading summary...</p>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="tab-pane fade" id="potential" role="tabpanel">
-                    <div id="potentialContainer">
-                        <div class="text-center py-5 text-muted">
-                            <div class="spinner-border mb-3" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <p>Loading potential candidates...</p>
-                        </div>
+        <div class="ks-tp show" data-tab="genes" id="genes" role="tabpanel">
+            <div id="genesContainer">
+                <div class="text-center py-5" style="color:var(--ks-muted);">
+                    <div class="spinner-border mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
                     </div>
+                    <p>Loading gene results...</p>
                 </div>
             </div>
         </div>
-    </div>
+
+        <div class="ks-tp" data-tab="summary" id="summary" role="tabpanel">
+            <div id="summaryContainer">
+                <div class="text-center py-5" style="color:var(--ks-muted);">
+                    <div class="spinner-border mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading summary...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="ks-tp" data-tab="potential" id="potential" role="tabpanel">
+            <div id="potentialContainer">
+                <div class="text-center py-5" style="color:var(--ks-muted);">
+                    <div class="spinner-border mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading potential candidates...</p>
+                </div>
+            </div>
+        </div>
+    </section>
 </div>
 
 {% endblock %}
@@ -265,4 +247,35 @@
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/results.js') }}?v=1.3.2"></script>
 <script src="{{ url_for('static', filename='js/gene-loader-scissors.js') }}?v=2.0.1"></script>
+<script>
+(function () {
+    const tabs = document.querySelectorAll('#resultsTabs [role="tab"]');
+    const panels = document.querySelectorAll('.ks-tp[data-tab]');
+    const ind = document.getElementById('resultsTabInd');
+
+    function moveIndicator(tab) {
+        if (!ind || !tab) return;
+        ind.style.transform = `translateX(${tab.offsetLeft}px)`;
+        ind.style.width = `${tab.offsetWidth}px`;
+    }
+
+    function selectTab(target) {
+        const name = target.dataset.t;
+        tabs.forEach(t => t.setAttribute('aria-selected', t === target ? 'true' : 'false'));
+        panels.forEach(p => p.classList.toggle('show', p.dataset.tab === name));
+        moveIndicator(target);
+    }
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => selectTab(tab));
+    });
+
+    const active = document.querySelector('#resultsTabs [aria-selected="true"]');
+    if (active) {
+        // Defer so the indicator can measure after layout.
+        setTimeout(() => moveIndicator(active), 0);
+        window.addEventListener('resize', () => moveIndicator(active));
+    }
+})();
+</script>
 {% endblock %}
