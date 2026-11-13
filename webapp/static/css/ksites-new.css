@@ -734,3 +734,93 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   .ks-pb { padding:18px; }
   .ks-tiles { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
+
+
+/* --------------------------------------------------------------------------
+   Database selection rows
+   -------------------------------------------------------------------------- */
+.ks-dbs {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:12px;
+}
+.ks-dbs .col-12,
+.ks-dbs .col-md-6,
+.ks-dbs .col-lg-4 {
+  width:auto;
+  padding:0;
+  flex:none;
+  max-width:none;
+}
+.database-card {
+  display:flex;
+  gap:14px;
+  align-items:flex-start;
+  padding:14px 16px;
+  border:1px solid var(--ks-line);
+  border-radius:8px;
+  cursor:pointer;
+  transition:all .2s;
+  background:var(--ks-panel);
+  height:auto !important;
+}
+.database-card:hover { border-color:#9db2c5; }
+.database-card.selected {
+  border-color:var(--ks-green);
+  background:var(--ks-safe-bg);
+}
+.database-card.disabled,
+.database-card:has(.database-checkbox:disabled):not(.selected) {
+  opacity:0.55;
+  cursor:not-allowed;
+}
+.database-card .card-body {
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  padding:0;
+  flex:1;
+  min-width:0;
+}
+.database-card .database-checkbox {
+  width:20px;
+  height:20px;
+  border:2px solid #7b8da0;
+  border-radius:5px;
+  flex:none;
+  margin:1px 0 0;
+  accent-color:var(--ks-green);
+  cursor:pointer;
+}
+.database-card.disabled .database-checkbox,
+.database-card .database-checkbox:disabled { cursor:not-allowed; }
+.database-card .card-title {
+  font:600 15px var(--ks-f-sans);
+  margin:0;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.database-card .badge.bg-primary {
+  font:600 10.5px var(--ks-f-mono);
+  text-transform:uppercase;
+  letter-spacing:.6px;
+  border:1px solid var(--ks-green);
+  color:var(--ks-safe);
+  background:transparent;
+  padding:1px 7px;
+  border-radius:4px;
+}
+.database-card .card-text {
+  color:var(--ks-muted);
+  font-size:13.5px;
+  margin:0;
+}
+.database-card .badge.bg-secondary {
+  font-size:11px;
+  background:var(--ks-neutral-bg) !important;
+  color:var(--ks-neutral) !important;
+  margin-top:4px;
+  align-self:flex-start;
+}
