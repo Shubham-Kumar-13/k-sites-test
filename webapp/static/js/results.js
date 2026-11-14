@@ -623,19 +623,37 @@ const BASIS_BADGES = {
 };
 
 function compositeFormulaLine(gene) {
-    const s = (gene.specificity_score ?? 0).toFixed(2);
-    const e = (gene.evidence_quality ?? 0).toFixed(2);
-    const l = (gene.literature_support ?? 0).toFixed(2);
-    const c = (gene.conservation_score ?? 0).toFixed(2);
     const comp = (gene.composite_score ?? 0).toFixed(2);
+    const metrics = [
+        { key: 'Specificity', score: gene.specificity_score ?? 0, weight: 0.40, color: '#e0a21a' },
+        { key: 'Evidence', score: gene.evidence_quality ?? 0, weight: 0.25, color: '#0fa968' },
+        { key: 'Literature', score: gene.literature_support ?? 0, weight: 0.20, color: '#1fa6c9' },
+        { key: 'Conservation', score: gene.conservation_score ?? 0, weight: 0.15, color: '#7d8da0' }
+    ];
+    const comps = metrics.map((m, i) => {
+        const v = m.score.toFixed(2);
+        const ct = (m.score * m.weight).toFixed(2);
+        const s = Math.round(m.score * 100);
+        return `<div class="ks-comp" style="--c:${m.color};--s:${s}%;--i:${i}">
+            <div class="ks-comp-n"><i></i>${esc(m.key)}<span class="ks-comp-w">×${m.weight.toFixed(2)}</span></div>
+            <div class="ks-comp-rw"><span class="ks-comp-v">${v}</span><span class="ks-comp-ct">+${ct}</span></div>
+            <div class="ks-comp-tr"><b></b></div>
+        </div>`;
+    }).join('');
+    const calc = metrics.map(m => `<span class="ks-calc-t">${m.weight.toFixed(2)} × ${esc(m.key)} (${m.score.toFixed(2)})</span>`).join('<span class="ks-calc-pl">+</span>');
     return `<div class="ks-formula">
-        <div class="ks-formula-main">
-            <span class="ks-formula-label">Composite score</span>
-            <span class="ks-formula-score">${comp}</span>
-            <span class="ks-formula-of">of 1.00</span>
+        <div class="ks-formula-cap">
+            <div class="ks-formula-fl">
+                <span class="ks-formula-label">Composite score</span>
+                <span class="ks-formula-score">${comp}</span>
+                <span class="ks-formula-of">of 1.00</span>
+            </div>
             <details class="ks-formula-details">
                 <summary>How it is calculated</summary>
-                <div class="ks-formula-detail">0.40 × Specificity <strong>${s}</strong> + 0.25 × Evidence <strong>${e}</strong> + 0.20 × Literature <strong>${l}</strong> + 0.15 × Conservation <strong>${c}</strong></div>
+                <div class="ks-formula-body">
+                    <div class="ks-comps">${comps}</div>
+                    <div class="ks-fcalc ks-mono">${comp} = ${calc}</div>
+                </div>
             </details>
         </div>
     </div>`;
@@ -656,9 +674,8 @@ function callBadge(call) {
 
 function geneInfoChip(icon, label, value, subtext) {
     return `<div class="ks-ichip">
-        <span style="color:var(--ks-muted);display:block;margin-bottom:2px;"><i class="fas ${icon} me-1"></i>${esc(label)}</span>
-        <b>${esc(value)}</b>
-        ${subtext ? `<span>(${esc(subtext)})</span>` : ''}
+        <b>${esc(label)}</b>
+        <span>${esc(value)}${subtext ? ` · ${esc(subtext)}` : ''}</span>
     </div>`;
 }
 
@@ -773,35 +790,31 @@ function evidencePanel(gene) {
     const driver = evidence ? verdictDriver(evidence) : '';
     const context = currentJob?.knockout_context || 'auto';
     const contextLabel = CONTEXT_LABELS[context] || 'Automatic';
-    const decidesIcon = '<span class="ks-b warn" title="This evidence decided the verdict"><i class="fas fa-crown"></i>Decides verdict</span>';
+    const decidesIcon = '<span class="ks-b warn ks-decides" title="This evidence decided the verdict"><i class="fas fa-crown"></i>Decides verdict</span>';
 
-    // Build the two context sections
     const sections = [];
 
-    // Whole-animal context
     if (evidence && evidence.organism.call !== 'UNKNOWN') {
         const org = evidence.organism;
         const isDriver = driver === 'organism';
         const organismTitle = org.species ? (org.species === 'Mus musculus' ? 'Mouse whole-animal' : org.species) : 'Whole-animal';
         sections.push(`
             <div class="ks-ev ${isDriver ? 'driver' : ''}">
-                <div class="ks-ev-h"><i class="fas fa-paw me-1"></i>${esc(organismTitle)}${isDriver ? decidesIcon : ''}</div>
+                <div class="ks-ev-h">${esc(organismTitle)}${isDriver ? decidesIcon : ''}</div>
                 <div class="ks-ev-body">${callBadge(org.call)}<span>${esc(org.text)}${referenceLinks(org, gene.symbol, currentJob?.taxid)}</span></div>
             </div>`);
     }
 
-    // Cell-line context
     if (evidence && evidence.cells.call !== 'UNKNOWN') {
         const cells = evidence.cells;
         const isDriver = driver === 'cells';
         sections.push(`
             <div class="ks-ev ${isDriver ? 'driver' : ''}">
-                <div class="ks-ev-h"><i class="fas fa-flask me-1"></i>Human cell lines${isDriver ? decidesIcon : ''}</div>
+                <div class="ks-ev-h">Human cell lines${isDriver ? decidesIcon : ''}</div>
                 <div class="ks-ev-body">${callBadge(cells.call)}<span>${esc(cells.text)}</span></div>
             </div>`);
     }
 
-    // Estimate fallback
     let estimateSection = '';
     if (evidence && evidence.estimate) {
         const estimate = evidence.estimate;
@@ -809,29 +822,28 @@ function evidencePanel(gene) {
         const isDriver = driver === 'estimate';
         estimateSection = `
             <div class="ks-ev ${isDriver ? 'driver' : ''}">
-                <div class="ks-ev-h"><i class="fas fa-calculator me-1"></i>Estimated${isDriver ? decidesIcon : ''}<span data-bs-toggle="tooltip" title="No direct knockout was measured for this gene. The lethality probability is estimated from cell-line, population, expression, and conservation data."><i class="fas fa-info-circle" style="margin-left:6px;cursor:pointer;"></i></span></div>
+                <div class="ks-ev-h">Estimated${isDriver ? decidesIcon : ''}</div>
                 <div class="ks-ev-body"><span class="ks-b ${estClass}">${esc(estimate.percent)}% lethal chance</span><span>${esc(estimate.text)}</span></div>
             </div>`;
     }
 
-    // No data fallback
     let noDataSection = '';
     if (!sections.length && !estimateSection) {
-        noDataSection = `<div class="ks-note ks-plain" style="margin-bottom:10px;">
+        noDataSection = `<div class="ks-note ks-plain" style="margin:0 0 10px;">
             <i class="fas fa-info-circle" style="color:var(--ks-muted);"></i><span class="ks-grow">No direct measured knockout data was found. The verdict is based on annotation evidence and the composite score.</span>
         </div>`;
         const phenotype = gene.phenotype_prediction;
         if (phenotype) {
             const sev = typeof phenotype.severity === 'object' ? phenotype.severity.value : phenotype.severity;
             noDataSection += `
-                <div class="ks-note ks-warn" style="margin-bottom:10px;">
-                    <i class="fas fa-brain"></i>
-                    <span class="ks-grow"><strong>AI phenotype prediction from abstracts:</strong> ${esc(sev)} phenotype, confidence ${Number(phenotype.confidence_score).toFixed(2)}. <span data-bs-toggle="tooltip" title="RAG scans PubMed abstracts for phenotype keywords. UNKNOWN or low-confidence predictions should not override measured knockout evidence."><i class="fas fa-info-circle" style="cursor:pointer;"></i></span></span>
+                <div class="ks-ragbox">
+                    <span class="ks-ragtag">RAG</span>
+                    <strong>AI phenotype prediction from abstracts:</strong> ${esc(sev)} phenotype, confidence ${Number(phenotype.confidence_score).toFixed(2)}.
+                    <span style="color:var(--ks-muted);">(<i class="fas fa-info-circle"></i> RAG scans PubMed abstracts for phenotype keywords. UNKNOWN or low-confidence predictions should not override measured knockout evidence.)</span>
                 </div>`;
         }
     }
 
-    // Gene info chips
     const chips = [];
     if (evidence && evidence.constraint) {
         const parts = evidence.constraint.text.match(/^Loss-of-function variants are (.*?) in people \(gnomAD LOEUF ([0-9.]+), (.*?)\)$/);
@@ -853,11 +865,10 @@ function evidencePanel(gene) {
         chips.push(geneInfoChip('fa-clone', 'Paralogs', evidence.paralogs.text, ''));
     }
 
-    // Organ systems
     let systemsSection = '';
     if (evidence && evidence.organism.systems && evidence.organism.systems.length) {
         const sysChips = evidence.organism.systems.map(sys => `<span class="ks-b gray">${esc(sys.replace(/ phenotype$/, ''))}</span>`).join('');
-        systemsSection = `<details class="ks-mitigation"><summary>Organ systems with a reported phenotype (${evidence.organism.systems.length})</summary><div class="ks-ichips" style="margin-top:8px;">${sysChips}</div></details>`;
+        systemsSection = `<details class="ks-mitigation ks-dmut"><summary>Organ systems with a reported phenotype (${evidence.organism.systems.length})</summary><div class="ks-ichips" style="margin-top:8px;">${sysChips}</div></details>`;
     }
 
     const taxid = String(currentJob?.taxid || '');
@@ -869,9 +880,11 @@ function evidencePanel(gene) {
     return `
         <div class="ks-evp">
             <div class="ks-evtop">
-                <span class="ks-evtop-label"><i class="fas fa-microscope me-1"></i>Evidence basis</span>
+                <div class="ks-evtop-eb">
+                    <span class="ks-evtop-label">Evidence basis</span>
+                    <span class="ks-b ${basisKsClass(safety.evidence_basis || 'none')} big">${BASIS_BADGES[safety.evidence_basis || 'none'][1]}</span>
+                </div>
                 <span class="ks-evtop-context">Context: <strong>${esc(contextLabel)}</strong></span>
-                <span class="ks-b ${basisKsClass(safety.evidence_basis || 'none')}">${BASIS_BADGES[safety.evidence_basis || 'none'][1]}</span>
             </div>
             <div class="ks-evgrid">${sections.join('')}${estimateSection}</div>
             ${noDataSection}
@@ -1019,20 +1032,22 @@ function renderGenes(genes) {
         const mitigation = (safety.mitigation_strategies || []).map(m => `<li>${esc(m)}</li>`).join('');
         const alternatives = (safety.alternative_recommendations || []).length
             ? ` <span style="color:var(--ks-muted);font-size:13px;">(alternatives: ${esc(safety.alternative_recommendations.join('; '))})</span>` : '';
+        const pScore = gene.pleiotropy_score ?? 0;
+        const pClass = pScore <= 2 ? 'lo' : pScore <= 5 ? 'mid' : 'hi';
         return `
         <article class="ks-gcard">
+            <div class="ks-rk">${index + 1}</div>
             <div class="ks-gbody">
                 <div class="ks-ghead">
-                    <div class="ks-rk">${index + 1}</div>
-                    <div class="ks-gtitle">
+                    <div>
                         <h5>${esc(gene.symbol)}</h5>
                         <p>${esc(gene.description || 'No description available')}</p>
                     </div>
                     <div class="ks-gright">
                         <div class="ks-gauge">
                             <span>Pleiotropy</span>
-                            <span class="tr"><i style="width:${pleiotropyPercent(gene.pleiotropy_score)}%;background:${pleiotropyColor(gene.pleiotropy_score)}"></i></span>
-                            <b>${gene.pleiotropy_score?.toFixed(2) || 'N/A'}</b>
+                            <span class="tr"><span class="f ${pClass}" style="--w:${pleiotropyPercent(pScore)}%"></span></span>
+                            <b>${pScore.toFixed(2) || 'N/A'}</b>
                         </div>
                         <span class="ks-b ${safetyKsClass(safety.safety_level)}">${safetyLabel(safety.safety_level)}</span>
                     </div>
