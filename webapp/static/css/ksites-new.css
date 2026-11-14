@@ -404,6 +404,7 @@ html[data-bs-theme="dark"] .ks-hero::after {
 .ks-hero .ks-wrap {
   position:relative;
   z-index:2;
+  max-width:1180px;
   padding-block:44px 52px;
   display:grid;
   grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);
