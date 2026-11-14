@@ -498,6 +498,86 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
 }
 .ks-st.ok { color:var(--ks-safe); }
 .ks-st.ok i { background:var(--ks-green); }
+
+/* two-column shell with sticky step rail */
+.ks-shell {
+  display:grid;
+  grid-template-columns:200px minmax(0,1fr);
+  gap:32px;
+  padding-block:32px 120px;
+  align-items:start;
+}
+.ks-rail {
+  position:sticky;
+  top:20px;
+  display:flex;
+  flex-direction:column;
+  gap:0;
+  padding-left:2px;
+}
+.ks-rail .t {
+  font:500 11.5px var(--ks-f-mono);
+  letter-spacing:1.4px;
+  text-transform:uppercase;
+  color:var(--ks-muted);
+  margin-bottom:14px;
+}
+.ks-rail a {
+  display:grid;
+  grid-template-columns:28px 1fr;
+  gap:12px;
+  align-items:center;
+  text-decoration:none;
+  color:var(--ks-muted);
+  padding:9px 0;
+  position:relative;
+  font-weight:500;
+  font-size:14px;
+}
+.ks-rail a::before {
+  content:"";
+  position:absolute;
+  left:13px;
+  top:-9px;
+  bottom:calc(50% + 14px);
+  width:2px;
+  background:var(--ks-line);
+}
+.ks-rail a:first-of-type::before { display:none; }
+.ks-rail a .d {
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  border:2px solid var(--ks-line);
+  background:var(--ks-panel);
+  display:grid;
+  place-items:center;
+  font:600 12px var(--ks-f-mono);
+  transition:all .3s;
+  position:relative;
+  z-index:1;
+}
+.ks-rail a.done .d { background:var(--ks-green); border-color:var(--ks-green); color:#fff; }
+.ks-rail a.done::before { background:var(--ks-green); }
+.ks-rail a.on { color:var(--ks-fg); }
+.ks-rail a.on .d { border-color:var(--ks-cyan); color:var(--ks-link); box-shadow:0 0 0 4px rgba(0,168,204,.18); }
+.ks-rail a.on::after {
+  content:"";
+  position:absolute;
+  left:-10px;
+  top:50%;
+  width:4px;
+  height:4px;
+  margin-top:-2px;
+  border-radius:50%;
+  background:var(--ks-cyan);
+}
+
+@media (max-width:800px) {
+  .ks-shell { grid-template-columns:1fr; padding-block:24px 100px; }
+  .ks-rail { position:static; display:none; }
+}
+
 .ks-pb { padding:24px; }
 .ks-block + .ks-block { margin-top:24px; }
 .ks-lab {

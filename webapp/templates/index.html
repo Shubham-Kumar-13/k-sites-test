@@ -15,7 +15,15 @@
 </header>
 
 <div class="ks-wrap">
-    <div class="ks-form-wrap" style="max-width:980px;margin-left:auto;margin-right:auto;">
+    <div class="ks-shell">
+        <aside class="ks-rail" aria-label="Steps">
+            <div class="t">Analysis setup</div>
+            <a href="#s1" data-s="s1" class="on"><span class="d">1</span>Organism</a>
+            <a href="#s2" data-s="s2"><span class="d">2</span>GO term</a>
+            <a href="#s3" data-s="s3"><span class="d">3</span>Databases</a>
+            <a href="#s4" data-s="s4"><span class="d">4</span>Parameters</a>
+        </aside>
+        <div class="ks-stack">
         <form id="analysisForm" novalidate>
             
             
@@ -356,6 +364,7 @@
             <!-- Validation Alerts -->
             <div id="validationAlerts"></div>
         </form>
+        </div>
     </div>
 </div>
 
@@ -401,6 +410,25 @@
     st.classList.toggle('ok', ok);
     st.innerHTML = '<i></i>' + text;
   }
+  function updateRail() {
+    const org = document.getElementById('organism');
+    const go = document.getElementById('go_term');
+    const steps = [
+      { id: 's1', done: !!(org && org.value) },
+      { id: 's2', done: !!(go && go.value) },
+      { id: 's3', done: true },
+      { id: 's4', done: false }
+    ];
+    let firstUndone = null;
+    steps.forEach(s => {
+      const link = document.querySelector('.ks-rail a[data-s="' + s.id + '"]');
+      if (!link) return;
+      link.classList.toggle('done', s.done);
+      if (!s.done && !firstUndone) firstUndone = link;
+    });
+    document.querySelectorAll('.ks-rail a').forEach(a => a.classList.remove('on'));
+    (firstUndone || document.querySelector('.ks-rail a:last-child'))?.classList.add('on');
+  }
   function updateStatuses() {
     const org = document.getElementById('organism');
     const go = document.getElementById('go_term');
@@ -408,10 +436,20 @@
     setStatus('s2', go && go.value, go && go.value ? 'Complete' : 'In progress');
     setStatus('s3', true, 'Complete');
     setStatus('s4', false, 'In progress');
+    updateRail();
   }
   document.addEventListener('DOMContentLoaded', updateStatuses);
   document.addEventListener('change', function (e) {
     if (['organism','taxid','go_term','go_term_name'].indexOf(e.target.id) >= 0) updateStatuses();
+  });
+
+  // Smooth scroll for rail links
+  document.querySelector('.ks-rail')?.addEventListener('click', function (e) {
+    const a = e.target.closest('a[href^="#"]');
+    if (!a) return;
+    e.preventDefault();
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 })();
 </script>
