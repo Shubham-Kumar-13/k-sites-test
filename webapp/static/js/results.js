@@ -3,6 +3,12 @@
  */
 
 const CONTEXT_LABELS = { auto: 'Automatic', cells: 'Cultured cells', organism: 'Whole organism' };
+const EVIDENCE_LABELS = {
+    experimental: 'Experimental',
+    any: 'Any',
+    curated: 'Curated',
+    all: 'All evidence types'
+};
 const DB_FORMAT = {
     quickgo: 'QuickGO',
     uniprot: 'UniProt',
@@ -61,7 +67,7 @@ function fillJobFields(job) {
         go_term_name: job.go_term_name || job.go_term,
         max_genes: job.max_genes,
         max_pleiotropy: job.max_pleiotropy,
-        evidence_filter: job.evidence_filter,
+        evidence_filter: job.evidence_filter === undefined ? undefined : (EVIDENCE_LABELS[job.evidence_filter] || job.evidence_filter),
         knockout_context: job.knockout_context === undefined ? undefined : (CONTEXT_LABELS[job.knockout_context] || job.knockout_context),
         predict_phenotypes: job.predict_phenotypes === undefined ? undefined : (job.predict_phenotypes ? 'Enabled' : 'Disabled'),
         selected_databases: job.selected_databases === undefined ? undefined : formatDatabases(job.selected_databases),
@@ -477,7 +483,9 @@ function renderLandscape(genes, cutoff) {
     o += `<line class="ks-ax" x1="${L}" x2="${W - R}" y1="${T + ph}" y2="${T + ph}"/>`;
     o += `<line class="ks-ax" x1="${L}" x2="${L}" y1="${T}" y2="${T + ph}"/>`;
     o += `<line class="ks-cut" x1="${X(pleio)}" x2="${X(pleio)}" y1="${T}" y2="${T + ph}"/>`;
-    o += `<text x="${X(pleio) + 6}" y="${T + 12}" style="fill:var(--ks-magenta,#e83e8c)">cutoff ${pleio}</text>`;
+    const cutLabelAnchor = X(pleio) > (L + pw / 2) ? 'end' : 'start';
+    const cutLabelX = X(pleio) > (L + pw / 2) ? X(pleio) - 6 : X(pleio) + 6;
+    o += `<text x="${cutLabelX}" y="${T + 12}" text-anchor="${cutLabelAnchor}" style="fill:var(--ks-magenta,#e83e8c)">cutoff ${pleio}</text>`;
     o += `<text class="ks-ttl" x="${L + pw / 2}" y="${H - 6}" text-anchor="middle">Pleiotropy score (0 to 10)</text>`;
     o += `<text class="ks-ttl" transform="translate(12 ${T + ph / 2}) rotate(-90)" text-anchor="middle">Composite score (0 to 1)</text>`;
 
@@ -516,6 +524,7 @@ function renderPotentialCandidates(data) {
         container.innerHTML = '<div class="text-center py-5" style="color:var(--ks-muted);">No unverified genes outscored the best experimentally supported candidate</div>';
         return;
     }
+    const cutPct = pleiotropyCutoffPercent();
     const cards = candidates.map((gene, index) => {
         const safety = gene.safety_recommendation || {};
         return `<article class="ks-gcard">
@@ -529,7 +538,7 @@ function renderPotentialCandidates(data) {
                     <div class="ks-gright">
                         <div class="ks-gauge">
                             <span>Pleiotropy</span>
-                            <span class="tr"><i style="width:${pleiotropyPercent(gene.pleiotropy_score)}%;background:${pleiotropyColor(gene.pleiotropy_score)}"></i></span>
+                            <span class="tr" style="--cut:${cutPct}%"><i style="width:${pleiotropyPercent(gene.pleiotropy_score)}%;background:${pleiotropyColor(gene.pleiotropy_score)}"></i></span>
                             <b>${gene.pleiotropy_score?.toFixed(2) || 'N/A'}</b>
                         </div>
                         <span class="ks-b ${safetyKsClass(safety.safety_level)}">${safetyLabel(safety.safety_level)}</span>
@@ -566,9 +575,11 @@ async function loadResults(jobId) {
             document.querySelectorAll('[data-job-field="knockout_context"]').forEach(el => { el.textContent = label; });
         }
 
+        const pleioCutoff = currentJob && typeof currentJob.max_pleiotropy === 'number' ? currentJob.max_pleiotropy : parseFloat(document.querySelector('[data-job-field="max_pleiotropy"]')?.textContent) || 5;
+
         renderGenes(resultsData.genes);
         renderSafetyDist(resultsData.genes);
-        renderLandscape(resultsData.genes, currentJob?.max_pleiotropy ?? 5);
+        renderLandscape(resultsData.genes, pleioCutoff);
         renderExcluded(resultsData.excluded_genes);
         renderInsufficientData(resultsData.insufficient_data_genes);
         renderSources(resultsData.metadata);
@@ -1015,6 +1026,15 @@ function pleiotropyPercent(score) {
     return Math.min(100, Math.max(0, (score / 10) * 100));
 }
 
+function pleiotropyCutoffPercent() {
+    const fromJob = currentJob && typeof currentJob.max_pleiotropy === 'number' ? currentJob.max_pleiotropy : undefined;
+    if (fromJob !== undefined) return (fromJob / 10) * 100;
+    const el = document.querySelector('[data-job-field="max_pleiotropy"]');
+    const fromDom = el ? parseFloat(el.textContent) : NaN;
+    if (!isNaN(fromDom)) return (fromDom / 10) * 100;
+    return 50;
+}
+
 function pleiotropyColor(score) {
     if (!score && score !== 0) return 'var(--ks-muted)';
     if (score <= 2) return 'var(--v-safe)';
@@ -1035,6 +1055,7 @@ function renderGenes(genes) {
         return;
     }
     
+    const cutPct = pleiotropyCutoffPercent();
     container.innerHTML = genes.map((gene, index) => {
         const safety = gene.safety_recommendation || {};
         const concerns = (safety.concerns || []).map(c => `<li>${esc(c)}</li>`).join('');
@@ -1056,7 +1077,7 @@ function renderGenes(genes) {
                     <div class="ks-gright">
                         <div class="ks-gauge">
                             <span>Pleiotropy</span>
-                            <span class="tr"><span class="f ${pClass}" style="--w:${pleiotropyPercent(pScore)}%"></span></span>
+                            <span class="tr" style="--cut:${cutPct}%"><span class="f ${pClass}" style="--w:${pleiotropyPercent(pScore)}%"></span></span>
                             <b>${pScore.toFixed(2) || 'N/A'}</b>
                         </div>
                         <span class="ks-b ${safetyKsClass(safety.safety_level)}">${safetyLabel(safety.safety_level)}</span>

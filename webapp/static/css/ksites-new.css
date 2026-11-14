@@ -340,6 +340,10 @@ html[data-bs-theme="dark"] .ks-top .ks-logo.ks-logo-dark { display:block; }
   padding-top:16px;
   padding-bottom:calc(76px + env(safe-area-inset-bottom,0px));
 }
+body:not(.ks-analysis-page) .ks-foot .ks-wrap {
+  padding-top:10px;
+  padding-bottom:10px;
+}
 .ks-foot .ks-who { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .ks-foot .ks-who svg { flex:none; }
 .ks-ghbtn {
@@ -1391,7 +1395,7 @@ html[data-bs-theme="dark"] .ks-hero .ks-chip {
 /* KPIs */
 .ks-kpis {
   display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.55fr);
   gap:0;
 }
 .ks-kpi {
@@ -2090,7 +2094,7 @@ html[data-bs-theme="dark"] .ks-status-pill.status-running {
 .ks-gauge .tr::before {
   content:"";
   position:absolute;
-  left:50%;
+  left:var(--cut,50%);
   top:-5px;
   bottom:-5px;
   border-left:1.5px dashed var(--ks-magenta,#e83e8c);
@@ -2378,12 +2382,12 @@ html[data-bs-theme="dark"] .ks-status-pill.status-running {
 .ks-ichip span { color:var(--ks-muted); }
 
 .ks-warn-panel {
-  background:var(--ks-warn-bg);
-  border-color:var(--ks-warn);
+  background:rgba(234,179,8,.05);
+  border-color:rgba(234,179,8,.22);
 }
 .ks-warn-panel .ks-ph {
   background:transparent;
-  border-bottom-color:rgba(125,82,0,.12);
+  border-bottom-color:rgba(234,179,8,.12);
 }
 .ks-ragbox {
   margin-top:10px;

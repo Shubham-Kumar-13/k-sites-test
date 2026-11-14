@@ -168,7 +168,7 @@
             <dl class="ks-pgrid">
                 <div><dt>Organism</dt><dd data-job-field="organism"><i>{{ job.organism }}</i></dd></div>
                 <div><dt>TaxID</dt><dd><code data-job-field="taxid">{{ job.taxid }}</code></dd></div>
-                <div><dt>GO Term</dt><dd><span class="ks-mono cp">{{ job.go_term }}</span></dd></div>
+                <div><dt>GO Term</dt><dd><span class="ks-mono cp" data-job-field="go_term">{{ job.go_term }}</span></dd></div>
                 <div><dt>GO Term Name</dt><dd data-job-field="go_term_name">{{ job.go_term_name or '-' }}</dd></div>
                 <div><dt>Genes Reported</dt><dd class="ks-mono" data-job-field="max_genes">{{ job.max_genes }}</dd></div>
                 <div><dt>Pleiotropy Cutoff (0-10)</dt><dd class="ks-mono" data-job-field="max_pleiotropy">{{ job.max_pleiotropy }}</dd></div>
@@ -197,10 +197,10 @@
                         <h3>All genes at a glance</h3>
                     </div>
                     <div class="ks-lkey">
-                        <span><svg width="12" height="12" viewBox="-6 -6 12 12"><circle r="4.6" fill="var(--ks-safe)"/></svg>Safe</span>
-                        <span><svg width="12" height="12" viewBox="-6 -6 12 12"><rect x="-4.2" y="-4.2" width="8.4" height="8.4" fill="var(--ks-info)"/></svg>Caution</span>
-                        <span><svg width="12" height="12" viewBox="-6 -6 12 12"><path d="M0-5.6L5.6 0 0 5.6-5.6 0z" fill="var(--ks-warn)"/></svg>Moderate</span>
-                        <span><svg width="12" height="12" viewBox="-6 -6 12 12"><path d="M0-5.4L5.2 4.2h-10.4z" fill="var(--ks-bad)"/></svg>High / Avoid</span>
+                        <span><svg width="12" height="12" viewBox="-6 -6 12 12"><circle r="4.6" fill="var(--v-safe)"/></svg>Safe</span>
+                        <span><svg width="12" height="12" viewBox="-6 -6 12 12"><rect x="-4.2" y="-4.2" width="8.4" height="8.4" fill="var(--v-info)"/></svg>Caution</span>
+                        <span><svg width="12" height="12" viewBox="-6 -6 12 12"><path d="M0-5.6L5.6 0 0 5.6-5.6 0z" fill="var(--v-warn)"/></svg>Moderate</span>
+                        <span><svg width="12" height="12" viewBox="-6 -6 12 12"><path d="M0-5.4L5.2 4.2h-10.4z" fill="var(--v-bad)"/></svg>High / Avoid</span>
                     </div>
                 </div>
                 <div class="ks-lwrap">
@@ -276,7 +276,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/results.js') }}?v=1.4.6"></script>
+<script src="{{ url_for('static', filename='js/results.js') }}?v=1.4.7"></script>
 <script>
 (function () {
     const tabs = document.querySelectorAll('#resultsTabs [role="tab"]');
