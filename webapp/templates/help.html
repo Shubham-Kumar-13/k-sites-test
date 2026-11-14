@@ -2,208 +2,101 @@
 
 {% block title %}Help & Documentation - K-Sites{% endblock %}
 
-{% block extra_css %}
-<style>
-.help-nav {
-    position: sticky;
-    top: 20px;
-}
-.help-nav .nav-link {
-    color: #495057;
-    border-left: 3px solid transparent;
-    padding: 8px 16px;
-}
-.help-nav .nav-link:hover,
-.help-nav .nav-link.active {
-    color: var(--primary-color);
-    border-left-color: var(--primary-color);
-    background-color: #f8f9fa;
-}
-.term-card {
-    transition: all 0.3s;
-    border-left: 4px solid var(--primary-color);
-}
-.term-card:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-.methodology-step {
-    position: relative;
-    padding-left: 60px;
-    margin-bottom: 30px;
-}
-.methodology-step .step-icon {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 45px;
-    height: 45px;
-    background: linear-gradient(135deg, var(--primary-color) 0%, #1a365d 100%);
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-}
-.faq-item {
-    border-left: 3px solid var(--secondary-color);
-    padding-left: 20px;
-    margin-bottom: 25px;
-}
-.score-visual {
-    display: inline-block;
-    width: 100%;
-    height: 8px;
-    background: #e9ecef;
-    border-radius: 4px;
-    overflow: hidden;
-}
-.score-visual .fill {
-    height: 100%;
-    border-radius: 4px;
-}
-.score-high { background: linear-gradient(90deg, #28a745, #20c997); }
-.score-medium { background: linear-gradient(90deg, #ffc107, #ff9800); }
-.score-low { background: linear-gradient(90deg, #dc3545, #f44336); }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="row">
+<div class="ks-help">
     <!-- Sidebar Navigation -->
-    <div class="col-lg-3">
-        <nav class="help-nav d-none d-lg-block">
-            <h5 class="mb-3">Contents</h5>
-            <nav class="nav flex-column">
-                <a class="nav-link active" href="#overview">Overview</a>
-                <a class="nav-link" href="#methodology">Methodology</a>
-                <a class="nav-link" href="#analytical-terms">Analytical Terms</a>
-                {% for key, term in analytical_terms.items() %}
-                <a class="nav-link ms-3 small" href="#{{ key }}">{{ term.title }}</a>
-                {% endfor %}
-                <a class="nav-link" href="#faq">FAQ</a>
-            </nav>
-        </nav>
-    </div>
-    
+    <nav class="ks-help-nav ks-panel" style="padding:16px;">
+        <div style="font:600 14px var(--ks-f-sans);margin-bottom:10px;color:var(--ks-fg);">Contents</div>
+        <a class="active" href="#overview">Overview</a>
+        <a href="#methodology">Methodology</a>
+        <a href="#analytical-terms">Analytical Terms</a>
+        {% for key, term in analytical_terms.items() %}
+        <a class="sub" href="#{{ key }}">{{ term.title }}</a>
+        {% endfor %}
+        <a href="#faq">FAQ</a>
+    </nav>
+
     <!-- Main Content -->
-    <div class="col-lg-9">
+    <div>
         <!-- Header -->
-        <div class="mb-5">
-            <h1 class="display-5 fw-bold text-primary">
-                <i class="fas fa-book-open me-3"></i>Help & Documentation
-            </h1>
-            <p class="lead text-muted">Understanding K-Sites: A Comprehensive Guide</p>
+        <div style="margin-bottom:32px;">
+            <div class="ks-kicker" style="margin-bottom:10px;">Documentation</div>
+            <h1><i class="fas fa-book-open me-3"></i>Help & Documentation</h1>
+            <p style="font-size:17px;">Understanding K-Sites: A Comprehensive Guide</p>
         </div>
-        
+
         <!-- Overview Section -->
-        <section id="overview" class="mb-5">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0"><i class="fas fa-info-circle me-2"></i>What is K-Sites?</h3>
-                </div>
-                <div class="card-body">
-                    <p class="lead">K-Sites is a comprehensive <strong>Suite for Knock-out/down Studies</strong> that integrates multiple biological databases and literature mining to help you pick a safe gene to delete.</p>
-                    
-                    <div class="row g-4 mt-3">
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-start">
-                                <i class="fas fa-bullseye fa-2x text-primary me-3 mt-1"></i>
-                                <div>
-                                    <h5>Multi-Database Evidence</h5>
-                                    <p class="text-muted mb-0">QuickGO is always used; you can also select UniProt, NCBI Entrez and MyGene.info. More databases give a more complete pleiotropy score but take longer.</p>
-                                </div>
-                            </div>
+        <section id="overview">
+            <div class="ks-panel ks-term">
+                <div class="ks-pb">
+                    <h2><i class="fas fa-info-circle me-2"></i>What is K-Sites?</h2>
+                    <p style="font-size:15px;">K-Sites is a comprehensive <strong>Suite for Knock-out/down Studies</strong> that integrates multiple biological databases and literature mining to help you pick a safe gene to delete.</p>
+
+                    <div class="ks-tiles" style="margin-top:18px;">
+                        <div class="ks-tile">
+                            <b><i class="fas fa-bullseye me-2" style="color:var(--ks-cyan);"></i>Multi-Database Evidence</b>
+                            <span>QuickGO is always used; you can also select UniProt, NCBI Entrez and MyGene.info. More databases give a more complete pleiotropy score but take longer.</span>
                         </div>
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-start">
-                                <i class="fas fa-brain fa-2x text-success me-3 mt-1"></i>
-                                <div>
-                                    <h5>AI-Powered Predictions</h5>
-                                    <p class="text-muted mb-0">RAG-based phenotype prediction from scientific literature.</p>
-                                </div>
-                            </div>
+                        <div class="ks-tile">
+                            <b><i class="fas fa-brain me-2" style="color:var(--ks-cyan);"></i>AI-Powered Predictions</b>
+                            <span>RAG-based phenotype prediction from scientific literature.</span>
                         </div>
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-start">
-                                <i class="fas fa-filter fa-2x text-info me-3 mt-1"></i>
-                                <div>
-                                    <h5>Smart Filtering</h5>
-                                    <p class="text-muted mb-0">Pleiotropy scoring to identify specific, safe targets.</p>
-                                </div>
-                            </div>
+                        <div class="ks-tile">
+                            <b><i class="fas fa-filter me-2" style="color:var(--ks-cyan);"></i>Smart Filtering</b>
+                            <span>Pleiotropy scoring to identify specific, safe targets.</span>
                         </div>
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-start">
-                                <i class="fas fa-shield-alt fa-2x text-warning me-3 mt-1"></i>
-                                <div>
-                                    <h5>Safety Assessment</h5>
-                                    <p class="text-muted mb-0">Comprehensive knockout risk evaluation for each gene.</p>
-                                </div>
-                            </div>
+                        <div class="ks-tile">
+                            <b><i class="fas fa-shield-alt me-2" style="color:var(--ks-cyan);"></i>Safety Assessment</b>
+                            <span>Comprehensive knockout risk evaluation for each gene.</span>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
-        
+
         <!-- Methodology Section -->
-        <section id="methodology" class="mb-5">
-            <h2 class="mb-4"><i class="fas fa-microscope me-2 text-primary"></i>Methodology</h2>
-            
+        <section id="methodology">
+            <h2><i class="fas fa-microscope me-2"></i>Methodology</h2>
             {% for section in methodology_sections %}
-            <div class="methodology-step">
-                <div class="step-icon">
-                    <i class="fas {{ section.icon }}"></i>
-                </div>
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ section.title }}</h5>
-                        <div class="card-text">
-                            {{ section.content|safe }}
-                        </div>
+            <div class="ks-mstep">
+                <div class="n"><i class="fas {{ section.icon }}"></i></div>
+                <div class="b ks-panel">
+                    <div class="ks-pb">
+                        <h3>{{ section.title }}</h3>
+                        {{ section.content|safe }}
                     </div>
                 </div>
             </div>
             {% endfor %}
         </section>
-        
+
         <!-- Analytical Terms Section -->
-        <section id="analytical-terms" class="mb-5">
-            <h2 class="mb-4"><i class="fas fa-chart-bar me-2 text-primary"></i>Analytical Terms Explained</h2>
-            <p class="text-muted mb-4">Understanding the scores and metrics used in K-Sites analysis reports.</p>
-            
+        <section id="analytical-terms">
+            <h2><i class="fas fa-chart-bar me-2"></i>Analytical Terms Explained</h2>
+            <p style="margin-bottom:18px;">Understanding the scores and metrics used in K-Sites analysis reports.</p>
+
             {% for key, term in analytical_terms.items() %}
-            <div id="{{ key }}" class="card term-card mb-4">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-3">
-                        <i class="fas {{ term.icon }} fa-lg text-primary me-3"></i>
-                        <h4 class="card-title mb-0">{{ term.title }}</h4>
-                    </div>
-                    
-                    <p class="lead">{{ term.short_description }}</p>
-                    
-                    <div class="mt-4">
-                        {{ term.detailed_explanation|safe }}
-                    </div>
-                    
-                    <div class="mt-3 text-muted small">
+            <div id="{{ key }}" class="ks-panel ks-term" style="margin-bottom:16px;">
+                <div class="ks-pb">
+                    <h3><i class="fas {{ term.icon }} me-2" style="color:var(--ks-cyan);"></i>{{ term.title }}</h3>
+                    <p style="font-size:15px;color:var(--ks-fg);">{{ term.short_description }}</p>
+                    {{ term.detailed_explanation|safe }}
+                    <div style="font-size:12.5px;color:var(--ks-muted);margin-top:10px;">
                         <i class="fas fa-book me-1"></i>Reference: {{ term.reference }}
                     </div>
                 </div>
             </div>
             {% endfor %}
         </section>
-        
+
         <!-- FAQ Section -->
-        <section id="faq" class="mb-5">
-            <h2 class="mb-4"><i class="fas fa-question-circle me-2 text-primary"></i>Frequently Asked Questions</h2>
-            
+        <section id="faq">
+            <h2><i class="fas fa-question-circle me-2"></i>Frequently Asked Questions</h2>
             {% for item in faq_items %}
-            <div class="faq-item">
-                <h5 class="text-primary">{{ item.question }}</h5>
+            <details class="ks-faq">
+                <summary>{{ item.question }}</summary>
                 <p>{{ item.answer }}</p>
-            </div>
+            </details>
             {% endfor %}
         </section>
     </div>
@@ -225,17 +118,17 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 
 // Update active nav link on scroll
 window.addEventListener('scroll', function() {
-    const sections = document.querySelectorAll('section[id]');
-    const navLinks = document.querySelectorAll('.help-nav .nav-link');
-    
+    const sections = document.querySelectorAll('section[id], [id].ks-term');
+    const navLinks = document.querySelectorAll('.ks-help-nav a');
+
     let current = '';
     sections.forEach(section => {
         const sectionTop = section.offsetTop;
-        if (pageYOffset >= sectionTop - 200) {
+        if (window.pageYOffset >= sectionTop - 120) {
             current = section.getAttribute('id');
         }
     });
-    
+
     navLinks.forEach(link => {
         link.classList.remove('active');
         if (link.getAttribute('href') === '#' + current) {

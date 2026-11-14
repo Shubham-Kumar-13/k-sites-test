@@ -1737,6 +1737,112 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   gap:20px;
 }
 
+/* --------------------------------------------------------------------------
+   Help / documentation page
+   -------------------------------------------------------------------------- */
+.ks-help {
+  display:grid;
+  grid-template-columns:240px minmax(0,1fr);
+  gap:28px;
+  align-items:start;
+}
+.ks-help-nav {
+  position:sticky;
+  top:20px;
+}
+.ks-help-nav a {
+  display:block;
+  padding:8px 12px;
+  border-radius:6px;
+  color:var(--ks-muted);
+  font-size:13.5px;
+  text-decoration:none;
+  border-left:2px solid transparent;
+  margin-left:6px;
+}
+.ks-help-nav a:hover {
+  color:var(--ks-fg);
+  background:var(--ks-well);
+}
+.ks-help-nav a.active {
+  color:var(--ks-link);
+  background:var(--ks-sel);
+  border-left-color:var(--ks-cyan);
+  font-weight:600;
+}
+.ks-help-nav a.sub {
+  padding-left:22px;
+  font-size:12.5px;
+}
+.ks-help h1 {
+  font:600 clamp(28px,4vw,40px)/1.1 var(--ks-f-sans);
+  color:var(--ks-fg);
+  margin:0 0 8px;
+}
+.ks-help h2 {
+  font:600 22px var(--ks-f-sans);
+  color:var(--ks-fg);
+  margin:0 0 16px;
+}
+.ks-help h3 {
+  font:600 17px var(--ks-f-sans);
+  color:var(--ks-fg);
+  margin:0 0 10px;
+}
+.ks-help p {
+  color:var(--ks-muted);
+  margin:0 0 12px;
+}
+.ks-help section {
+  margin-bottom:40px;
+}
+.ks-mstep {
+  display:flex;
+  gap:16px;
+  margin-bottom:16px;
+}
+.ks-mstep .n {
+  width:40px;
+  height:40px;
+  flex:none;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:var(--ks-cyan);
+  color:var(--ks-cyan-ink);
+  font:600 16px var(--ks-f-sans);
+}
+.ks-mstep .b {
+  flex:1;
+  min-width:0;
+}
+.ks-term {
+  border-left:3px solid var(--ks-cyan);
+}
+.ks-faq {
+  margin-bottom:18px;
+}
+.ks-faq summary {
+  font:600 15px var(--ks-f-sans);
+  color:var(--ks-link);
+  cursor:pointer;
+  list-style:none;
+}
+.ks-faq summary::-webkit-details-marker { display:none; }
+.ks-faq summary::before {
+  content:"+";
+  display:inline-block;
+  width:18px;
+  color:var(--ks-cyan);
+  font-weight:700;
+}
+.ks-faq[open] summary::before { content:"-"; }
+.ks-faq p {
+  margin-top:8px;
+  padding-left:18px;
+  font-size:14px;
+}
+
 /* ranked list (summary tab) */
 .ks-ranks {
   display:flex;
@@ -1780,4 +1886,6 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   .ks-evgrid { grid-template-columns:1fr; }
   .ks-sum-grid { grid-template-columns:1fr; }
   .ks-filter-grid { grid-template-columns:1fr !important; }
+  .ks-help { grid-template-columns:1fr; }
+  .ks-help-nav { position:static; }
 }
