@@ -91,6 +91,9 @@ body {
   padding-left:max(16px,env(safe-area-inset-left,0px));
   padding-right:max(16px,env(safe-area-inset-right,0px));
 }
+.ks-wrap-results {
+  max-width:980px;
+}
 
 /* --------------------------------------------------------------------------
    Top navigation bar

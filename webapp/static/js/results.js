@@ -48,7 +48,7 @@ function fillJobFields(job) {
         organism: job.organism,
         taxid: job.taxid,
         go_term: job.go_term,
-        go_term_name: job.go_term_name,
+        go_term_name: job.go_term_name || job.go_term,
         max_genes: job.max_genes,
         max_pleiotropy: job.max_pleiotropy,
         evidence_filter: job.evidence_filter,

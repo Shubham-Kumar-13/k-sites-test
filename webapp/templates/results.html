@@ -116,22 +116,22 @@
     <!-- Compact hero -->
     <header class="ks-hero ks-compact">
         <canvas class="netc" aria-hidden="true"></canvas>
-        <div class="ks-wrap">
+        <div class="ks-wrap ks-wrap-results">
             <div>
                 <div class="ks-status-pill">
                     <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Completed
                 </div>
-                <h1>{{ job.go_term_name or job.go_term }} in <i>{{ job.organism }}</i></h1>
+                <h1><span data-job-field="go_term_name">{{ job.go_term_name or job.go_term }}</span> in <i data-job-field="organism">{{ job.organism }}</i></h1>
                 <div class="ks-chips">
-                    <span class="ks-chip">{{ job.go_term }}</span>
-                    <span class="ks-chip">TaxID {{ job.taxid }}</span>
-                    <span class="ks-chip">{{ job.selected_databases|join(', ') if job.selected_databases else 'QuickGO' }}</span>
+                    <span class="ks-chip" data-job-field="go_term">{{ job.go_term }}</span>
+                    <span class="ks-chip">TaxID <span data-job-field="taxid">{{ job.taxid }}</span></span>
+                    <span class="ks-chip" data-job-field="selected_databases">{{ job.selected_databases|join(', ') if job.selected_databases else 'QuickGO' }}</span>
                 </div>
             </div>
         </div>
     </header>
 
-    <div class="ks-wrap">
+    <div class="ks-wrap ks-wrap-results">
     <!-- Success Notification -->
     <div class="ks-alert ks-ok">
         <i class="fas fa-check-circle"></i>
@@ -276,7 +276,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/results.js') }}?v=1.4.0"></script>
+<script src="{{ url_for('static', filename='js/results.js') }}?v=1.4.1"></script>
 <script>
 (function () {
     const tabs = document.querySelectorAll('#resultsTabs [role="tab"]');
