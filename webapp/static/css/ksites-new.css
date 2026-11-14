@@ -133,6 +133,13 @@ html[data-bs-theme="dark"] .ks-top .ks-logo.ks-logo-dark { display:block; }
   border-radius:6px;
   position:relative;
   transition:color .15s,background .15s;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+}
+.ks-top nav a i {
+  font-size:13px;
+  opacity:.85;
 }
 .ks-top nav a:hover,
 .ks-top nav a.active {
@@ -155,6 +162,8 @@ html[data-bs-theme="dark"] .ks-top .ks-logo.ks-logo-dark { display:block; }
   align-items:center;
   gap:10px;
   margin-left:auto;
+  align-self:center;
+  height:30px;
 }
 
 /* backend status chip */
@@ -162,19 +171,19 @@ html[data-bs-theme="dark"] .ks-top .ks-logo.ks-logo-dark { display:block; }
   position:relative;
   display:flex;
   align-items:center;
-  height:24px;
+  height:22px;
 }
 .ks-bk {
   display:inline-flex;
   align-items:center;
-  gap:6px;
+  gap:5px;
   font:inherit;
   font-weight:600;
   font-size:11px;
   line-height:1;
-  height:24px;
-  min-height:24px;
-  padding:0 10px;
+  height:22px;
+  min-height:22px;
+  padding:0 8px;
   border-radius:99px;
   border:1px solid currentColor;
   background:transparent;
@@ -182,8 +191,8 @@ html[data-bs-theme="dark"] .ks-top .ks-logo.ks-logo-dark { display:block; }
   color:var(--ks-muted);
 }
 .ks-bk .ks-bk-dot {
-  width:6px;
-  height:6px;
+  width:5px;
+  height:5px;
   border-radius:50%;
   background:currentColor;
   flex:none;
@@ -256,7 +265,7 @@ html[data-bs-theme="dark"] .ks-top .ks-logo.ks-logo-dark { display:block; }
 .ks-thm {
   position:relative;
   width:78px;
-  height:24px;
+  height:22px;
   padding:0;
   border:0;
   border-radius:99px;
@@ -272,7 +281,7 @@ html[data-bs-theme="dark"] .ks-top .ks-logo.ks-logo-dark { display:block; }
   position:absolute;
   left:10px;
   top:0;
-  line-height:24px;
+  line-height:22px;
   font-weight:700;
   font-size:9.5px;
   letter-spacing:.09em;
@@ -285,8 +294,8 @@ html[data-bs-theme="dark"] .ks-top .ks-logo.ks-logo-dark { display:block; }
   position:absolute;
   top:3px;
   right:3px;
-  width:18px;
-  height:18px;
+  width:16px;
+  height:16px;
   border-radius:50%;
   background:#fff;
   display:grid;
@@ -296,10 +305,10 @@ html[data-bs-theme="dark"] .ks-top .ks-logo.ks-logo-dark { display:block; }
   transition:transform .3s cubic-bezier(.2,.8,.2,1),color .3s;
 }
 .ks-thm[aria-checked="true"] .ks-knob {
-  transform:translateX(-54px);
+  transform:translateX(-56px);
   color:#3b2a8c;
 }
-.ks-thm svg { width:11px; height:11px; }
+.ks-thm svg { width:10px; height:10px; }
 .ks-thm .ic-moon { display:none; }
 .ks-thm[aria-checked="true"] .ic-sun { display:none; }
 .ks-thm[aria-checked="true"] .ic-moon { display:block; }
