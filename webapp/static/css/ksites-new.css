@@ -1524,16 +1524,21 @@ html[data-bs-theme="dark"] #organismDirectResults .list-group-item:hover { backg
 }
 .ks-rh-id span { color: var(--ks-muted); }
 .ks-status-pill.status-running {
-  color: var(--ks-cyan);
-  background: var(--ks-cyan-ink);
-  border-color: var(--ks-cyan);
+  color: #006f8f;
+  background: #e1f5fa;
+  border-color: #00a8cc;
   margin-bottom: 0;
+}
+html[data-bs-theme="dark"] .ks-status-pill.status-running {
+  color: #4fd8f2;
+  background: #04141a;
+  border-color: #00a8cc;
 }
 .ks-status-pill.status-running span {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--ks-cyan);
+  background: currentColor;
   animation: ks-pulse 1.4s infinite;
 }
 @keyframes ks-pulse {
@@ -1542,12 +1547,31 @@ html[data-bs-theme="dark"] #organismDirectResults .list-group-item:hover { backg
 }
 
 .ks-loading-body {
+  position: relative;
   padding: 36px 24px 42px;
   text-align: center;
+  overflow: hidden;
+}
+.ks-loading-body > *:not(.ks-loading-net) {
+  position: relative;
+  z-index: 1;
 }
 
-/* Canvas loader inside the card */
-.ks-loading-body .gk-loader {
+/* Subtle network background inside the loading card */
+.ks-loading-net {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* SVG loader inside the card */
+.ks-loader-wrap {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 520px;
   aspect-ratio: 2 / 1;
@@ -1556,10 +1580,11 @@ html[data-bs-theme="dark"] #organismDirectResults .list-group-item:hover { backg
   overflow: hidden;
   background: transparent;
 }
-.ks-loading-body .gk-loader canvas {
+.ks-loader-svg {
   display: block;
   width: 100%;
   height: 100%;
+  border: none;
 }
 
 .ks-dna-tagline {

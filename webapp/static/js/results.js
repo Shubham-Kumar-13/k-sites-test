@@ -184,10 +184,14 @@ function updateProgressDisplay(job) {
         progressBar.textContent = `${job.progress_percent}%`;
     }
 
-    // Update current step
+    // Update current step (shown where "Genes processed" used to be)
     const currentStep = document.getElementById('currentStep');
+    const currentStepDisplay = document.getElementById('currentStepDisplay');
     if (currentStep && job.current_step) {
         currentStep.textContent = job.current_step;
+    }
+    if (currentStepDisplay && job.current_step) {
+        currentStepDisplay.style.display = 'inline';
     }
 
     // Time elapsed (mm:ss)
@@ -198,18 +202,6 @@ function updateProgressDisplay(job) {
         const seconds = Math.max(0, Math.round((Date.now() - created.getTime()) / 1000));
         elapsedTime.textContent = formatElapsed(seconds);
         elapsedDisplay.style.display = 'inline';
-    }
-
-    // Genes processed counter
-    const genesProcessedDisplay = document.getElementById('genesProcessedDisplay');
-    const genesProcessed = document.getElementById('genesProcessed');
-    const genesTotal = document.getElementById('genesTotal');
-    if (genesProcessedDisplay && genesProcessed && genesTotal) {
-        const total = job.total_genes_found !== null && job.total_genes_found !== undefined ? job.total_genes_found : 0;
-        const processed = job.genes_processed !== null && job.genes_processed !== undefined ? job.genes_processed : 0;
-        genesProcessed.textContent = processed;
-        genesTotal.textContent = total;
-        genesProcessedDisplay.style.display = total > 0 ? 'inline' : 'none';
     }
 
     // Update step indicators

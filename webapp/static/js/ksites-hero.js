@@ -159,7 +159,7 @@
   }
 
   function init() {
-    document.querySelectorAll('.ks-hero canvas').forEach(function (cv) {
+    document.querySelectorAll('.ks-hero canvas, .ks-loading-net').forEach(function (cv) {
       if (!cv._ksInit) {
         cv._ksInit = true;
         network(cv);

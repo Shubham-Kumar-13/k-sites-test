@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- K-Sites loading animation (molecular scissors). Animated: embed with
+     <object type="image/svg+xml" data="k-sites-loader.svg"> or inline.
+     It will NOT animate inside an <img> tag. Syncs with the parent page's
+     data-bs-theme / data-theme attribute. Self-contained, no external requests. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 480" width="960" height="480" role="img" aria-label="Analysis in progress: molecular scissors cutting a gene">
+  <style>
+    :root{color-scheme:light dark}
+    .bg{fill:#f4f8fb}
+    .cap{font:600 13px ui-monospace,Consolas,monospace;letter-spacing:.12em;text-transform:uppercase;fill:#006f8f}
+    @media (prefers-color-scheme:dark){.bg{fill:#0a0f1e}.cap{fill:#4fd8f2}}
+  </style>
+  <rect class="bg" width="960" height="480"/>
+  <foreignObject x="0" y="0" width="960" height="480">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="width:960px;height:480px;margin:0;padding:0">
+      <canvas id="gk" style="width:960px;height:480px;display:block" aria-hidden="true"></canvas>
+    </div>
+  </foreignObject>
+  <text id="cap" x="480" y="462" text-anchor="middle" class="cap"></text>
+  <script><![CDATA[
+(function(){
+var r=document.documentElement;
+function $(i){return document.getElementById(i)}
+function rootEl(){try{return (window.parent&&window.parent.document)?window.parent.document.documentElement:document.documentElement;}catch(e){return document.documentElement;}}
+var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+function isDark(){
+  var el=rootEl();
+  var theme=el.getAttribute('data-bs-theme')||el.getAttribute('data-theme');
+  if(theme)return theme==='dark';
+  return !!(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);
+}
+(function watchTheme(){
+  var el=rootEl();
+  try{new MutationObserver(function(){if(typeof frame==='function')frame(lastT||0);}).observe(el,{attributes:true,attributeFilter:['data-bs-theme','data-theme','class']});}catch(e){}
+})();
+  var LD={rung:'180,215,235',s1:'0,212,240',s2:'255,43,214',lensBg:'rgba(8,13,28,.92)',scis:'#e6edf6',scisRing:'#00d4f0',red:'255,100,100',green:'57,255,136',front:'220,255,235',bc:['57,255,136','255,209,102','0,212,240','255,122,162'],lc:['0,212,240','255,90,90','240,180,41']};
+  var LL={rung:'55,80,105',s1:'0,150,185',s2:'214,20,140',lensBg:'rgba(255,255,255,.96)',scis:'#1b2b3d',scisRing:'#0087a8',red:'222,56,56',green:'0,158,115',front:'0,120,85',bc:['0,158,115','214,140,0','0,150,185','213,60,110'],lc:['0,150,185','222,56,56','200,130,0']};
+  var gkOn=false,gkInit=false;
+  function loader(cv){
+    var TAU=6.283185,ctx=cv.getContext('2d'),W=0,H=0,u=1,dpr=Math.min(window.devicePixelRatio||1,2),ph=0,lastT=0,lastCap='',frag=null,sparks=[],rings=[],did={},P=LD,cy0=0,aStart=0,aEnd=0,lastDraw=0,lockAge=-1;
+    var T={LENS:.5,SWEEP:3.1,SPINEND:2.9,HOME:3.9,CHECK:5.1,CUT:6.1,KNOCK:7.4,HEAL0:7.8,HEAL1:9.2,SPIN:9.9,LOOP:11.3};
+    var LABELS=[[T.LENS,'Scanning genome'],[T.HOME,'Candidate locus detected'],[T.CHECK,'Checking off-target risk'],[T.CUT,'Molecular scissors cutting both flanks'],[T.HEAL1,'Gene knocked out safely']];
+    /* scissors plan per flank: approach start, reach strand 1, snips done, reach strand 2, snips done */
+    var PLAN={left:{dir:1,t:[6.1,6.45,6.75,7.0,7.3]},right:{dir:-1,t:[6.2,6.55,6.85,7.1,7.4]}};
+    function size(){var rc=cv.getBoundingClientRect();if(!rc.width)return;W=rc.width;H=rc.height;cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);u=Math.max(.35,W/640);if(reduce&&lastT===0&&typeof frame==='function')frame(4.6)}
+    function cl(x,a,c){return Math.min(c,Math.max(a,x))}
+    function ease(x){x=cl(x,0,1);return 1-Math.pow(1-x,3)}
+    function smooth(x){x=cl(x,0,1);return x*x*(3-2*x)}
+    function lerp(a,b,t){return a+(b-a)*t}
+    function mixc(a,b,t){var X=a.split(','),Y=b.split(',');return X.map(function(v,i){return Math.round(+v+(+Y[i]-+v)*t)}).join(',')}
+
+    /* helix content xc0..xc1 drawn shifted by off; `cuts` is a list of [x, strand] where that strand is broken */
+    function helix(xc0,xc1,cy,A,k,off,alpha,tint,beam,cuts){
+      if(alpha<=0||xc1<=xc0)return;var x,step=3;
+      for(x=Math.ceil(xc0/12)*12;x<=xc1;x+=12){var s=Math.sin(k*x+ph),X=x+off,ya=cy+A*s,yb=cy-A*s;
+        ctx.strokeStyle=tint?'rgba('+tint+','+(.35*alpha)+')':'rgba('+P.rung+','+(.22*alpha)+')';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(X,ya);ctx.lineTo(X,yb);ctx.stroke()}
+      [[P.s1,1],[P.s2,-1]].forEach(function(c){
+        ctx.strokeStyle='rgba('+(tint||c[0])+','+alpha+')';ctx.lineWidth=2.6;ctx.lineCap='round';ctx.beginPath();var pen=false;
+        for(x=xc0;x<=xc1+step;x+=step){
+          var xx=Math.min(x,xc1),y=cy0+c[1]*A*Math.sin(k*xx+ph),gap=false;
+          if(cuts)for(var q=0;q<cuts.length;q++)if(cuts[q][1]===c[1]&&Math.abs(xx-cuts[q][0])<3.5)gap=true;
+          if(gap){pen=false;continue}
+          if(!pen){ctx.moveTo(xx+off,y);pen=true}else ctx.lineTo(xx+off,y)
+        }
+        ctx.stroke()})
+    }
+
+    /* base pairs: identity belongs to the rung, so it never changes while the lens passes over it */
+    var BASES=['A','T','G','C'],PAIRC=[1,0,3,2];
+    var hotK=1,boxL=-1e9,boxR=1e9,outA=1;   /* lens-only: how strongly the centre rung is emphasised, and how visible rungs outside the gene stay */
+    function baseAt(i){var h=i|0;h=Math.imul(h^(h>>>16),0x85ebca6b);h=Math.imul(h^(h>>>13),0xc2b2ae35);h^=h>>>16;return h&3}
+    function bases(xc0,xc1,cy,A,k,lxc,g2){g2=g2===undefined?1:g2;
+      ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineCap='round';
+      for(var x=Math.ceil(xc0/12)*12;x<=xc1;x+=12){
+        var b=baseAt(Math.round(x/12)),c=PAIRC[b],s=Math.sin(k*x+ph),ya=cy+A*s,yb=cy-A*s;
+        var hot=Math.max(0,1-Math.abs(x-lxc)/20)*hotK,g3=g2*((x>=boxL&&x<=boxR)?1:outA);                 /* the rung under the lens centre is "being read" */
+        ctx.lineWidth=3+2.2*hot;
+        ctx.strokeStyle='rgba('+P.bc[b]+','+((.78+.22*hot)*g3)+')';ctx.beginPath();ctx.moveTo(x,ya);ctx.lineTo(x,cy);ctx.stroke();
+        ctx.strokeStyle='rgba('+P.bc[c]+','+((.78+.22*hot)*g3)+')';ctx.beginPath();ctx.moveTo(x,cy);ctx.lineTo(x,yb);ctx.stroke();
+        var la=smooth((Math.abs(s)-.2)/.5);                        /* letters fade with the turn of the helix instead of popping */
+        if(la>.02){var sg=s>0?1:-1;ctx.font=(hot>.4?'bold 12px':'bold 10px')+' IBM Plex Mono,monospace';ctx.globalAlpha=la*g3;
+          ctx.fillStyle='rgb('+P.bc[b]+')';ctx.fillText(BASES[b],x,ya+sg*9);ctx.fillStyle='rgb('+P.bc[c]+')';ctx.fillText(BASES[c],x,yb-sg*9);ctx.globalAlpha=1}
+        if(hot>.5){ctx.fillStyle='rgba('+P.bc[b]+','+(.35*hot*g3)+')';ctx.beginPath();ctx.arc(x,ya,5.5*hot,0,TAU);ctx.fill();ctx.beginPath();ctx.arc(x,yb,5.5*hot,0,TAU);ctx.fill()}
+      }
+    }
+    function lens(lx,ly,LR,al,col,p,cy,A,k){
+      /* while "checking off-target risk" the ring pulses and its dashed halo spins faster, but keeps its colour */
+      var chk=smooth((p-(T.CHECK-.2))/.4)*(1-smooth((p-(T.CUT-.45))/.4));
+      ctx.save();ctx.globalAlpha=al;
+      ctx.save();ctx.beginPath();ctx.arc(lx,ly,LR,0,TAU);ctx.clip();
+      ctx.fillStyle=P.lensBg;ctx.fillRect(lx-LR,ly-LR,2*LR,2*LR);
+      /* the magnification relaxes to 1x as the lens locks on, so its contents line up exactly with the real helix before it fades */
+      var Z=1+.3*(1-smooth((p-T.HOME)/.9)),a=lx-LR/Z-14,b=lx+LR/Z+14;
+      ctx.translate(lx,ly);ctx.scale(Z,Z);ctx.translate(-lx,-ly);
+      /* once the lens locks on, only the gene's own base pairs stay coloured; the rest fade, and the centre-rung emphasis relaxes */
+      var lk=smooth((p-T.HOME)/.4);boxL=W*.4;boxR=W*.6;outA=1-lk;hotK=1-smooth((p-T.HOME)/.6);
+      helix(a,b,cy,A,k,0,1,null);bases(a,b,cy,A,k,lx);
+      boxL=-1e9;boxR=1e9;outA=1;hotK=1;
+      ctx.restore();
+      ctx.strokeStyle='rgba('+col+',.95)';ctx.lineWidth=2.4+.9*chk*(.5+.5*Math.sin(p*10));ctx.shadowColor='rgb('+col+')';ctx.shadowBlur=14;ctx.beginPath();ctx.arc(lx,ly,LR,0,TAU);ctx.stroke();ctx.shadowBlur=0;
+      ctx.strokeStyle='rgba('+col+',.45)';ctx.lineWidth=1.2;ctx.setLineDash([3,6]);ctx.lineDashOffset=-p*(26+60*chk);ctx.beginPath();ctx.arc(lx,ly,LR+6,0,TAU);ctx.stroke();ctx.setLineDash([]);
+      ctx.strokeStyle='rgba('+col+',.8)';ctx.lineWidth=1.4;
+      [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){ctx.beginPath();ctx.moveTo(lx+d[0]*(LR-9),ly+d[1]*(LR-9));ctx.lineTo(lx+d[0]*(LR+1),ly+d[1]*(LR+1));ctx.stroke()});
+      /* read-out: the bases currently under the lens, centred and steady */
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      for(var j=-5;j<=5;j++){var bi=baseAt(Math.round(lx/12)+j);ctx.font=(j===0?'bold 13px':'600 11px')+' IBM Plex Mono,monospace';ctx.globalAlpha=al*(j===0?1:Math.max(.25,1-Math.abs(j)*.16));ctx.fillStyle='rgb('+P.bc[bi]+')';ctx.fillText(BASES[bi],lx+j*13,ly+LR+16)}
+      ctx.restore();
+    }
+
+    /* scissors: x is the cut line, y is where the blades actually close (on a strand) */
+    var CP=10;
+    function scissors(x,y,open,dir){
+      ctx.save();ctx.translate(x,y);ctx.scale(.62,.62);if(dir<0)ctx.rotate(Math.PI);ctx.translate(0,-CP);
+      [-1,1].forEach(function(s){ctx.save();ctx.rotate(s*open);
+        ctx.strokeStyle=P.scis;ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(0,-3);ctx.lineTo(0,26);ctx.stroke();
+        ctx.strokeStyle=P.scisRing;ctx.lineWidth=2.4;ctx.beginPath();ctx.arc(0,-13,6,0,TAU);ctx.stroke();ctx.restore()});
+      ctx.restore()
+    }
+    /* where the scissors are at time p: returns null when not on screen */
+    function scissorState(p,plan,cy,A,first){
+      var t=plan.t,yUp=cy-A,yLo=cy+A,y1=first<0?yUp:yLo,y2=first<0?yLo:yUp,ys=plan.dir>0?cy-A-70:cy+A+70;
+      if(p<t[0]||p>t[4]+.45)return null;
+      var y,open=.5;
+      if(p<t[1])y=lerp(ys,y1,ease((p-t[0])/(t[1]-t[0])));
+      else if(p<t[2]){y=y1;open=.05+.45*(.5+.5*Math.cos((p-t[1])/(t[2]-t[1])*3*Math.PI))}
+      else if(p<t[3])y=lerp(y1,y2,smooth((p-t[2])/(t[3]-t[2])));
+      else if(p<t[4]){y=y2;open=.05+.45*(.5+.5*Math.cos((p-t[3])/(t[4]-t[3])*3*Math.PI))}
+      else{y=lerp(y2,ys,ease((p-t[4])/.45))}
+      return {y:y,open:open}
+    }
+    function burst(x,n,col,cy,A,k){
+      [1,-1].forEach(function(sg){var y=cy+sg*A*Math.sin(k*x+ph);for(var i=0;i<n;i++){var a=Math.random()*TAU,sp=(110+Math.random()*300)*u;sparks.push({x:x,y:y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-70*u,age:0,life:.3+Math.random()*.35,c:col})}})
+    }
+    /* turn the helix so both flanks sit on a crest: the strands are then fully apart (+/-A) exactly at the cut lines */
+    function align(k,gx0){aStart=ph;var st=Math.PI/2-k*gx0;aEnd=aStart+((((st-aStart)%TAU)+TAU)%TAU);did.al=1}
+
+    function frame(t){
+      if(!W)return;
+      P=isDark()?LD:LL;
+      var dt=cl(t-lastT,0,.05);lastT=t;
+      var p=t%T.LOOP,cy=H/2,A=H*.17,k=TAU/(W*.2),gx0=W*.4,gx1=W*.6,gw=gx1-gx0,gc=W*.5;cy0=cy;
+      if(p<.3){did={};frag=null;sparks=[];rings=[];lockAge=-1}
+      /* helix motion: spin, settle onto a crest, hold still for the surgery, then drift again */
+      if(p<T.SPINEND){var sr=smooth((p-T.LENS)/.8);ph+=(.5*(1-sr)+1.34*sr)*dt}
+      else if(p<T.HOME){if(!did.al)align(k,gx0);ph=aStart+(aEnd-aStart)*ease((p-T.SPINEND)/(T.HOME-T.SPINEND))}
+      else if(p<T.SPIN){if(!did.al)align(k,gx0);ph=aEnd}
+      else ph+=.5*dt;
+      var cap=LABELS[0][1];LABELS.forEach(function(l){if(p>=l[0])cap=l[1]});if(p<T.LENS&&lastCap)cap=lastCap;
+      if(cap!==lastCap){lastCap=cap;var el=$('cap');if(el)el.textContent=cap}
+      /* one-time events */
+      if(p>=T.KNOCK&&!did.knock){did.knock=1;frag={x:0,y:0,vx:(Math.random()-.5)*80*u,vy:-240*u,ang:0,w:(Math.random()<.5?-1:1)*(2.2+Math.random()*1.5),age:0,ph0:ph}}
+      if(p>=T.HOME&&!did.rip){did.rip=1;lockAge=0}
+      if(lockAge>=0){lockAge+=dt;if(lockAge>.7)lockAge=-1}
+      if(p>=T.HEAL1&&!did.lig){did.lig=1;rings.push({x:gc,age:0});burst(gc,8,P.green,cy,A,k)}
+      if(frag){frag.age+=dt;frag.vy+=1400*u*dt;frag.x+=frag.vx*dt;frag.y+=frag.vy*dt;frag.ang+=frag.w*dt;if(frag.age>1.8)frag=null}
+      sparks.forEach(function(s){s.age+=dt;s.vy+=900*u*dt;s.x+=s.vx*dt;s.y+=s.vy*dt});sparks=sparks.filter(function(s){return s.age<s.life});
+      rings.forEach(function(r){r.age+=dt});rings=rings.filter(function(r){return r.age<.5});
+      ctx.clearRect(0,0,W,H);
+      var pre=p<T.KNOCK,healing=p>=T.HEAL0&&p<T.HEAL1,done=p>=T.HEAL1;
+      /* strand breaks, one per snip, exactly where the scissors closed */
+      var cuts=[];if(p>=PLAN.left.t[2])cuts.push([gx0,-1]);if(p>=PLAN.left.t[4])cuts.push([gx0,1]);if(p>=PLAN.right.t[2])cuts.push([gx1,1]);if(p>=PLAN.right.t[4])cuts.push([gx1,-1]);
+      /* gene highlight and cut lines */
+      var ga=p>=T.HOME?ease((p-T.HOME)/.9):0;
+      /* strands */
+      var red=p>=T.HOME?P.red:null;
+      if(done){helix(0,W,cy,A,k,0,1,null);if(p<T.HEAL1+.7)helix(gx0,gx1,cy,A,k,0,1-(p-T.HEAL1)/.7,P.green)}
+      else if(pre){helix(0,gx0,cy,A,k,0,1,null,undefined,cuts);helix(gx0,gx1,cy,A,k,0,1,null,undefined,cuts);if(ga>0)helix(gx0,gx1,cy,A,k,0,ga,P.red,undefined,cuts);helix(gx1,W,cy,A,k,0,1,null,undefined,cuts)}
+      else{
+        var g=healing?gw/2*smooth((p-T.HEAL0)/(T.HEAL1-T.HEAL0)):0;
+        helix(0,gx0,cy,A,k,0,1,null,undefined,cuts);helix(gx1,W,cy,A,k,0,1,null,undefined,cuts);
+        if(g>0){
+          helix(gx0,gx0+g,cy,A,k,0,1,P.green);helix(gx1-g,gx1,cy,A,k,0,1,P.green);
+          [gx0+g,gx1-g].forEach(function(fx){[1,-1].forEach(function(sg){var fy=cy+sg*A*Math.sin(k*fx+ph);ctx.fillStyle='rgba('+P.front+',.95)';ctx.shadowColor='rgb('+P.green+')';ctx.shadowBlur=14;ctx.beginPath();ctx.arc(fx,fy,3.4,0,TAU);ctx.fill();ctx.shadowBlur=0})})
+        }
+      }
+      /* the gene keeps its base pairs once the lens has found it: they stay visible through the cutting and leave with the gene */
+      if(pre&&p>=T.HOME+.2){bases(gx0,gx1,cy,A,k,-1e9,smooth((p-(T.HOME+.2))/.4))}
+      /* scanning lens: sweeps along the strand slowly enough to read, then locks onto the gene */
+      if(p>=T.LENS&&p<T.HOME+1.7){
+        var lx,LR=H*.36*(1+.02*Math.sin(p*9))*ease((p-T.LENS)/.55);
+        if(p<T.SWEEP)lx=W*(.1+.8*smooth((p-T.LENS)/(T.SWEEP-T.LENS)));else if(p<T.HOME)lx=W*.9+(gc-W*.9)*ease((p-T.SWEEP)/(T.HOME-T.SWEEP));else lx=gc;
+        var ly=cy+Math.sin(p*2.6)*A*.1*(p<T.HOME?1:Math.exp(-(p-T.HOME)*3));
+        var lal=Math.min(1,(p-T.LENS)/.4)*(1-smooth((p-(T.HOME+.7))/.9));       /* the lens dissolves only after its contents match the real helix */
+        lens(lx,ly,LR,lal,mixc(P.lc[0],P.lc[1],smooth((p-(T.HOME-.4))/.7)),p,cy,A,k);
+      }
+      /* gene box, drawn above the lens so it is seen forming: it starts as wide as the lens and tightens onto the gene */
+      if(p>=T.HOME-.15&&pre){
+        var bq=ease((p-(T.HOME-.15))/1.05),bw0=2*H*.36*.92,bw=lerp(bw0,gw,bq),bh=lerp(bw0,2*A+32,bq),bx=gc-bw/2,by=cy-bh/2;
+        ctx.fillStyle='rgba('+P.red+','+(.13*bq)+')';ctx.fillRect(bx,by,bw,bh);
+        ctx.strokeStyle='rgba('+P.red+','+(.85*Math.min(1,bq*2))+')';ctx.lineWidth=1.5;ctx.setLineDash([5,4]);ctx.strokeRect(bx,by,bw,bh);ctx.setLineDash([]);
+        var cl2=Math.min(1,bq*2.5),cs=11;ctx.strokeStyle='rgba('+P.red+','+cl2+')';ctx.lineWidth=2.4;ctx.lineCap='round';
+        [[bx,by,1,1],[bx+bw,by,-1,1],[bx,by+bh,1,-1],[bx+bw,by+bh,-1,-1]].forEach(function(c){ctx.beginPath();ctx.moveTo(c[0]+c[2]*cs,c[1]);ctx.lineTo(c[0],c[1]);ctx.lineTo(c[0],c[1]+c[3]*cs);ctx.stroke()});
+        /* "checking off-target risk": a scan line sweeps across the gene and back */
+        if(p>=T.CHECK&&p<T.CUT){
+          var su=(p-T.CHECK)/(T.CUT-T.CHECK)*2,stri=su<1?su:2-su,sa=Math.min(1,(p-T.CHECK)/.2)*Math.min(1,(T.CUT-p)/.2),sx=gx0+gw*smooth(stri);
+          ctx.strokeStyle='rgba('+P.red+','+(.9*sa)+')';ctx.lineWidth=2;ctx.shadowColor='rgb('+P.red+')';ctx.shadowBlur=10;ctx.beginPath();ctx.moveTo(sx,by);ctx.lineTo(sx,by+bh);ctx.stroke();ctx.shadowBlur=0;
+        }
+      }
+      /* a single ripple leaves the lens at the moment it locks on */
+      if(lockAge>=0){var re=lockAge/.7;ctx.strokeStyle='rgba('+P.red+','+(.55*(1-re))+')';ctx.lineWidth=2;ctx.beginPath();ctx.arc(gc,cy,H*.36*(1+.28*ease(re)),0,TAU);ctx.stroke()}
+      /* the excised gene, thrown off and falling */
+      if(frag){var al=1-frag.age/1.8,old=ph;ctx.save();ctx.translate(gc+frag.x,cy+frag.y);ctx.rotate(frag.ang);ctx.translate(-gc,-cy);ph=frag.ph0;helix(gx0,gx1,cy,A,k,0,al,P.red);bases(gx0,gx1,cy,A,k,-1e9,al);ph=old;ctx.restore()}
+      /* scissors: the left pair comes from above and works top strand then bottom strand; the right pair works the other way round */
+      var sl=scissorState(p,PLAN.left,cy,A,-1),sr=scissorState(p,PLAN.right,cy,A,1);
+      if(sl)scissors(gx0,sl.y,sl.open,1);
+      if(sr)scissors(gx1,sr.y,sr.open,-1);
+      /* ligation ring where the grown ends merge */
+      sparks.forEach(function(s){ctx.fillStyle='rgba('+s.c+','+(1-s.age/s.life)+')';ctx.beginPath();ctx.arc(s.x,s.y,1.7,0,TAU);ctx.fill()});
+      rings.forEach(function(r){var a=1-r.age/.5;ctx.strokeStyle='rgba('+P.green+','+a+')';ctx.lineWidth=2.2;ctx.shadowColor='rgb('+P.green+')';ctx.shadowBlur=10;ctx.beginPath();ctx.arc(r.x,cy,8+r.age*70,0,TAU);ctx.stroke();ctx.shadowBlur=0})
+    }
+    /* the loop keeps itself alive: it re-measures the canvas every frame, never lets one bad frame stop it,
+       and a timer takes over if animation frames are throttled or never arrive */
+    function step(ts){
+      try{
+        var rc=cv.getBoundingClientRect();
+        if(!W||Math.abs(rc.width-W)>1||Math.abs(rc.height-H)>1)size();
+        if(W){lastDraw=performance.now();frame(ts/1000)}
+      }catch(e){cv._err=String(e)}
+    }
+    function loop(ts){requestAnimationFrame(loop);if(gkOn&&!cv._hold&&!document.hidden)step(ts)}
+    size();window.addEventListener('resize',size);
+    if(reduce){if(W)frame(4.6)}else{
+      requestAnimationFrame(loop);
+      setInterval(function(){if(gkOn&&!cv._hold&&performance.now()-lastDraw>150)step(performance.now())},40);
+    }
+    cv._size=size;cv._frame=frame;
+  }
+
+var cv=document.getElementById('gk');
+gkOn=true;loader(cv);
+})();
+  ]]></script>
+</svg>
