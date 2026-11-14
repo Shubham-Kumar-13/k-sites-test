@@ -80,6 +80,9 @@ body {
   line-height:1.55;
   font-variant-numeric:lining-nums tabular-nums;
 }
+.ks-main {
+  padding:0;
+}
 
 .ks-mono { font-family:var(--ks-f-mono); }
 .ks-wrap {
