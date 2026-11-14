@@ -133,7 +133,7 @@ async function selectKingdom(kingdom) {
     });
 
     document.getElementById('selectedKingdomName').textContent = kingdom;
-    document.getElementById('selectedKingdomDisplay').style.display = 'block';
+    document.getElementById('selectedKingdomDisplay').style.display = '';
     document.getElementById('kingdomContainer').style.display = 'none';
     document.getElementById('speciesSection').style.display = 'block';
 
@@ -217,7 +217,7 @@ function selectOrganism(name, taxid, commonName, fromCategory = false) {
     // Update display
     document.getElementById('selectedOrganismName').textContent = name + (commonName ? ` (${commonName})` : '');
     document.getElementById('selectedOrganismTaxid').textContent = taxid;
-    document.getElementById('selectedOrganismDisplay').style.display = 'block';
+    document.getElementById('selectedOrganismDisplay').style.display = '';
     document.getElementById('speciesSection').style.display = 'none';
     document.getElementById('organismDirectSection').style.display = 'none';
     document.getElementById('kingdomContainer').style.display = 'none';
@@ -272,7 +272,7 @@ async function showEvidenceCoverage(taxid) {
             }
         }
         note.textContent = text;
-        note.style.display = 'block';
+        note.style.display = '';
     } catch (error) {
         // the note is only a courtesy
     }
@@ -432,7 +432,7 @@ async function selectGoCategory(category) {
 
     // Update UI
     document.getElementById('selectedCategoryName').textContent = category;
-    document.getElementById('selectedCategoryDisplay').style.display = 'block';
+    document.getElementById('selectedCategoryDisplay').style.display = '';
     document.getElementById('goCategoryContainer').style.display = 'none';
     document.getElementById('goDirectInputSection').style.display = 'none';
     document.getElementById('goTermsSection').style.display = 'block';
@@ -519,7 +519,7 @@ function selectGoTerm(id, name) {
     // Update display
     document.getElementById('selectedGoTermId').textContent = id;
     document.getElementById('selectedGoTermName').textContent = name;
-    document.getElementById('selectedGoTermDisplay').style.display = 'block';
+    document.getElementById('selectedGoTermDisplay').style.display = '';
     document.getElementById('goTermsSection').style.display = 'none';
     
     // Check gene count
@@ -794,7 +794,7 @@ async function checkGeneCount() {
             }
 
             if (data.warnings && data.warnings.length > 0) {
-                warning.style.display = 'block';
+                warning.style.display = '';
                 warningText.textContent = data.warnings.join('; ');
             } else {
                 warning.style.display = 'none';
