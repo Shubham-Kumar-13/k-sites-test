@@ -786,16 +786,26 @@ def estimate_analysis_time(
 
 
 def format_duration(seconds: int) -> str:
-    """Format duration in human-readable format"""
+    """Format duration in human-readable format with minute/second precision."""
     if seconds < 60:
         return f"{seconds} seconds"
     elif seconds < 3600:
         minutes = seconds // 60
-        return f"{minutes} minute{'s' if minutes > 1 else ''}"
+        secs = seconds % 60
+        if secs == 0:
+            return f"{minutes} minute{'s' if minutes > 1 else ''}"
+        return f"{minutes} minute{'s' if minutes > 1 else ''} {secs} second{'s' if secs > 1 else ''}"
     else:
         hours = seconds // 3600
-        minutes = (seconds % 3600) // 60
-        return f"{hours} hour{'s' if hours > 1 else ''} {minutes} min"
+        remainder = seconds % 3600
+        minutes = remainder // 60
+        secs = remainder % 60
+        parts = [f"{hours} hour{'s' if hours > 1 else ''}"]
+        if minutes:
+            parts.append(f"{minutes} min")
+        if secs:
+            parts.append(f"{secs} sec")
+        return ' '.join(parts)
 
 
 @app.route('/api/analyze/start', methods=['POST'])

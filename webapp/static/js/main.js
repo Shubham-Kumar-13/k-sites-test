@@ -70,9 +70,12 @@ function applyRerunParameters() {
         const shouldCheck = databases.includes(checkbox.value);
         if (checkbox.checked !== shouldCheck) {
             checkbox.checked = shouldCheck;
-            updateDatabaseCard(checkbox);
+            updateDatabaseRow(checkbox);
         }
     });
+
+    updateDockSummary();
+    checkGeneCount();
 }
 
 // ============================================================================
@@ -165,6 +168,8 @@ function resetKingdomSelection() {
     document.getElementById('evidenceCoverageNote').style.display = 'none';
     document.getElementById('organism').value = '';
     document.getElementById('taxid').value = '';
+    updateDockSummary();
+    checkGeneCount();
 }
 
 async function loadSpecies(kingdom, query = '') {
@@ -229,6 +234,7 @@ function selectOrganism(name, taxid, commonName, fromCategory = false) {
 
     // Say what is known about knockouts in this organism, and check the gene count
     showEvidenceCoverage(taxid);
+    updateDockSummary();
     checkGeneCount();
 }
 
@@ -308,6 +314,8 @@ async function resetOrganismSelection() {
         document.getElementById('kingdomBlock').style.display = 'block';
         document.getElementById('speciesSection').style.display = 'none';
     }
+    updateDockSummary();
+    checkGeneCount();
 }
 
 async function searchOrganismDirect(query) {
@@ -481,6 +489,8 @@ function resetCategorySelection() {
     document.getElementById('selectedGoTermDisplay').style.display = 'none';
     document.getElementById('go_term').value = '';
     document.getElementById('go_term_name').value = '';
+    updateDockSummary();
+    checkGeneCount();
 }
 
 async function loadGoTerms(category, query = '') {
@@ -560,6 +570,8 @@ function resetGoTermSelection() {
         document.getElementById('goDirectInputSection').style.display = 'block';
         document.getElementById('goTermsSection').style.display = 'none';
     }
+    updateDockSummary();
+    checkGeneCount();
 }
 
 // ============================================================================
@@ -619,6 +631,8 @@ function updateDatabaseRow(checkbox) {
     row.classList.toggle('on', on);
     row.setAttribute('aria-checked', on);
     row.querySelector('.ks-cb').innerHTML = on ? '&#10003;' : '';
+    updateDockSummary();
+    checkGeneCount();
 }
 
 // ============================================================================
@@ -666,20 +680,20 @@ function initializeEventListeners() {
     }, 300));
     
     // Parameter changes for gene count check — react quickly and cancel stale requests.
-    ['max_genes', 'predict_phenotypes', 'evidence_filter', 'max_pleiotropy', 'knockout_context'].forEach(id => {
+    ['organism','go_term','max_genes','predict_phenotypes','evidence_filter','max_pleiotropy','knockout_context'].forEach(id => {
         const element = document.getElementById(id);
         if (!element) return;
         const eventType = element.type === 'checkbox' || element.tagName === 'SELECT' ? 'change' : 'input';
         element.addEventListener(eventType, () => {
             clearTimeout(geneCountCheckTimeout);
-            geneCountCheckTimeout = setTimeout(checkGeneCount, 200);
+            geneCountCheckTimeout = setTimeout(checkGeneCount, 50);
         });
     });
 
     // Database selection also affects runtime.
     document.getElementById('databaseContainer')?.addEventListener('change', () => {
         clearTimeout(geneCountCheckTimeout);
-        geneCountCheckTimeout = setTimeout(checkGeneCount, 200);
+        geneCountCheckTimeout = setTimeout(checkGeneCount, 50);
     });
 
     // RAG phenotype prediction: slide-out card, brain icon highlight, provider flow

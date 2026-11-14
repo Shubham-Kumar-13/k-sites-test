@@ -103,6 +103,12 @@ def placeholder_job():
     }
 
 
+class _RequestMock:
+    """Minimal request stand-in so templates can test request.endpoint."""
+    def __init__(self, endpoint: str):
+        self.endpoint = endpoint
+
+
 def build(api_base: str, out: Path) -> list:
     """
     Build the site.
@@ -120,8 +126,24 @@ def build(api_base: str, out: Path) -> list:
     help_content = load_help_content()
     written = []
 
+    # Map built page filename -> the Flask endpoint base.html checks.
+    endpoint_map = {
+        "index.html": "index",
+        "jobs.html": "jobs",
+        "help.html": "help",
+        "results.html": "results",
+        "validation.html": "validation",
+        "login.html": "login",
+    }
+
     for filename, (template_name, needs_help) in pages.items():
-        context = {"hosted_build": True, "browser_build": browser_mode, "user_name": "", "job": placeholder_job()}
+        context = {
+            "hosted_build": True,
+            "browser_build": browser_mode,
+            "user_name": "",
+            "job": placeholder_job(),
+            "request": _RequestMock(endpoint_map.get(filename, "")),
+        }
         if needs_help:
             context.update(
                 analytical_terms=help_content.ANALYTICAL_TERMS,
@@ -136,7 +158,14 @@ def build(api_base: str, out: Path) -> list:
     report = ROOT / "VALIDATION.md"
     body = load_markdown_renderer()(report.read_text(encoding="utf-8")) if report.exists() else \
         "<p>The validation report has not been generated yet (run tools/evaluate_knockout_evidence.py).</p>"
-    context = {"hosted_build": True, "browser_build": browser_mode, "user_name": "", "job": placeholder_job(), "validation_html": body}
+    context = {
+        "hosted_build": True,
+        "browser_build": browser_mode,
+        "user_name": "",
+        "job": placeholder_job(),
+        "validation_html": body,
+        "request": _RequestMock("validation"),
+    }
     (out / "validation.html").write_text(rewrite_links(env.get_template("validation.html").render(**context)), encoding="utf-8")
     written.append("validation.html")
 

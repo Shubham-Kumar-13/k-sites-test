@@ -497,7 +497,7 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
 .ks-shell {
   display:grid;
   grid-template-columns:170px minmax(0,1fr);
-  gap:24px;
+  gap:36px;
   padding-block:32px 120px;
   align-items:start;
 }
@@ -745,31 +745,16 @@ html[data-bs-theme="dark"] .go-category-card:hover {
 .kingdom-card.sel .ki,
 .go-category-card.sel .ki { opacity:.85; transform:none; }
 
-/* tile loading state */
+/* tile loading state: no spinner, just a quick subtle dim */
 .ks-tile.ks-loading {
-  position:relative;
   pointer-events:none;
-}
-.ks-tile.ks-loading::after {
-  content:"";
-  position:absolute;
-  top:50%;
-  left:50%;
-  width:16px;
-  height:16px;
-  margin:-8px 0 0 -8px;
-  border:2px solid var(--ks-line);
-  border-top-color:var(--ks-cyan);
-  border-radius:50%;
-  animation:ks-spin 1s linear infinite;
-  transition:opacity .25s ease;
 }
 .ks-tile b,
 .ks-tile span,
-.ks-tile .ki { transition:opacity .25s ease; }
+.ks-tile .ki { transition:opacity .15s ease; }
 .ks-tile.ks-loading b,
 .ks-tile.ks-loading span,
-.ks-tile.ks-loading .ki { opacity:.4; }
+.ks-tile.ks-loading .ki { opacity:.55; }
 
 /* list (species / direct results) */
 .ks-list,
