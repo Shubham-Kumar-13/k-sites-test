@@ -427,18 +427,50 @@
     const sections = ['s1','s2','s3','s4']
       .map(id => document.getElementById(id))
       .filter(Boolean);
-    if (!sections.length || !('IntersectionObserver' in window)) return;
-    const observer = new IntersectionObserver(function (entries) {
-      let best = null, bestRatio = -1;
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting && entry.intersectionRatio > bestRatio) {
-          bestRatio = entry.intersectionRatio;
-          best = entry.target;
+    if (!sections.length) return;
+
+    function activeSection() {
+      const vh = window.innerHeight;
+      const centerLine = vh * 0.45;
+      const scrollBottom = window.scrollY + vh;
+      const nearBottom = scrollBottom >= (document.documentElement.scrollHeight - 40);
+
+      // If we are at the very bottom, prefer the last visible section.
+      if (nearBottom) {
+        for (let i = sections.length - 1; i >= 0; i--) {
+          const r = sections[i].getBoundingClientRect();
+          if (r.top < vh) return sections[i];
+        }
+      }
+
+      let best = null, bestDist = Infinity;
+      sections.forEach(function (s) {
+        const r = s.getBoundingClientRect();
+        if (r.bottom < 0 || r.top > vh) return;
+        const sectionCenter = r.top + r.height / 2;
+        const dist = Math.abs(sectionCenter - centerLine);
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = s;
         }
       });
-      if (best) setRailActive(best.id);
-    }, { rootMargin: '-20% 0px -55% 0px', threshold: [0, 0.25, 0.5, 0.75, 1] });
-    sections.forEach(s => observer.observe(s));
+      return best;
+    }
+
+    function update() {
+      const s = activeSection();
+      if (s) setRailActive(s.id);
+    }
+
+    let ticking = false;
+    window.addEventListener('scroll', function () {
+      if (!ticking) {
+        window.requestAnimationFrame(function () { update(); ticking = false; });
+        ticking = true;
+      }
+    }, { passive: true });
+
+    update();
   }
   document.addEventListener('DOMContentLoaded', function () {
     updateStatuses();
