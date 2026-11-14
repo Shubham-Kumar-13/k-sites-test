@@ -833,7 +833,7 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   padding:11px 14px;
   font-size:14px;
   margin-top:12px;
-  flex-wrap:wrap;
+  flex-wrap:nowrap;
   border:1px solid var(--ks-line);
   width:100%;
   box-sizing:border-box;
@@ -841,9 +841,9 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
 .ks-note .ks-grow {
   flex:1 1 0%;
   min-width:0;
-  display:block;
 }
 .ks-note .ks-btn-s {
+  flex:none;
   margin-left:auto;
 }
 .ks-note .ks-grow > b,
