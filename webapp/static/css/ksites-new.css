@@ -2083,7 +2083,50 @@ html[data-bs-theme="dark"] .ks-status-pill.status-running {
   font-size:13.5px;
   margin-bottom:14px;
 }
-.ks-formula strong { color:var(--ks-fg); }
+.ks-formula-main {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.ks-formula-label {
+  font:500 11px var(--ks-f-mono);
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:var(--ks-muted);
+}
+.ks-formula-score {
+  font:600 22px var(--ks-f-mono);
+  color:var(--ks-fg);
+  line-height:1;
+}
+.ks-formula-of {
+  color:var(--ks-muted);
+}
+.ks-formula-details {
+  margin-left:auto;
+}
+.ks-formula-details summary {
+  cursor:pointer;
+  color:var(--ks-link);
+  font-weight:500;
+  list-style:none;
+}
+.ks-formula-details summary::-webkit-details-marker { display:none; }
+.ks-formula-details summary::before {
+  content:">";
+  display:inline-block;
+  margin-right:6px;
+  transition:transform .2s;
+}
+.ks-formula-details[open] summary::before { transform:rotate(90deg); }
+.ks-formula-detail {
+  margin-top:8px;
+  padding-top:8px;
+  border-top:1px solid var(--ks-line);
+  color:var(--ks-muted);
+}
+.ks-formula-detail strong { color:var(--ks-fg); }
 
 /* evidence panel */
 .ks-evp {
@@ -2095,12 +2138,23 @@ html[data-bs-theme="dark"] .ks-status-pill.status-running {
 }
 .ks-evtop {
   display:flex;
-  justify-content:space-between;
   align-items:center;
   gap:12px;
   flex-wrap:wrap;
-  margin-bottom:10px;
+  margin-bottom:12px;
 }
+.ks-evtop-label {
+  font:500 11px var(--ks-f-mono);
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:var(--ks-muted);
+}
+.ks-evtop-context {
+  margin-left:auto;
+  color:var(--ks-muted);
+  font-size:13px;
+}
+.ks-evtop-context strong { color:var(--ks-fg); }
 .ks-evgrid {
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
@@ -2110,44 +2164,49 @@ html[data-bs-theme="dark"] .ks-status-pill.status-running {
 .ks-ev {
   border:1px solid var(--ks-line2);
   border-radius:8px;
-  padding:10px 12px;
+  padding:12px;
   background:var(--ks-panel);
 }
-.ks-ev .t {
-  font-size:12px;
-  color:var(--ks-muted);
-  margin-bottom:4px;
-}
-.ks-ichips {
+.ks-ev-h {
   display:flex;
+  align-items:center;
   gap:8px;
   flex-wrap:wrap;
-  margin:10px 0;
+  font-size:12.5px;
+  color:var(--ks-muted);
+  margin-bottom:8px;
+}
+.ks-ev-body {
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  flex-wrap:wrap;
+  font-size:13.5px;
+  color:var(--ks-fg);
+  line-height:1.5;
+}
+.ks-ev-body span { min-width:0; }
+.ks-ichips {
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin:12px 0;
 }
 .ks-ichip {
   border:1px solid var(--ks-line2);
   background:var(--ks-panel);
   border-radius:8px;
-  padding:8px 12px;
+  padding:10px 12px;
   font-size:12.5px;
+  min-width:120px;
 }
-.ks-ichip b { display:block; color:var(--ks-fg); }
+.ks-ichip b { display:block; color:var(--ks-fg); margin-bottom:2px; }
 .ks-ichip span { color:var(--ks-muted); }
 
 /* evidence card variants */
 .ks-ev.driver {
   border-color:var(--ks-warn);
   box-shadow:0 0 0 1px var(--ks-warn);
-}
-.ks-ev .b {
-  display:flex;
-  align-items:center;
-  gap:6px;
-  flex-wrap:wrap;
-  margin-bottom:6px;
-}
-.ks-ev .b .ks-b {
-  margin:0;
 }
 
 /* detailed source records */

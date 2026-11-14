@@ -628,13 +628,15 @@ function compositeFormulaLine(gene) {
     const c = (gene.conservation_score ?? 0).toFixed(2);
     const comp = (gene.composite_score ?? 0).toFixed(2);
     return `<div class="ks-formula">
-        <strong>Composite ${comp}</strong>
-        <span style="color:var(--ks-muted);"> = 
-            0.40 × Specificity <strong>${s}</strong> +
-            0.25 × Evidence <strong>${e}</strong> +
-            0.20 × Literature <strong>${l}</strong> +
-            0.15 × Conservation <strong>${c}</strong>
-        </span>
+        <div class="ks-formula-main">
+            <span class="ks-formula-label">Composite score</span>
+            <span class="ks-formula-score">${comp}</span>
+            <span class="ks-formula-of">of 1.00</span>
+            <details class="ks-formula-details">
+                <summary>How it is calculated</summary>
+                <div class="ks-formula-detail">0.40 × Specificity <strong>${s}</strong> + 0.25 × Evidence <strong>${e}</strong> + 0.20 × Literature <strong>${l}</strong> + 0.15 × Conservation <strong>${c}</strong></div>
+            </details>
+        </div>
     </div>`;
 }
 
@@ -782,9 +784,8 @@ function evidencePanel(gene) {
         const organismTitle = org.species ? (org.species === 'Mus musculus' ? 'Mouse whole-animal' : org.species) : 'Whole-animal';
         sections.push(`
             <div class="ks-ev ${isDriver ? 'driver' : ''}">
-                <div class="t"><i class="fas fa-paw me-1"></i>${esc(organismTitle)}${isDriver ? decidesIcon : ''}</div>
-                <div class="b">${callBadge(org.call)}</div>
-                <div>${esc(org.text)}${referenceLinks(org, gene.symbol, currentJob?.taxid)}</div>
+                <div class="ks-ev-h"><i class="fas fa-paw me-1"></i>${esc(organismTitle)}${isDriver ? decidesIcon : ''}</div>
+                <div class="ks-ev-body">${callBadge(org.call)}<span>${esc(org.text)}${referenceLinks(org, gene.symbol, currentJob?.taxid)}</span></div>
             </div>`);
     }
 
@@ -794,9 +795,8 @@ function evidencePanel(gene) {
         const isDriver = driver === 'cells';
         sections.push(`
             <div class="ks-ev ${isDriver ? 'driver' : ''}">
-                <div class="t"><i class="fas fa-flask me-1"></i>Human cell lines${isDriver ? decidesIcon : ''}</div>
-                <div class="b">${callBadge(cells.call)}</div>
-                <div>${esc(cells.text)}</div>
+                <div class="ks-ev-h"><i class="fas fa-flask me-1"></i>Human cell lines${isDriver ? decidesIcon : ''}</div>
+                <div class="ks-ev-body">${callBadge(cells.call)}<span>${esc(cells.text)}</span></div>
             </div>`);
     }
 
@@ -808,8 +808,8 @@ function evidencePanel(gene) {
         const isDriver = driver === 'estimate';
         estimateSection = `
             <div class="ks-ev ${isDriver ? 'driver' : ''}">
-                <div class="t"><i class="fas fa-calculator me-1"></i>Estimated${isDriver ? decidesIcon : ''}<span data-bs-toggle="tooltip" title="No direct knockout was measured for this gene. The lethality probability is estimated from cell-line, population, expression, and conservation data."><i class="fas fa-info-circle" style="margin-left:6px;cursor:pointer;"></i></span></div>
-                <div><span class="ks-b ${estClass}">${esc(estimate.percent)}% lethal chance</span> ${esc(estimate.text)}</div>
+                <div class="ks-ev-h"><i class="fas fa-calculator me-1"></i>Estimated${isDriver ? decidesIcon : ''}<span data-bs-toggle="tooltip" title="No direct knockout was measured for this gene. The lethality probability is estimated from cell-line, population, expression, and conservation data."><i class="fas fa-info-circle" style="margin-left:6px;cursor:pointer;"></i></span></div>
+                <div class="ks-ev-body"><span class="ks-b ${estClass}">${esc(estimate.percent)}% lethal chance</span><span>${esc(estimate.text)}</span></div>
             </div>`;
     }
 
@@ -868,14 +868,16 @@ function evidencePanel(gene) {
     return `
         <div class="ks-evp">
             <div class="ks-evtop">
-                <span style="font-size:12.5px;color:var(--ks-muted);"><i class="fas fa-microscope me-1"></i>Evidence basis · Context: <strong>${esc(contextLabel)}</strong></span>
+                <span class="ks-evtop-label"><i class="fas fa-microscope me-1"></i>Evidence basis</span>
+                <span class="ks-evtop-context">Context: <strong>${esc(contextLabel)}</strong></span>
                 <span class="ks-b ${basisKsClass(safety.evidence_basis || 'none')}">${BASIS_BADGES[safety.evidence_basis || 'none'][1]}</span>
             </div>
             <div class="ks-evgrid">${sections.join('')}${estimateSection}</div>
             ${noDataSection}
-            ${chips.length ? `<div class="ks-ichips" style="border-top:1px solid var(--ks-line);padding-top:10px;">${chips.join('')}</div>` : ''}
+            ${chips.length ? `<div class="ks-ichips">${chips.join('')}</div>` : ''}
             ${systemsSection}
-        </div>${details}`;
+            ${details}
+        </div>`;
 }
 
 document.addEventListener('toggle', (event) => {
