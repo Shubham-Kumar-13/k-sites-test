@@ -316,6 +316,17 @@ function renderLandscape(genes, cutoff) {
     function X(v) { return L + (v / maxP) * pw; }
     function Y(v) { return T + (1 - v) * ph; }
 
+    // Deterministic pseudo-random from a string so jitter is stable across re-renders.
+    function hashRandom(s) {
+        let h = 2166136261;
+        for (let i = 0; i < s.length; i++) {
+            h ^= s.charCodeAt(i);
+            h = Math.imul(h, 16777619);
+        }
+        const n = (h >>> 0) / 4294967296;
+        return n;
+    }
+
     const levelClass = {
         SAFE: 's',
         CAUTION: 'c',
@@ -337,19 +348,27 @@ function renderLandscape(genes, cutoff) {
         h: '<path d="M0-5.2L5 4h-10z"'
     };
 
-    const pts = valid.map(g => ({
-        x: Math.max(0.05, Math.min(maxP - 0.05, g.pleiotropy_score)),
-        y: Math.max(0.02, Math.min(0.99, g.composite_score)),
-        symbol: g.symbol,
-        level: (g.safety_recommendation || {}).safety_level || 'UNKNOWN',
-        cls: levelClass[(g.safety_recommendation || {}).safety_level] || 'h'
-    }));
+    const pts = valid.map(g => {
+        const r1 = hashRandom(g.symbol + 'x');
+        const r2 = hashRandom(g.symbol + 'y');
+        const xJitter = (r1 - 0.5) * 0.35;
+        const yJitter = (r2 - 0.5) * 0.025;
+        return {
+            x: Math.max(0.05, Math.min(maxP - 0.05, g.pleiotropy_score + xJitter)),
+            y: Math.max(0.02, Math.min(0.99, g.composite_score + yJitter)),
+            rawX: g.pleiotropy_score,
+            rawY: g.composite_score,
+            symbol: g.symbol,
+            level: (g.safety_recommendation || {}).safety_level || 'UNKNOWN',
+            cls: levelClass[(g.safety_recommendation || {}).safety_level] || 'h'
+        };
+    });
 
     pts.sort((a, b) => b.y - a.y);
     pts.forEach((p, i) => { p.rank = i + 1; });
 
     const rank1 = pts[0];
-    const passing = pts.filter(p => p.x <= pleio);
+    const passing = pts.filter(p => p.rawX <= pleio);
     const lastPass = passing.length ? passing[passing.length - 1] : null;
     const lastOverall = pts[pts.length - 1];
     [rank1, lastPass, lastOverall].forEach(p => { if (p) p.label = `${p.symbol} (#${p.rank})`; });
@@ -375,8 +394,8 @@ function renderLandscape(genes, cutoff) {
 
     pts.forEach((p, i) => {
         const labelRing = p.label ? `<circle r="9" fill="none" stroke="var(--ks-fg)" stroke-width="1.5"/>` : '';
-        const aria = `${p.symbol} rank ${p.rank}: pleiotropy ${p.x.toFixed(2)}, composite ${p.y.toFixed(2)}, ${levelName[p.level] || 'unknown'}`;
-        o += `<g transform="translate(${X(p.x).toFixed(1)} ${Y(p.y).toFixed(1)})">${labelRing}${shapes[p.cls]} class="ks-pt ${p.cls}" data-n="${esc(p.symbol)}" data-rank="${p.rank}" data-x="${p.x.toFixed(2)}" data-y="${p.y.toFixed(2)}" role="img" aria-label="${esc(aria)}"/></g>`;
+        const aria = `${p.symbol} rank ${p.rank}: pleiotropy ${p.rawX.toFixed(2)}, composite ${p.rawY.toFixed(2)}, ${levelName[p.level] || 'unknown'}`;
+        o += `<g transform="translate(${X(p.x).toFixed(1)} ${Y(p.y).toFixed(1)})">${labelRing}${shapes[p.cls]} class="ks-pt ${p.cls}" data-n="${esc(p.symbol)}" data-rank="${p.rank}" data-x="${p.rawX.toFixed(2)}" data-y="${p.rawY.toFixed(2)}" role="img" aria-label="${esc(aria)}"/></g>`;
     });
     pts.forEach(p => {
         if (p.label) o += `<text class="ks-pin" x="${X(p.x) + 9}" y="${Y(p.y) + 4}">${esc(p.label)}</text>`;
