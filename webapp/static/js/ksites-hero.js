@@ -81,6 +81,8 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       seed();
     }
+    cv._ksResize = size;
+    cv._ksRedraw = function () { if (reduce) draw(2); };
 
     function draw(t) {
       ctx.clearRect(0, 0, W, H);
@@ -163,6 +165,9 @@
       if (!cv._ksInit) {
         cv._ksInit = true;
         network(cv);
+      } else if (cv._ksResize) {
+        cv._ksResize();
+        cv._ksRedraw();
       }
     });
   }

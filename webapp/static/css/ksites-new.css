@@ -1377,7 +1377,14 @@ html[data-bs-theme="dark"] #organismDirectResults .list-group-item:hover { backg
   color:var(--ks-fg);
 }
 .ks-hero .ks-chip {
-  color:var(--ks-fg);
+  background:rgba(10,15,30,.06);
+  border-color:rgba(10,15,30,.16);
+  color:#0b1626;
+}
+html[data-bs-theme="dark"] .ks-hero .ks-chip {
+  background:rgba(255,255,255,.08);
+  border-color:rgba(255,255,255,.16);
+  color:#fff;
 }
 
 /* KPIs */
