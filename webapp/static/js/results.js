@@ -872,10 +872,10 @@ function evidencePanel(gene) {
     }
 
     const taxid = String(currentJob?.taxid || '');
-    const details = !detailTaxids || detailTaxids.has(taxid) ? `<details class="ks-mitigation detailed-evidence" data-taxid="${esc(currentJob.taxid)}" data-symbol="${esc(gene.symbol)}">
+    const details = `<details class="ks-mitigation detailed-evidence" data-taxid="${esc(currentJob.taxid)}" data-symbol="${esc(gene.symbol)}">
         <summary>Detailed source records</summary>
         <div class="detailed-evidence-body" style="margin-top:10px;">Expand to load detailed mutant and publication records.</div>
-    </details>` : '';
+    </details>`;
 
     return `
         <div class="ks-evp">
@@ -955,14 +955,14 @@ function renderWarnings(warnings) {
     const container = document.getElementById('genesContainer');
     const items = warnings.map(w => `<li style="margin-bottom:4px;">${esc(w)}</li>`).join('');
     container.insertAdjacentHTML('afterbegin', `
-        <details class="ks-note ks-warn" style="margin-bottom:18px;">
-            <summary style="cursor:pointer;font-weight:600;display:flex;align-items:center;gap:10px;">
+        <details class="ks-note ks-warn ks-warnbox" style="margin-bottom:18px;">
+            <summary>
                 <i class="fas fa-exclamation-triangle"></i>
                 <span>${warnings.length} data quality note${warnings.length > 1 ? 's' : ''}</span>
-                <span class="ks-b warn" style="margin-left:auto;">Click to expand</span>
+                <svg class="ks-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
             </summary>
-            <div style="margin-top:10px;padding-left:32px;color:var(--ks-muted);font-size:13.5px;">
-                <ul style="margin:0;padding-left:18px;">${items}</ul>
+            <div class="ks-warnbody">
+                <ul>${items}</ul>
             </div>
         </details>
     `);

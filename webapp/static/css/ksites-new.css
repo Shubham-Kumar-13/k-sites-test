@@ -2213,51 +2213,51 @@ html[data-bs-theme="dark"] .ks-status-pill.status-running {
 .ks-comps {
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:8px;
+  gap:10px;
 }
 .ks-comp {
   background:var(--ks-panel);
   border:1px solid var(--ks-line2);
   border-radius:8px;
-  padding:7px 10px;
+  padding:10px 12px;
   min-width:0;
 }
 .ks-comp-n {
   display:flex;
   align-items:center;
   gap:6px;
-  font-size:12.5px;
+  font-size:13px;
   color:var(--ks-muted);
   white-space:nowrap;
 }
 .ks-comp-n i {
-  width:8px;
-  height:8px;
+  width:9px;
+  height:9px;
   border-radius:2px;
   background:var(--c);
   flex:none;
 }
 .ks-comp-w {
   margin-left:auto;
-  font:400 11px var(--ks-f-mono);
+  font:400 11.5px var(--ks-f-mono);
   color:var(--ks-muted);
 }
 .ks-comp-rw {
   display:flex;
   align-items:baseline;
   justify-content:space-between;
-  margin:2px 0 4px;
+  margin:4px 0 6px;
 }
 .ks-comp-v {
-  font:600 15px var(--ks-f-mono);
+  font:600 17px var(--ks-f-mono);
   letter-spacing:-.3px;
 }
 .ks-comp-ct {
-  font:400 11.5px var(--ks-f-mono);
+  font:400 12px var(--ks-f-mono);
   color:var(--ks-muted);
 }
 .ks-comp-tr {
-  height:4px;
+  height:5px;
   border-radius:99px;
   background:var(--ks-line2);
   position:relative;
@@ -2325,8 +2325,9 @@ html[data-bs-theme="dark"] .ks-status-pill.status-running {
   background:var(--ks-panel);
   border:1px solid var(--ks-line);
   border-radius:8px;
-  padding:11px 13px;
-  font-size:14px;
+  padding:9px 11px;
+  font-size:13.5px;
+  line-height:1.45;
 }
 .ks-ev.driver {
   border-color:#f0b429;
@@ -2335,20 +2336,30 @@ html[data-bs-theme="dark"] .ks-status-pill.status-running {
 .ks-ev-h {
   display:flex;
   align-items:center;
-  gap:8px;
+  gap:6px;
   color:var(--ks-muted);
-  font-size:12.5px;
-  margin-bottom:6px;
+  font-size:12px;
+  margin-bottom:5px;
   flex-wrap:wrap;
 }
 .ks-ev-body {
   display:flex;
   align-items:flex-start;
-  gap:8px;
+  gap:6px;
   flex-wrap:wrap;
-  line-height:1.5;
+  line-height:1.45;
 }
 .ks-ev-body span { min-width:0; }
+.ks-ev-body .ks-b,
+.ks-ev-h .ks-b {
+  padding:2px 7px;
+  font-size:11.5px;
+}
+.ks-ev-body .badge {
+  font-size:11px;
+  padding:3px 7px;
+  border-radius:4px;
+}
 .ks-ichips {
   display:flex;
   gap:8px;
@@ -2359,10 +2370,11 @@ html[data-bs-theme="dark"] .ks-status-pill.status-running {
   background:var(--ks-panel);
   border:1px solid var(--ks-line);
   border-radius:8px;
-  padding:7px 11px;
-  font-size:12.5px;
+  padding:6px 10px;
+  font-size:12px;
+  line-height:1.4;
 }
-.ks-ichip b { display:block; font-weight:600; }
+.ks-ichip b { display:block; font-weight:600; font-size:12.5px; }
 .ks-ichip span { color:var(--ks-muted); }
 
 .ks-ragbox {
@@ -2372,6 +2384,38 @@ html[data-bs-theme="dark"] .ks-status-pill.status-running {
   border-radius:8px;
   padding:10px 14px;
   font-size:14px;
+}
+.ks-warnbox summary {
+  cursor:pointer;
+  font-weight:600;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  list-style:none;
+}
+.ks-warnbox summary::-webkit-details-marker { display:none; }
+.ks-warnbox .ks-chevron {
+  margin-left:auto;
+  width:18px;
+  height:18px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2.5;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  transition:transform .2s;
+  flex:none;
+}
+.ks-warnbox[open] .ks-chevron { transform:rotate(180deg); }
+.ks-warnbox .ks-warnbody {
+  margin-top:10px;
+  padding-left:32px;
+  color:var(--ks-muted);
+  font-size:13.5px;
+}
+.ks-warnbox .ks-warnbody ul {
+  margin:0;
+  padding-left:18px;
 }
 .ks-ragtag {
   display:inline-flex;
