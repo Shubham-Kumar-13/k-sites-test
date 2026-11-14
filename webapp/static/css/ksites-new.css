@@ -492,23 +492,6 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   letter-spacing:-.2px;
   margin:0;
 }
-.ks-st {
-  margin-left:auto;
-  font:500 12px var(--ks-f-mono);
-  display:flex;
-  align-items:center;
-  gap:8px;
-  color:var(--ks-muted);
-}
-.ks-st i {
-  width:8px;
-  height:8px;
-  border-radius:50%;
-  background:var(--ks-line);
-}
-.ks-st.ok { color:var(--ks-safe); }
-.ks-st.ok i { background:var(--ks-green); }
-
 /* two-column shell with sticky step rail */
 .ks-shell {
   display:grid;
