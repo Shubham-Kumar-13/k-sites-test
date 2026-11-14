@@ -1492,6 +1492,191 @@ html[data-bs-theme="dark"] #organismDirectResults .list-group-item:hover { backg
 .ks-alert.ks-ok { background:var(--ks-safe-bg); border-color:var(--ks-safe); color:var(--ks-safe); }
 .ks-alert.ks-bad { background:var(--ks-bad-bg); border-color:var(--ks-bad); color:var(--ks-bad); }
 .ks-alert.ks-info { background:var(--ks-info-bg); border-color:var(--ks-info); color:var(--ks-info); }
+.ks-alert.ks-warn { background:var(--ks-warn-bg); border-color:var(--ks-warn); color:var(--ks-warn); }
+
+/* --------------------------------------------------------------------------
+   Analysis loading / progress screen
+   -------------------------------------------------------------------------- */
+.ks-results-header {
+  padding:16px 24px;
+}
+.ks-rh-body {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+.ks-rh-body .ks-tag {
+  font:500 11.5px var(--ks-f-mono);
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  color:var(--ks-muted);
+}
+.ks-rh-id {
+  font:500 13px var(--ks-f-mono);
+  color:var(--ks-fg);
+  margin-top:4px;
+}
+.ks-rh-id span { color:var(--ks-muted); }
+.ks-status-pill.status-running {
+  color:var(--ks-cyan);
+  background:var(--ks-cyan-ink);
+  border-color:var(--ks-cyan);
+}
+.ks-status-pill.status-running span {
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:var(--ks-cyan);
+  animation:ks-pulse 1.4s infinite;
+}
+
+/* DNA stage */
+.ks-dna-stage {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+}
+.ks-dna-helix {
+  width:min(360px, 90%);
+  height:auto;
+  display:block;
+}
+.ks-dna-wave {
+  stroke-linecap:round;
+}
+.ks-dna-back {
+  opacity:0.55;
+  animation:ks-dna-shift 2.4s linear infinite;
+}
+.ks-dna-front {
+  animation:ks-dna-shift 2.4s linear infinite reverse;
+}
+.ks-dna-rungs {
+  animation:ks-dna-fade 2.4s ease-in-out infinite;
+}
+.ks-dna-cut {
+  animation:ks-dna-cut 2.4s ease-in-out infinite;
+}
+.ks-dna-tagline {
+  font:500 11px var(--ks-f-mono);
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--ks-cyan);
+}
+@keyframes ks-dna-shift {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-60px); }
+}
+@keyframes ks-dna-fade {
+  0%, 100% { opacity:0.35; }
+  50% { opacity:0.8; }
+}
+@keyframes ks-dna-cut {
+  0%, 100% { opacity:0.7; transform: translate(170px, 60px) scale(0.98); }
+  50% { opacity:1; transform: translate(170px, 60px) scale(1.02); }
+}
+@keyframes ks-pulse {
+  0%, 100% { opacity:1; }
+  50% { opacity:0.35; }
+}
+
+/* Progress bar */
+.ks-progress.ks-progress-striped i {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--ks-cyan),
+    var(--ks-cyan) 10px,
+    #22d3ee 10px,
+    #22d3ee 20px
+  );
+  background-size: 200% 200%;
+  animation: ks-progress-stripe 1s linear infinite;
+}
+@keyframes ks-progress-stripe {
+  0% { background-position: 0 0; }
+  100% { background-position: 40px 0; }
+}
+
+.ks-progress-meta {
+  display:flex;
+  justify-content:center;
+  gap:24px;
+  color:var(--ks-muted);
+  font-size:13px;
+}
+.ks-progress-meta span { display:inline-flex; align-items:center; gap:6px; }
+
+/* Step list */
+.ks-step-list {
+  list-style:none;
+  padding:0;
+  margin:0;
+}
+.ks-step-list .ks-step {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  padding:12px 16px;
+  border-bottom:1px solid var(--ks-line2);
+  transition:background .2s;
+}
+.ks-step-list .ks-step:last-child { border-bottom:0; }
+.ks-step-list .ks-step.done {
+  background:var(--ks-safe-bg);
+  color:var(--ks-safe);
+}
+.ks-step-list .ks-step.active {
+  background:var(--ks-info-bg);
+  color:var(--ks-info);
+  border-left:3px solid var(--ks-cyan);
+}
+.ks-step-list .ks-step i {
+  width:18px;
+  text-align:center;
+}
+
+/* Cancel button */
+.ks-cancel-btn {
+  background: transparent !important;
+  color: var(--ks-bad) !important;
+  border: 1.5px solid var(--ks-bad) !important;
+  border-radius: 99px !important;
+  padding: 10px 22px !important;
+  font-weight: 600;
+  transition: all .2s ease;
+}
+.ks-cancel-btn:hover {
+  background: var(--ks-bad-bg) !important;
+  color: var(--ks-bad) !important;
+}
+.ks-cancel-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Cancelled state card */
+#cancelledState.ks-alert {
+  flex-direction:column;
+  align-items:flex-start;
+  gap:10px;
+  padding:18px 22px;
+}
+#cancelledState.ks-alert h5 {
+  font-size:18px;
+  margin:0;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+#cancelledState.ks-alert p {
+  margin:0;
+}
+#cancelledState.ks-alert .ks-btn {
+  margin-top:8px;
+}
 
 /* progress */
 .ks-progress {

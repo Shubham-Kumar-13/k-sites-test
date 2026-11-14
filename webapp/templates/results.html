@@ -7,58 +7,106 @@
 
 <!-- Loading State with Progress -->
 <div id="loadingState" class="py-4" style="display: {{ 'block' if job.status in ['pending', 'running'] else 'none' }};">
-    <section class="ks-panel">
-        <div class="ks-pb text-center py-5">
-            <div class="mb-4 gk-loader" aria-label="Analysis in progress">
-                <canvas id="gl-canvas" aria-hidden="true"></canvas>
+    <!-- Header card -->
+    <section class="ks-panel ks-results-header mb-3">
+        <div class="ks-rh-body">
+            <div>
+                <div class="ks-tag">Analysis Results</div>
+                <div class="ks-rh-id">Job ID: <span id="loadingJobId">{{ job.id }}</span></div>
             </div>
+            <div class="ks-status-pill status-running" id="runningBadge"><span></span>RUNNING</div>
+        </div>
+    </section>
+
+    <!-- Progress card -->
+    <section class="ks-panel ks-progress-card">
+        <div class="ks-pb text-center py-5">
+            <!-- DNA / scissors animation -->
+            <div class="mb-4 ks-dna-stage" aria-label="Analysis in progress">
+                <svg class="ks-dna-helix" viewBox="0 0 360 120" aria-hidden="true">
+                    <defs>
+                        <linearGradient id="dnaCyan" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stop-color="#22d3ee"/>
+                            <stop offset="100%" stop-color="#0891b2"/>
+                        </linearGradient>
+                        <linearGradient id="dnaMagenta" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stop-color="#e879f9"/>
+                            <stop offset="100%" stop-color="#c026d3"/>
+                        </linearGradient>
+                    </defs>
+                    <!-- Back helix (magenta) -->
+                    <path class="ks-dna-wave ks-dna-back" d="M20,60 C50,10 80,10 110,60 C140,110 170,110 200,60 C230,10 260,10 290,60 C320,110 350,110 380,60" fill="none" stroke="url(#dnaMagenta)" stroke-width="3"/>
+                    <!-- Rungs -->
+                    <g class="ks-dna-rungs">
+                        <line x1="65" y1="35" x2="65" y2="85" stroke="#94a3b8" stroke-width="2" opacity="0.5"/>
+                        <line x1="125" y1="85" x2="125" y2="35" stroke="#94a3b8" stroke-width="2" opacity="0.5"/>
+                        <line x1="185" y1="35" x2="185" y2="85" stroke="#94a3b8" stroke-width="2" opacity="0.5"/>
+                        <line x1="245" y1="85" x2="245" y2="35" stroke="#94a3b8" stroke-width="2" opacity="0.5"/>
+                        <line x1="305" y1="35" x2="305" y2="85" stroke="#94a3b8" stroke-width="2" opacity="0.5"/>
+                    </g>
+                    <!-- Front helix (cyan) -->
+                    <path class="ks-dna-wave ks-dna-front" d="M20,60 C50,110 80,110 110,60 C140,10 170,10 200,60 C230,110 260,110 290,60 C320,10 350,10 380,60" fill="none" stroke="url(#dnaCyan)" stroke-width="3"/>
+                    <!-- Scissors motif -->
+                    <g class="ks-dna-cut" transform="translate(170,60)">
+                        <rect x="-20" y="-35" width="40" height="70" rx="6" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4 3"/>
+                        <text x="0" y="-18" text-anchor="middle" fill="#f59e0b" font-size="10" font-family="var(--ks-f-mono)">A T T</text>
+                        <path d="M-12,0 L12,0 M0,-8 L0,8" stroke="#f59e0b" stroke-width="2"/>
+                        <text x="0" y="22" text-anchor="middle" fill="#f59e0b" font-size="10" font-family="var(--ks-f-mono)">A T A</text>
+                    </g>
+                </svg>
+                <div class="ks-dna-tagline">MOLECULAR SCISSORS CUTTING BOTH FLANKS</div>
+            </div>
+
             <h3 class="mb-2" style="color:var(--ks-link);">Analysis in Progress</h3>
             <p class="mb-4" style="color:var(--ks-muted);" id="currentStep">{{ job.current_step or 'Initializing...' }}</p>
 
-            <div class="ks-progress mb-3" style="max-width:520px;margin-left:auto;margin-right:auto;">
+            <div class="ks-progress ks-progress-striped mb-3" style="max-width:520px;margin-left:auto;margin-right:auto;">
                 <i id="progressBar" style="width:{{ job.progress_percent or 0 }}%">{{ job.progress_percent or 0 }}%</i>
             </div>
 
-            <div id="elapsedDisplay" class="mb-4" style="display:none;color:var(--ks-muted);">
-                Running for <span id="elapsedTime" class="ks-mono"></span>
+            <div class="ks-progress-meta mb-4">
+                <span id="elapsedDisplay" style="display:none;">Running for <span id="elapsedTime" class="ks-mono">0:00</span></span>
+                <span id="genesProcessedDisplay" style="display:none;">Genes processed <span id="genesProcessed" class="ks-mono">0</span> / <span id="genesTotal">0</span></span>
             </div>
 
             <div class="text-start mx-auto mt-4" style="max-width:500px;">
                 <section class="ks-panel" style="padding:0;">
-                    <div class="ks-step {{ 'ks-ok' if job.progress_percent >= 5 else '' }}">
-                        <span><i class="fas {{ 'fa-check-circle' if job.progress_percent >= 5 else 'fa-circle' }} me-2"></i>Initialize</span>
-                        <span class="ks-tag">5%</span>
-                    </div>
-                    <div class="ks-step {{ 'ks-ok' if job.progress_percent >= 15 else '' }}">
-                        <span><i class="fas {{ 'fa-check-circle' if job.progress_percent >= 15 else 'fa-circle' }} me-2"></i>Resolve Organism</span>
-                        <span class="ks-tag">15%</span>
-                    </div>
-                    <div class="ks-step {{ 'ks-ok' if job.progress_percent >= 30 else '' }}">
-                        <span><i class="fas {{ 'fa-check-circle' if job.progress_percent >= 30 else 'fa-circle' }} me-2"></i>Fetch GO Genes</span>
-                        <span class="ks-tag">30%</span>
-                    </div>
-                    <div class="ks-step {{ 'ks-ok' if job.progress_percent >= 60 else '' }}">
-                        <span><i class="fas {{ 'fa-check-circle' if job.progress_percent >= 60 else 'fa-circle' }} me-2"></i>Process Annotations</span>
-                        <span class="ks-tag">60%</span>
-                    </div>
-                    <div class="ks-step {{ 'ks-ok' if job.progress_percent >= 85 else '' }}">
-                        <span><i class="fas {{ 'fa-check-circle' if job.progress_percent >= 85 else 'fa-circle' }} me-2"></i>Generate Reports</span>
-                        <span class="ks-tag">85%</span>
-                    </div>
-                    <div class="ks-step {{ 'ks-ok' if job.progress_percent >= 100 else '' }}">
-                        <span><i class="fas {{ 'fa-check-circle' if job.progress_percent >= 100 else 'fa-circle' }} me-2"></i>Complete</span>
-                        <span class="ks-tag">100%</span>
-                    </div>
+                    <ul class="ks-step-list" id="progressSteps">
+                        <li class="ks-step {{ 'done' if job.progress_percent >= 5 else '' }}" data-step-pct="5">
+                            <span><i class="fas {{ 'fa-check-circle' if job.progress_percent >= 5 else 'fa-circle' }} me-2"></i>Initialize</span>
+                            <span class="ks-tag">5%</span>
+                        </li>
+                        <li class="ks-step {{ 'done' if job.progress_percent >= 15 else '' }}" data-step-pct="15">
+                            <span><i class="fas {{ 'fa-check-circle' if job.progress_percent >= 15 else 'fa-circle' }} me-2"></i>Resolve Organism</span>
+                            <span class="ks-tag">15%</span>
+                        </li>
+                        <li class="ks-step {{ 'done' if job.progress_percent >= 30 else '' }}" data-step-pct="30">
+                            <span><i class="fas {{ 'fa-check-circle' if job.progress_percent >= 30 else 'fa-circle' }} me-2"></i>Fetch GO Genes</span>
+                            <span class="ks-tag">30%</span>
+                        </li>
+                        <li class="ks-step {{ 'done' if job.progress_percent >= 60 else '' }}" data-step-pct="60">
+                            <span><i class="fas {{ 'fa-check-circle' if job.progress_percent >= 60 else 'fa-circle' }} me-2"></i>Process Annotations</span>
+                            <span class="ks-tag">60%</span>
+                        </li>
+                        <li class="ks-step {{ 'done' if job.progress_percent >= 85 else '' }}" data-step-pct="85">
+                            <span><i class="fas {{ 'fa-check-circle' if job.progress_percent >= 85 else 'fa-circle' }} me-2"></i>Generate Reports</span>
+                            <span class="ks-tag">85%</span>
+                        </li>
+                        <li class="ks-step {{ 'done' if job.progress_percent >= 100 else '' }}" data-step-pct="100">
+                            <span><i class="fas {{ 'fa-check-circle' if job.progress_percent >= 100 else 'fa-circle' }} me-2"></i>Complete</span>
+                            <span class="ks-tag">100%</span>
+                        </li>
+                    </ul>
                 </section>
             </div>
 
             <div class="mt-4">
-                <button type="button" class="ks-btn" style="background:var(--ks-bad-bg);color:var(--ks-bad);border:1px solid var(--ks-bad);" id="cancelJobButton">
+                <button type="button" class="ks-btn ks-cancel-btn" id="cancelJobButton">
                     <i class="fas fa-stop-circle me-2"></i>Cancel this analysis
                 </button>
             </div>
 
-            <div class="ks-alert ks-info mt-4" data-hosted-note style="display:none;max-width:500px;margin:20px auto 0;">
+            <div class="ks-alert ks-warn mt-4" data-hosted-note style="display:none;max-width:500px;margin:20px auto 0;">
                 <strong>The analysis runs in this browser.</strong> Keep this tab open until it finishes.
                 If you close it, opening this page again resumes the job (finished steps are remembered).
             </div>
@@ -79,6 +127,15 @@
     <div>
         <h5><i class="fas fa-times-circle me-2"></i>Analysis Failed</h5>
         <p id="errorMessage">{{ job.error_message }}</p>
+        <a href="/" class="ks-btn">Start New Analysis</a>
+    </div>
+</div>
+
+<!-- Cancelled State -->
+<div id="cancelledState" class="ks-alert ks-warn" style="display: {{ 'block' if job.status == 'cancelled' else 'none' }};">
+    <div>
+        <h5><i class="fas fa-ban me-2"></i>Analysis Cancelled</h5>
+        <p id="cancelledMessage">{% if job.status == 'cancelled' %}You cancelled this job mid-analysis.{% else %}This analysis was cancelled.{% endif %}</p>
         <a href="/" class="ks-btn">Start New Analysis</a>
     </div>
 </div>
@@ -267,7 +324,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/results.js') }}?v=1.3.2"></script>
+<script src="{{ url_for('static', filename='js/results.js') }}?v=1.3.3"></script>
 <script src="{{ url_for('static', filename='js/gene-loader-scissors.js') }}?v=2.0.1"></script>
 <script>
 (function () {

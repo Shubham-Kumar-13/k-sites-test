@@ -60,6 +60,8 @@ function fillJobFields(job) {
             el.textContent = (value === null || value === '') ? '-' : value;
         });
     });
+    const loadingJobId = document.getElementById('loadingJobId');
+    if (loadingJobId && job.id) loadingJobId.textContent = job.id;
 }
 
 // ============================================================================
@@ -140,6 +142,12 @@ async function checkJobStatus(jobId) {
     }
 }
 
+function formatElapsed(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
 function updateProgressDisplay(job) {
     // Update progress bar
     const progressBar = document.getElementById('progressBar');
@@ -148,44 +156,51 @@ function updateProgressDisplay(job) {
         progressBar.setAttribute('aria-valuenow', job.progress_percent);
         progressBar.textContent = `${job.progress_percent}%`;
     }
-    
+
     // Update current step
     const currentStep = document.getElementById('currentStep');
     if (currentStep && job.current_step) {
         currentStep.textContent = job.current_step;
     }
-    
-    // Time elapsed (the run time depends on the databases, so no completion time is predicted)
+
+    // Time elapsed (mm:ss)
     const elapsedDisplay = document.getElementById('elapsedDisplay');
     const elapsedTime = document.getElementById('elapsedTime');
     if (elapsedDisplay && elapsedTime && job.created_at) {
         const created = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(job.created_at) ? job.created_at : job.created_at + 'Z');
         const seconds = Math.max(0, Math.round((Date.now() - created.getTime()) / 1000));
-        const minutes = Math.floor(seconds / 60);
-        elapsedTime.textContent = minutes < 1 ? 'less than a minute' : `${minutes} min`;
-        elapsedDisplay.style.display = 'block';
+        elapsedTime.textContent = formatElapsed(seconds);
+        elapsedDisplay.style.display = 'inline';
     }
-    
+
+    // Genes processed counter
+    const genesProcessedDisplay = document.getElementById('genesProcessedDisplay');
+    const genesProcessed = document.getElementById('genesProcessed');
+    const genesTotal = document.getElementById('genesTotal');
+    if (genesProcessedDisplay && genesProcessed && genesTotal) {
+        const total = job.total_genes_found !== null && job.total_genes_found !== undefined ? job.total_genes_found : 0;
+        const processed = job.genes_processed !== null && job.genes_processed !== undefined ? job.genes_processed : 0;
+        genesProcessed.textContent = processed;
+        genesTotal.textContent = total;
+        genesProcessedDisplay.style.display = total > 0 ? 'inline' : 'none';
+    }
+
     // Update step indicators
-    const steps = [
-        { pct: 5, selector: '#progressSteps li:nth-child(1)' },
-        { pct: 15, selector: '#progressSteps li:nth-child(2)' },
-        { pct: 30, selector: '#progressSteps li:nth-child(3)' },
-        { pct: 60, selector: '#progressSteps li:nth-child(4)' },
-        { pct: 85, selector: '#progressSteps li:nth-child(5)' },
-        { pct: 100, selector: '#progressSteps li:nth-child(6)' }
-    ];
-    
-    steps.forEach(step => {
-        const el = document.querySelector(step.selector);
-        if (el) {
-            if (job.progress_percent >= step.pct) {
-                el.classList.add('list-group-item-success');
-                const icon = el.querySelector('i');
-                if (icon) {
-                    icon.className = 'fas fa-check-circle text-success me-2';
-                }
-            }
+    const stepEls = document.querySelectorAll('#progressSteps li');
+    stepEls.forEach((el, idx) => {
+        const pct = parseInt(el.dataset.stepPct, 10);
+        const icon = el.querySelector('i');
+        if (job.progress_percent >= pct) {
+            el.classList.add('done');
+            el.classList.remove('active');
+            if (icon) icon.className = 'fas fa-check-circle me-2';
+        } else if (idx > 0 && job.progress_percent >= parseInt(stepEls[idx - 1].dataset.stepPct, 10)) {
+            el.classList.add('active');
+            el.classList.remove('done');
+            if (icon) icon.className = 'fas fa-spinner fa-spin me-2';
+        } else {
+            el.classList.remove('done', 'active');
+            if (icon) icon.className = 'fas fa-circle me-2';
         }
     });
 }
@@ -212,8 +227,10 @@ function updateStatusDisplay(job) {
 function showResults(job) {
     document.getElementById('loadingState').style.display = 'none';
     document.getElementById('errorState').style.display = 'none';
+    const cancelledState = document.getElementById('cancelledState');
+    if (cancelledState) cancelledState.style.display = 'none';
     document.getElementById('resultsContent').style.display = 'block';
-    
+
     // Setup download links
     ksBindDownload('downloadHtml', job.id, 'html');
     ksBindDownload('downloadJson', job.id, 'json');
@@ -225,6 +242,8 @@ function showResults(job) {
 function showError(message) {
     document.getElementById('loadingState').style.display = 'none';
     document.getElementById('resultsContent').style.display = 'none';
+    const cancelledState = document.getElementById('cancelledState');
+    if (cancelledState) cancelledState.style.display = 'none';
     document.getElementById('errorState').style.display = 'block';
     document.getElementById('errorMessage').textContent = message || 'Unknown error occurred';
 }
@@ -232,11 +251,15 @@ function showError(message) {
 function showCancelled(job) {
     document.getElementById('loadingState').style.display = 'none';
     document.getElementById('resultsContent').style.display = 'none';
-    document.getElementById('errorState').style.display = 'block';
-    const msg = job.status === 'cancelling'
-        ? 'Cancelling the analysis... The page will update once it stops.'
-        : 'This analysis was cancelled. You can start a new one from the home page.';
-    document.getElementById('errorMessage').textContent = msg;
+    document.getElementById('errorState').style.display = 'none';
+    const cancelledState = document.getElementById('cancelledState');
+    if (cancelledState) {
+        cancelledState.style.display = 'block';
+        const msg = job.status === 'cancelling'
+            ? 'Cancelling the analysis... The page will update once it stops.'
+            : 'You cancelled this job mid-analysis.';
+        document.getElementById('cancelledMessage').textContent = msg;
+    }
 }
 
 function addLogEntry(message) {
