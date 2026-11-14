@@ -691,11 +691,14 @@ function initializeEventListeners() {
     const llmApiKeyInput = document.getElementById('llm_api_key');
     const brainIcon = document.getElementById('ragBrainIcon');
     const llmKeySection = document.getElementById('llmKeySection');
+    const predictCheckbox = document.getElementById('predict_phenotypes');
     // Start with no provider selected; the user must explicitly choose one to reveal the key field.
     if (llmProviderInput) llmProviderInput.value = 'kimi';
     const triggerText = document.getElementById('llmProviderTriggerText');
     if (triggerText) triggerText.textContent = 'Pick a model to read abstracts';
-    document.getElementById('predict_phenotypes')?.addEventListener('change', function () {
+    // Set brain icon initial state to match the checkbox (rerun links may have it on).
+    if (brainIcon && predictCheckbox) brainIcon.classList.toggle('active', predictCheckbox.checked);
+    predictCheckbox?.addEventListener('change', function () {
         if (brainIcon) {
             brainIcon.classList.toggle('active', this.checked);
             if (this.checked) {
