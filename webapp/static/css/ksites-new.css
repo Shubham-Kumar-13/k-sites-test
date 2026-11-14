@@ -1570,8 +1570,8 @@ html[data-bs-theme="dark"] .ks-status-pill.status-running {
 
 /* SVG loader inside the card */
 .ks-loader-wrap {
-  width: 100%;
-  max-width: 520px;
+  width: 92%;
+  max-width: 680px;
   aspect-ratio: 2 / 1;
   margin: 0 auto 12px;
   border-radius: 12px;

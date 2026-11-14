@@ -37,6 +37,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     syncLoaderCaption();
+    setLoaderSvg();
+    watchLoaderTheme();
 });
 
 /** Fill the parameter table and header from the job record (the static page ships empty). */
@@ -120,6 +122,24 @@ function syncLoaderCaption() {
     };
     obj.addEventListener('load', read);
     setInterval(read, 300);
+}
+
+function setLoaderSvg() {
+    const obj = document.getElementById('loaderSvg');
+    if (!obj) return;
+    const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+    const url = theme === 'dark' ? obj.dataset.dark : obj.dataset.light;
+    if (!url) return;
+    const current = obj.getAttribute('data-current');
+    if (current === url) return;
+    obj.setAttribute('data-current', url);
+    obj.data = url;
+}
+
+function watchLoaderTheme() {
+    const html = document.documentElement;
+    const observer = new MutationObserver(() => setLoaderSvg());
+    observer.observe(html, { attributes: true, attributeFilter: ['data-bs-theme'] });
 }
 
 async function cancelJob(jobId) {

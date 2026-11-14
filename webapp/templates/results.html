@@ -22,7 +22,7 @@
         <div class="ks-loading-body">
             <!-- Molecular scissors SVG animation -->
             <div class="mb-3 ks-loader-wrap" aria-label="Analysis in progress">
-                <object type="image/svg+xml" data="{{ url_for('static', filename='assets/k-sites-loader.svg') }}" class="ks-loader-svg" id="loaderSvg">
+                <object type="image/svg+xml" data="{{ url_for('static', filename='assets/k-sites-loader-light.svg') }}" class="ks-loader-svg" id="loaderSvg" data-light="{{ url_for('static', filename='assets/k-sites-loader-light.svg') }}" data-dark="{{ url_for('static', filename='assets/k-sites-loader-dark.svg') }}" data-current="{{ url_for('static', filename='assets/k-sites-loader-light.svg') }}">
                     Analysis animation
                 </object>
             </div>
@@ -276,7 +276,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/results.js') }}?v=1.3.7"></script>
+<script src="{{ url_for('static', filename='js/results.js') }}?v=1.3.8"></script>
 <script>
 (function () {
     const tabs = document.querySelectorAll('#resultsTabs [role="tab"]');
