@@ -86,7 +86,7 @@ body {
 
 .ks-mono { font-family:var(--ks-f-mono); }
 .ks-wrap {
-  max-width:1180px;
+  max-width:1280px;
   margin:0 auto;
   padding-left:max(16px,env(safe-area-inset-left,0px));
   padding-right:max(16px,env(safe-area-inset-right,0px));
@@ -495,8 +495,8 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
 /* two-column shell with sticky step rail */
 .ks-shell {
   display:grid;
-  grid-template-columns:200px minmax(0,1fr);
-  gap:32px;
+  grid-template-columns:170px minmax(0,1fr);
+  gap:24px;
   padding-block:32px 120px;
   align-items:start;
 }
@@ -573,6 +573,7 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
 
 .ks-pb { padding:24px; }
 .ks-block + .ks-block { margin-top:24px; }
+#goTermsSection { margin-top:24px; }
 .ks-lab {
   font-weight:600;
   font-size:14px;
@@ -608,7 +609,6 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
 .ks-field:hover { border-color:#9db2c5; }
 .ks-field:focus-within {
   border-color:var(--ks-cyan);
-  box-shadow:0 0 0 3px rgba(0,168,204,.2);
   background:var(--ks-panel);
 }
 .ks-field input {
@@ -754,17 +754,21 @@ html[data-bs-theme="dark"] .go-category-card:hover {
   position:absolute;
   top:50%;
   left:50%;
-  width:18px;
-  height:18px;
-  margin:-9px 0 0 -9px;
+  width:16px;
+  height:16px;
+  margin:-8px 0 0 -8px;
   border:2px solid var(--ks-line);
   border-top-color:var(--ks-cyan);
   border-radius:50%;
   animation:ks-spin 1s linear infinite;
+  transition:opacity .25s ease;
 }
+.ks-tile b,
+.ks-tile span,
+.ks-tile .ki { transition:opacity .25s ease; }
 .ks-tile.ks-loading b,
 .ks-tile.ks-loading span,
-.ks-tile.ks-loading .ki { opacity:.25; }
+.ks-tile.ks-loading .ki { opacity:.4; }
 
 /* list (species / direct results) */
 .ks-list,
