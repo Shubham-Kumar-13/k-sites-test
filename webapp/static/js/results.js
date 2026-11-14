@@ -492,12 +492,10 @@ function detailedEvidenceHtml(data) {
         ].filter(Boolean).join(' · ');
         const impc = [record.phenotyping_center, record.parameter_stable_id,
             record.p_value ? `p=${record.p_value}` : null].filter(Boolean).map(esc).join(' · ');
+        const extra = [impc, references].filter(Boolean).join(' · ');
         return `<div class="ks-det">
-            <div class="ks-dh">${callBadge(record.call)}<strong>${esc(record.source)}: ${esc(record.source_record_id)}</strong></div>
-            <div class="ks-dm">${metadata}${geneticDetails ? ` · ${geneticDetails}` : ''}</div>
-            <div class="ks-dl">${esc(record.phenotype)}</div>
-            ${impc ? `<div class="ks-dr">${impc}</div>` : ''}
-            ${references ? `<div class="ks-dr">${references}</div>` : ''}
+            <div class="ks-dh">${callBadge(record.call)}<strong>${esc(record.source)}: ${esc(record.source_record_id)}</strong><span class="ks-dm">${metadata}${geneticDetails ? ` · ${geneticDetails}` : ''}</span></div>
+            <div class="ks-dl">${esc(record.phenotype)}${extra ? `<span class="ks-dr"> · ${extra}</span>` : ''}</div>
         </div>`;
     }).join('');
     return `<div class="ks-note ks-plain" style="margin-bottom:8px;padding:8px 12px;"><i class="fas fa-database" style="color:var(--ks-muted);"></i><span class="ks-grow">${esc(evidence.call)} · ${evidence.records.length} source record(s) · release ${esc(data.version)}</span></div>${records}`;
@@ -810,9 +808,9 @@ function renderGenes(genes) {
             ? ` <span style="color:var(--ks-muted);font-size:13px;">(alternatives: ${esc(safety.alternative_recommendations.join('; '))})</span>` : '';
         return `
         <article class="ks-gcard">
+            <div class="ks-rk">${index + 1}</div>
             <div class="ks-gbody">
                 <div class="ks-ghead">
-                    <div class="ks-rk">${index + 1}</div>
                     <div class="ks-gtitle">
                         <h5>${esc(gene.symbol)}</h5>
                         <p>${esc(gene.description || 'No description available')}</p>
