@@ -133,6 +133,7 @@ async function selectKingdom(kingdom) {
     });
 
     document.getElementById('selectedKingdomName').textContent = kingdom;
+    document.getElementById('selectedKingdomDisplay').style.display = 'block';
     document.getElementById('kingdomContainer').style.display = 'none';
     document.getElementById('speciesSection').style.display = 'block';
 
@@ -154,6 +155,7 @@ function resetKingdomSelection() {
     renderKingdoms(kingdomOptions);
     document.getElementById('kingdomContainer').style.display = '';
     document.getElementById('speciesSection').style.display = 'none';
+    document.getElementById('selectedKingdomDisplay').style.display = 'none';
     document.getElementById('selectedOrganismDisplay').style.display = 'none';
     document.getElementById('organismDirectSection').style.display = 'block';
     document.getElementById('evidenceCoverageNote').style.display = 'none';
@@ -430,6 +432,7 @@ async function selectGoCategory(category) {
 
     // Update UI
     document.getElementById('selectedCategoryName').textContent = category;
+    document.getElementById('selectedCategoryDisplay').style.display = 'block';
     document.getElementById('goCategoryContainer').style.display = 'none';
     document.getElementById('goDirectInputSection').style.display = 'none';
     document.getElementById('goTermsSection').style.display = 'block';
@@ -457,6 +460,7 @@ function resetCategorySelection() {
     selectedCategory = null;
     selectedGoTerm = null;
     document.getElementById('goCategoryContainer').style.display = '';
+    document.getElementById('selectedCategoryDisplay').style.display = 'none';
     document.getElementById('goDirectInputSection').style.display = 'block';
     document.getElementById('goTermsSection').style.display = 'none';
     document.getElementById('selectedGoTermDisplay').style.display = 'none';
