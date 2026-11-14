@@ -334,8 +334,8 @@ html[data-bs-theme="dark"] .ks-top .ks-logo.ks-logo-dark { display:block; }
   flex-wrap:wrap;
   font-size:14px;
   color:var(--ks-muted);
-  padding-block:16px;
-  padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  padding-top:16px;
+  padding-bottom:calc(76px + env(safe-area-inset-bottom,0px));
 }
 .ks-foot .ks-who { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .ks-foot .ks-who svg { flex:none; }
