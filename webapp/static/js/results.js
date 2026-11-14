@@ -35,6 +35,8 @@ document.addEventListener('DOMContentLoaded', function() {
             startStatusPolling(jobId);
         }
     });
+
+    syncLoaderCaption();
 });
 
 /** Fill the parameter table and header from the job record (the static page ships empty). */
@@ -101,6 +103,23 @@ function stopElapsedTicker() {
         clearInterval(elapsedTickerInterval);
         elapsedTickerInterval = null;
     }
+}
+
+function syncLoaderCaption() {
+    const obj = document.getElementById('loaderSvg');
+    const caption = document.getElementById('loaderCaption');
+    if (!obj || !caption) return;
+    const read = () => {
+        try {
+            const svgDoc = obj.contentDocument;
+            if (svgDoc) {
+                const cap = svgDoc.getElementById('cap');
+                if (cap && cap.textContent) caption.textContent = cap.textContent;
+            }
+        } catch (e) {}
+    };
+    obj.addEventListener('load', read);
+    setInterval(read, 300);
 }
 
 async function cancelJob(jobId) {

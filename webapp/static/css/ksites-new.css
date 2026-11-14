@@ -1547,31 +1547,24 @@ html[data-bs-theme="dark"] .ks-status-pill.status-running {
 }
 
 .ks-loading-body {
-  position: relative;
   padding: 36px 24px 42px;
   text-align: center;
-  overflow: hidden;
-}
-.ks-loading-body > *:not(.ks-loading-net) {
-  position: relative;
-  z-index: 1;
 }
 
-/* Subtle network background inside the loading card */
-.ks-loading-net {
-  position: absolute;
+/* Page-level network background behind the loading card */
+.ks-page-net {
+  position: fixed;
   inset: 0;
   width: 100%;
   height: 100%;
   display: block;
   opacity: 0.55;
   pointer-events: none;
+  z-index: 0;
 }
 
 /* SVG loader inside the card */
 .ks-loader-wrap {
-  position: relative;
-  z-index: 1;
   width: 100%;
   max-width: 520px;
   aspect-ratio: 2 / 1;
@@ -1587,19 +1580,27 @@ html[data-bs-theme="dark"] .ks-status-pill.status-running {
   border: none;
 }
 
-.ks-dna-tagline {
+.ks-loader-caption {
   font: 500 11px var(--ks-f-mono);
   letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--ks-cyan);
-  margin-bottom: 24px;
+  margin-bottom: 20px;
+  min-height: 16px;
 }
-.ks-cursor {
-  animation: ks-blink 1s step-end infinite;
+.ks-loader-caption:empty::before {
+  content: '\00a0';
 }
-@keyframes ks-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+
+/* Loading info alert: centered single-line text */
+.ks-loading-info {
+  display: block !important;
+  text-align: center !important;
+  max-width: 520px;
+  margin: 20px auto 0;
+}
+.ks-loading-info a {
+  text-decoration: underline;
 }
 
 /* Progress bar */
