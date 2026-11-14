@@ -1449,7 +1449,7 @@ html[data-bs-theme="dark"] #organismDirectResults .list-group-item:hover { backg
 /* parameter grid */
 .ks-pgrid {
   display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-template-columns:repeat(4,minmax(0,1fr));
   gap:12px 28px;
   margin:0;
 }
@@ -1784,8 +1784,6 @@ html[data-bs-theme="dark"] .ks-status-pill.status-running {
    Results gene cards
    -------------------------------------------------------------------------- */
 .ks-gcard {
-  display:grid;
-  grid-template-columns:58px minmax(0,1fr);
   border:1px solid var(--ks-line);
   background:var(--ks-panel);
   border-radius:12px;
@@ -1976,19 +1974,22 @@ html[data-bs-theme="dark"] .ks-status-pill.status-running {
   margin:1px 0;
 }
 .ks-rk {
+  width:28px;
+  height:28px;
+  border-radius:50%;
   background:var(--ks-well);
-  border-right:1px solid var(--ks-line2);
+  border:1px solid var(--ks-line2);
   display:grid;
-  place-items:start center;
-  padding-top:20px;
-  font:600 18px var(--ks-f-mono);
+  place-items:center;
+  font:600 13px var(--ks-f-mono);
   color:var(--ks-muted);
   line-height:1;
+  flex:none;
 }
 .ks-gbody { padding:18px 20px; }
 .ks-ghead {
   display:grid;
-  grid-template-columns:1fr auto;
+  grid-template-columns:auto 1fr auto;
   gap:14px;
   align-items:start;
   margin-bottom:14px;
@@ -2415,11 +2416,9 @@ html[data-bs-theme="dark"] .ks-status-pill.status-running {
 }
 
 @media (max-width:800px) {
-  .ks-gcard { grid-template-columns:44px minmax(0,1fr); }
-  .ks-rk { padding-top:16px; font-size:15px; }
   .ks-gbody { padding:14px 16px; }
-  .ks-ghead { grid-template-columns:1fr; gap:10px; }
-  .ks-gright { flex-direction:row; align-items:center; justify-content:space-between; }
+  .ks-ghead { grid-template-columns:auto 1fr; gap:10px; }
+  .ks-gright { grid-column:1 / -1; flex-direction:row; align-items:center; justify-content:space-between; }
   .ks-evgrid { grid-template-columns:1fr; }
   .ks-sum-grid { grid-template-columns:1fr; }
   .ks-filter-grid { grid-template-columns:1fr !important; }

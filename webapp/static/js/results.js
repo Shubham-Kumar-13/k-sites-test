@@ -1018,9 +1018,9 @@ function renderGenes(genes) {
             ? ` <span style="color:var(--ks-muted);font-size:13px;">(alternatives: ${esc(safety.alternative_recommendations.join('; '))})</span>` : '';
         return `
         <article class="ks-gcard">
-            <div class="ks-rk">${index + 1}</div>
             <div class="ks-gbody">
                 <div class="ks-ghead">
+                    <div class="ks-rk">${index + 1}</div>
                     <div class="ks-gtitle">
                         <h5>${esc(gene.symbol)}</h5>
                         <p>${esc(gene.description || 'No description available')}</p>
