@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- K-Sites loading animation (molecular scissors). Animated: open this file in a browser, or embed it with
      <object type="image/svg+xml" data="k-sites-loader.svg"> or <iframe>. It will NOT animate inside an <img> tag,
-     because browsers disable scripts there. Fixed dark theme, transparent background. Transparent background, self-contained, no external requests. -->
+     because browsers disable scripts there. Fixed dark theme on the dark panel colour #141e36. Transparent background, self-contained, no external requests. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 480" width="960" height="480" role="img" aria-label="Analysis in progress: molecular scissors cutting a gene">
   <style>
     .cap{font:600 15px ui-monospace,Consolas,monospace;letter-spacing:.12em;text-transform:uppercase;fill:#4fd8f2}
   </style>
+  <rect width="960" height="480" fill="#141e36"/>
   <foreignObject x="0" y="0" width="960" height="480">
     <div xmlns="http://www.w3.org/1999/xhtml" style="width:960px;height:480px;margin:0;padding:0">
       <canvas id="gk" style="width:960px;height:480px;display:block" aria-hidden="true"></canvas>
