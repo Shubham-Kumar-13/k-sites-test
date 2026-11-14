@@ -494,18 +494,10 @@
                 <img class="ks-logo ks-logo-light" src="{{ url_for('static', filename='assets/logo/logo-icon-sites-on-light.svg') }}?v=1.4.0" alt="K-Sites">
             </a>
             <nav aria-label="Main">
-                <a class="{% if request is defined and request.endpoint == 'index' %}active{% endif %}" href="/">
-                    <i class="fas fa-home me-1"></i>New Analysis
-                </a>
-                <a class="{% if request is defined and request.endpoint == 'jobs' %}active{% endif %}" href="/jobs">
-                    <i class="fas fa-list me-1"></i>Job History
-                </a>
-                <a class="{% if request is defined and request.endpoint == 'help' %}active{% endif %}" href="/help">
-                    <i class="fas fa-book me-1"></i>Help
-                </a>
-                <a class="{% if request is defined and request.endpoint == 'validation' %}active{% endif %}" href="/validation">
-                    <i class="fas fa-check-double me-1"></i>Validation
-                </a>
+                <a class="{% if request is defined and request.endpoint == 'index' %}active{% endif %}" href="/">New Analysis</a>
+                <a class="{% if request is defined and request.endpoint == 'jobs' %}active{% endif %}" href="/jobs">Job History</a>
+                <a class="{% if request is defined and request.endpoint == 'help' %}active{% endif %}" href="/help">Help</a>
+                <a class="{% if request is defined and request.endpoint == 'validation' %}active{% endif %}" href="/validation">Validation</a>
             </nav>
             <div class="ks-tools">
                 <div class="ks-bk-wrap" id="backendStatusWrap" hidden>

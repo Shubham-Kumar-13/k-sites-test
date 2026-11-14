@@ -86,35 +86,36 @@ async function loadKingdoms() {
     } catch (error) {
         console.error('Error loading kingdoms:', error);
         document.getElementById('kingdomContainer').innerHTML = `
-            <div class="col-12 alert alert-danger">
+            <div style="grid-column:1 / -1;color:var(--ks-bad);padding:16px;">
                 Error loading organism categories. Please refresh.
             </div>
         `;
     }
 }
 
+function kingdomIconSvg(name) {
+    const map = {
+        'Animals': `<svg viewBox="0 0 24 24"><ellipse cx="12" cy="16.5" rx="5.2" ry="4.1"/><ellipse cx="5.1" cy="11.2" rx="2" ry="2.8" transform="rotate(-18 5.1 11.2)"/><ellipse cx="9.1" cy="6.2" rx="2.1" ry="3"/><ellipse cx="14.9" cy="6.2" rx="2.1" ry="3"/><ellipse cx="18.9" cy="11.2" rx="2" ry="2.8" transform="rotate(18 18.9 11.2)"/></svg>`,
+        'Plants': `<svg viewBox="0 0 24 24"><path d="M19.5 3C9.5 3 4 8.5 4 14.5c0 1.9.5 3.4 1.4 4.6C6.3 15.7 9.1 12.9 13.6 11 10.1 13.4 8 16.1 7 19.7c1.2.9 2.8 1.3 4.6 1.3C18.6 21 20.6 12 19.5 3z"/></svg>`,
+        'Microbes': `<svg viewBox="0 0 24 24"><rect x="3.5" y="8.2" width="14.5" height="7.6" rx="3.8" transform="rotate(-35 10.7 12)"/><path d="M17.6 5.4l2.6-2.6M20.4 9.2l2.4-1.1M5.3 19l-2.6 2.6M3.4 15l-1.9 1.7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>`,
+        'Fungi': `<svg viewBox="0 0 24 24"><path d="M2.5 12.5a9.5 8.5 0 0 1 19 0z"/><path d="M8.6 13.5h6.8v4.2a3.4 3.4 0 0 1-6.8 0z"/></svg>`,
+        'Other Eukaryotes': `<svg class="st" viewBox="0 0 24 24"><path d="M7 3c0 5.2 10 5.2 10 9s-10 3.8-10 9"/><path d="M17 3c0 5.2-10 5.2-10 9s10 3.8 10 9"/><path d="M8 6.6h8M7.6 12h8.8M8 17.4h8"/></svg>`
+    };
+    return map[name] || '';
+}
+
 function renderKingdoms(kingdoms) {
     kingdomOptions = kingdoms;
     const container = document.getElementById('kingdomContainer');
-    
-    container.innerHTML = kingdoms.map(k => {
-        const icon = k.svg
-            ? `<svg viewBox="0 0 512 512" class="mb-2 text-primary" style="width:2em;height:2em;fill:currentColor;">${k.svg}</svg>`
-            : `<i class="fas ${k.icon} fa-2x mb-2 text-primary"></i>`;
-        return `
-        <div class="col-6 col-md-4 col-lg">
-            <div class="card kingdom-card h-100 cursor-pointer" 
-                 data-kingdom="${k.name}" 
-                 onclick="selectKingdom('${k.name}')"
-                 style="cursor: pointer; transition: all 0.2s;">
-                <div class="card-body text-center">
-                    ${icon}
-                    <h6 class="card-title mb-1">${k.name}</h6>
-                    <p class="card-text small text-muted mb-0">${k.description}</p>
-                </div>
-            </div>
-        </div>
-    `}).join('');
+    container.innerHTML = kingdoms.map(k => `
+        <button type="button" class="ks-tile kingdom-card"
+             data-kingdom="${k.name}"
+             onclick="selectKingdom('${k.name}')">
+            <i class="ki" aria-hidden="true">${kingdomIconSvg(k.name)}</i>
+            <b>${k.name}</b>
+            <span>${k.description}</span>
+        </button>
+    `).join('');
 }
 
 async function selectKingdom(kingdom) {
@@ -123,7 +124,7 @@ async function selectKingdom(kingdom) {
     const cards = document.querySelectorAll('.kingdom-card');
     cards.forEach(card => {
         if (card.dataset.kingdom === kingdom) {
-            card.classList.add('loading');
+            card.classList.add('ks-loading');
             card.setAttribute('aria-busy', 'true');
         } else {
             card.style.opacity = '0.5';
@@ -135,23 +136,23 @@ async function selectKingdom(kingdom) {
     document.getElementById('kingdomContainer').style.display = 'none';
     document.getElementById('speciesSection').style.display = 'block';
 
+    document.getElementById('speciesSearch').value = '';
+    await loadSpecies(kingdom, '');
+    document.getElementById('speciesSearch').focus();
+
     cards.forEach(card => {
-        card.classList.remove('loading');
+        card.classList.remove('ks-loading');
         card.removeAttribute('aria-busy');
         card.style.opacity = '1';
         card.style.pointerEvents = 'auto';
     });
-
-    document.getElementById('speciesSearch').value = '';
-    await loadSpecies(kingdom, '');
-    document.getElementById('speciesSearch').focus();
 }
 
 function resetKingdomSelection() {
     selectedKingdom = null;
     selectedOrganism = null;
     renderKingdoms(kingdomOptions);
-    document.getElementById('kingdomContainer').style.display = 'flex';
+    document.getElementById('kingdomContainer').style.display = '';
     document.getElementById('speciesSection').style.display = 'none';
     document.getElementById('selectedOrganismDisplay').style.display = 'none';
     document.getElementById('organismDirectSection').style.display = 'block';
@@ -162,18 +163,12 @@ function resetKingdomSelection() {
 
 async function loadSpecies(kingdom, query = '') {
     const list = document.getElementById('speciesList');
-    
-    // Show enhanced loading state
+
+    // Show custom loading state
     list.innerHTML = `
-        <div class="list-loading">
-            <div class="text-center">
-                <div class="spinner-border text-primary mb-2" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <div class="text-muted small">
-                    ${query ? `Searching for "${query}"...` : 'Loading species...'}
-                </div>
-            </div>
+        <div class="li ks-list-loading">
+            <span class="ks-spin" style="width:18px;height:18px;vertical-align:middle;margin-right:8px;"></span>
+            <span style="color:var(--ks-muted);">${query ? `Searching for "${query}"...` : 'Loading species...'}</span>
         </div>
     `;
     
@@ -184,29 +179,29 @@ async function loadSpecies(kingdom, query = '') {
         renderSpecies(data.results);
     } catch (error) {
         console.error('Error loading species:', error);
-        list.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>Error loading species. Please try again.</div>';
+        list.innerHTML = '<div class="li" style="color:var(--ks-bad);">Error loading species. Please try again.</div>';
     }
 }
 
 function renderSpecies(species) {
     const list = document.getElementById('speciesList');
-    
+
     if (species.length === 0) {
-        list.innerHTML = '<div class="list-group-item text-muted">No species found</div>';
+        list.innerHTML = '<div class="li" style="color:var(--ks-muted);">No species found</div>';
         return;
     }
-    
-    list.innerHTML = species.map(s => `
-        <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+
+    list.innerHTML = species.map(s => {
+        const code = s.code ? ` · ${s.code}` : '';
+        return `
+        <div class="li"
              onclick="selectOrganism('${s.name}', '${s.taxid}', '${s.common_name || ''}', true)"
              style="cursor: pointer;">
-            <div>
-                <strong>${s.name}</strong>
-                ${s.common_name ? `<br><small class="text-muted">${s.common_name}</small>` : ''}
-            </div>
-            <span class="badge bg-secondary">TaxID: ${s.taxid}</span>
+            <b><i>${s.name}</i></b>
+            ${s.common_name ? `<em>${s.common_name}</em>` : ''}
+            <span class="ks-r">${s.taxid}${code}</span>
         </div>
-    `).join('');
+    `}).join('');
 }
 
 function selectOrganism(name, taxid, commonName, fromCategory = false) {
@@ -301,7 +296,7 @@ async function resetOrganismSelection() {
     } else {
         renderKingdoms(kingdomOptions);
         document.getElementById('speciesSection').style.display = 'none';
-        document.getElementById('kingdomContainer').style.display = 'flex';
+        document.getElementById('kingdomContainer').style.display = '';
     }
 }
 
@@ -313,9 +308,9 @@ async function searchOrganismDirect(query) {
     }
 
     list.innerHTML = `
-        <div class="list-group-item text-muted">
-            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-            Searching organisms...
+        <div class="li ks-list-loading">
+            <span class="ks-spin" style="width:14px;height:14px;vertical-align:middle;margin-right:8px;"></span>
+            <span style="color:var(--ks-muted);">Searching organisms...</span>
         </div>
     `;
 
@@ -346,47 +341,48 @@ async function searchOrganismDirect(query) {
         renderOrganismDirectResults(merged, false, ncbiStatus);
     } catch (error) {
         console.error('Error searching organisms:', error);
-        list.innerHTML = '<div class="list-group-item text-danger"><i class="fas fa-exclamation-circle me-2"></i>Error searching organisms.</div>';
+        list.innerHTML = '<div class="li" style="color:var(--ks-bad);">Error searching organisms.</div>';
     }
 }
 
 function formatExternalStatus(status) {
     if (!status) return null;
+    const badge = (bg, color, border, text) =>
+        `<span style="display:inline-flex;align-items:center;gap:6px;font:500 12px var(--ks-f-sans);padding:2px 8px;border-radius:4px;background:${bg};color:${color};border:1px solid ${border};">${text}</span>`;
     if (status.cache_hits > 0 && status.cache_misses === 0) {
-        return '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>cached</span>';
+        return badge('var(--ks-safe-bg)', 'var(--ks-safe)', 'var(--ks-safe)', 'cached');
     }
     if (status.cache_hits > 0 && status.cache_misses > 0) {
-        return `<span class="badge bg-info"><i class="fas fa-bolt me-1"></i>${status.cache_hits} cached, ${status.cache_misses} live</span>`;
+        return badge('var(--ks-info-bg)', 'var(--ks-info)', 'var(--ks-info)', `${status.cache_hits} cached, ${status.cache_misses} live`);
     }
-    return '<span class="badge bg-light text-dark border"><i class="fas fa-globe me-1"></i>live data</span>';
+    return badge('var(--ks-well)', 'var(--ks-muted)', 'var(--ks-line)', 'live data');
 }
 
 function renderOrganismDirectResults(results, isPartial, statusHtml = null) {
     const list = document.getElementById('organismDirectResults');
     if (results.length === 0) {
         if (isPartial) return; // Wait for NCBI before showing "No organisms found".
-        list.innerHTML = '<div class="list-group-item text-muted">No organisms found</div>';
+        list.innerHTML = '<div class="li" style="color:var(--ks-muted);">No organisms found</div>';
         return;
     }
 
     const items = results.map(s => {
         const safeName = String(s.name || '').replace(/'/g, "\\'");
         const safeCommon = String(s.common_name || '').replace(/'/g, "\\'");
+        const code = s.code ? ` · ${s.code}` : '';
         return `
-        <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+        <div class="li"
              onclick="selectOrganism('${safeName}', '${s.taxid}', '${safeCommon}')"
              style="cursor: pointer;">
-            <div>
-                <strong>${s.name}</strong>
-                ${s.common_name ? `<br><small class="text-muted">${s.common_name}</small>` : ''}
-            </div>
-            <span class="badge bg-secondary">TaxID: ${s.taxid}</span>
+            <b><i>${s.name}</i></b>
+            ${s.common_name ? `<em>${s.common_name}</em>` : ''}
+            <span class="ks-r">${s.taxid}${code}</span>
         </div>
         `;
     }).join('');
 
     const footer = statusHtml
-        ? `<div class="list-group-item text-end py-1">${statusHtml}</div>`
+        ? `<div class="li" style="text-align:right;padding:4px 14px;">${statusHtml}</div>`
         : '';
     list.innerHTML = items + footer;
 }
@@ -407,65 +403,52 @@ async function loadGoCategories() {
 
 function renderGoCategories(categories) {
     const container = document.getElementById('goCategoryContainer');
-    
     container.innerHTML = categories.map(c => `
-        <div class="col-12 col-md-4">
-            <div class="card go-category-card h-100 cursor-pointer" 
-                 data-category="${c.name}" 
-                 onclick="selectGoCategory('${c.name}')"
-                 style="cursor: pointer; transition: all 0.2s;">
-                <div class="card-body text-center">
-                    <i class="fas ${c.icon} fa-2x mb-2 text-success"></i>
-                    <h6 class="card-title mb-1">${c.name}</h6>
-                    <p class="card-text small text-muted mb-0">${c.description}</p>
-                </div>
-            </div>
-        </div>
+        <button type="button" class="ks-tile go-category-card"
+             data-category="${c.name}"
+             onclick="selectGoCategory('${c.name}')">
+            <b>${c.name}</b>
+            <span>${c.description}</span>
+        </button>
     `).join('');
 }
 
 async function selectGoCategory(category) {
     selectedCategory = category;
-    
+
     // Show loading state on the clicked card
     const cards = document.querySelectorAll('.go-category-card');
     cards.forEach(card => {
         if (card.dataset.category === category) {
-            card.classList.add('loading');
-            card.innerHTML = `
-                <div class="card-body text-center">
-                    <div class="spinner-border text-success mb-2" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <h6 class="card-title mb-1">Loading ${category}...</h6>
-                </div>
-            `;
+            card.classList.add('ks-loading');
+            card.setAttribute('aria-busy', 'true');
         } else {
             card.style.opacity = '0.5';
             card.style.pointerEvents = 'none';
         }
     });
-    
+
     // Update UI
     document.getElementById('selectedCategoryName').textContent = category;
     document.getElementById('goCategoryContainer').style.display = 'none';
     document.getElementById('goDirectInputSection').style.display = 'none';
     document.getElementById('goTermsSection').style.display = 'block';
-    
+
+    // Clear direct input
+    document.getElementById('go_term_direct').value = '';
+
+    // Clear search and load terms
+    document.getElementById('goTermSearch').value = '';
+    await loadGoTerms(category, '');
+
     // Reset cards state
     cards.forEach(card => {
-        card.classList.remove('loading');
+        card.classList.remove('ks-loading');
+        card.removeAttribute('aria-busy');
         card.style.opacity = '1';
         card.style.pointerEvents = 'auto';
     });
-    
-    // Clear direct input
-    document.getElementById('go_term_direct').value = '';
-    
-    // Clear search and show prompt to search
-    document.getElementById('goTermSearch').value = '';
-    await loadGoTerms(category, '');
-    
+
     // Focus on search input
     document.getElementById('goTermSearch').focus();
 }
@@ -473,7 +456,7 @@ async function selectGoCategory(category) {
 function resetCategorySelection() {
     selectedCategory = null;
     selectedGoTerm = null;
-    document.getElementById('goCategoryContainer').style.display = 'flex';
+    document.getElementById('goCategoryContainer').style.display = '';
     document.getElementById('goDirectInputSection').style.display = 'block';
     document.getElementById('goTermsSection').style.display = 'none';
     document.getElementById('selectedGoTermDisplay').style.display = 'none';
@@ -483,18 +466,12 @@ function resetCategorySelection() {
 
 async function loadGoTerms(category, query = '') {
     const list = document.getElementById('goTermsList');
-    
-    // Show enhanced loading state
+
+    // Show custom loading state
     list.innerHTML = `
-        <div class="list-loading">
-            <div class="text-center">
-                <div class="spinner-border text-success mb-2" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <div class="text-muted small">
-                    ${query ? `Searching GO terms for "${query}"...` : `Loading ${category} terms...`}
-                </div>
-            </div>
+        <div class="li ks-list-loading">
+            <span class="ks-spin" style="width:18px;height:18px;vertical-align:middle;margin-right:8px;"></span>
+            <span style="color:var(--ks-muted);">${query ? `Searching GO terms for "${query}"...` : `Loading ${category} terms...`}</span>
         </div>
     `;
     
@@ -505,29 +482,25 @@ async function loadGoTerms(category, query = '') {
         renderGoTerms(data.results);
     } catch (error) {
         console.error('Error loading GO terms:', error);
-        list.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>Error loading GO terms. Please try again.</div>';
+        list.innerHTML = '<div class="li" style="color:var(--ks-bad);">Error loading GO terms. Please try again.</div>';
     }
 }
 
 function renderGoTerms(terms) {
     const list = document.getElementById('goTermsList');
-    
+
     if (terms.length === 0) {
-        list.innerHTML = '<div class="list-group-item text-muted">No GO terms found</div>';
+        list.innerHTML = '<div class="li" style="color:var(--ks-muted);">No GO terms found</div>';
         return;
     }
-    
+
     list.innerHTML = terms.map(t => `
-        <div class="list-group-item list-group-item-action"
+        <div class="li"
              onclick="selectGoTerm('${t.id}', '${t.name.replace(/'/g, "\\'")}')"
              style="cursor: pointer;">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <strong>${t.name}</strong>
-                    <br><small class="text-muted">${t.definition || ''}</small>
-                </div>
-                <span class="badge bg-success">${t.id}</span>
-            </div>
+            <b>${t.name}</b>
+            ${t.definition ? `<em>${t.definition}</em>` : ''}
+            <span class="ks-r">${t.id}</span>
         </div>
     `).join('');
 }
@@ -560,7 +533,7 @@ function resetGoTermSelection() {
         loadGoTerms(selectedCategory, document.getElementById('goTermSearch').value);
     } else {
         // Came from direct entry: go back to the initial category + direct input view
-        document.getElementById('goCategoryContainer').style.display = 'flex';
+        document.getElementById('goCategoryContainer').style.display = '';
         document.getElementById('goDirectInputSection').style.display = 'block';
         document.getElementById('goTermsSection').style.display = 'none';
     }

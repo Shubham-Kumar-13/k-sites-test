@@ -471,6 +471,7 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   box-shadow:var(--ks-shadow);
   overflow:hidden;
   margin-bottom:20px;
+  width:100%;
 }
 .ks-ph {
   display:flex;
@@ -687,7 +688,11 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   min-width:0;
   position:relative;
   transition:border-color .2s,transform .2s,box-shadow .2s,background .2s;
-  height:100% !important;
+  height:100%;
+  font:inherit;
+  color:var(--ks-fg);
+  appearance:none;
+  -webkit-appearance:none;
 }
 .ks-tile:hover,
 .kingdom-card:hover,
@@ -731,9 +736,46 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   transition:opacity .4s ease,transform .5s cubic-bezier(.3,1.25,.5,1);
   pointer-events:none;
 }
+.ks-tile .ki svg {
+  width:100%;
+  height:100%;
+  display:block;
+  fill:currentColor;
+  overflow:visible;
+}
+.ks-tile .ki svg.st {
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2.2;
+  stroke-linecap:round;
+}
 .ks-tile.sel .ki,
 .kingdom-card.selected .ki,
-.go-category-card.selected .ki { opacity:.85; transform:none; }
+.go-category-card.selected .ki,
+.kingdom-card.sel .ki,
+.go-category-card.sel .ki { opacity:.85; transform:none; }
+
+/* tile loading state */
+.ks-tile.ks-loading {
+  position:relative;
+  pointer-events:none;
+}
+.ks-tile.ks-loading::after {
+  content:"";
+  position:absolute;
+  top:50%;
+  left:50%;
+  width:18px;
+  height:18px;
+  margin:-9px 0 0 -9px;
+  border:2px solid var(--ks-line);
+  border-top-color:var(--ks-cyan);
+  border-radius:50%;
+  animation:ks-spin 1s linear infinite;
+}
+.ks-tile.ks-loading b,
+.ks-tile.ks-loading span,
+.ks-tile.ks-loading .ki { opacity:.25; }
 
 /* list (species / direct results) */
 .ks-list,
@@ -793,6 +835,11 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   font:400 12.5px var(--ks-f-mono);
   color:var(--ks-muted);
 }
+.ks-list-loading {
+  justify-content:center;
+  padding:16px;
+  color:var(--ks-muted);
+}
 
 /* notes / alerts */
 .ks-note {
@@ -805,8 +852,12 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   margin-top:12px;
   flex-wrap:wrap;
   border:1px solid var(--ks-line);
+  width:100%;
+  box-sizing:border-box;
 }
 .ks-note .ks-grow { flex:1; min-width:0; }
+.ks-note .ks-grow > b,
+.ks-note .ks-grow > span { word-break:break-word; }
 .ks-note small { color:var(--ks-muted); }
 .ks-note.ks-info { background:var(--ks-info-bg); border-color:var(--ks-info); }
 .ks-note.ks-ok { background:var(--ks-safe-bg); border-color:var(--ks-safe); }
