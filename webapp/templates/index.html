@@ -410,25 +410,6 @@
     st.classList.toggle('ok', ok);
     st.innerHTML = '<i></i>' + text;
   }
-  function updateRail() {
-    const org = document.getElementById('organism');
-    const go = document.getElementById('go_term');
-    const steps = [
-      { id: 's1', done: !!(org && org.value) },
-      { id: 's2', done: !!(go && go.value) },
-      { id: 's3', done: true },
-      { id: 's4', done: false }
-    ];
-    let firstUndone = null;
-    steps.forEach(s => {
-      const link = document.querySelector('.ks-rail a[data-s="' + s.id + '"]');
-      if (!link) return;
-      link.classList.toggle('done', s.done);
-      if (!s.done && !firstUndone) firstUndone = link;
-    });
-    document.querySelectorAll('.ks-rail a').forEach(a => a.classList.remove('on'));
-    (firstUndone || document.querySelector('.ks-rail a:last-child'))?.classList.add('on');
-  }
   function updateStatuses() {
     const org = document.getElementById('organism');
     const go = document.getElementById('go_term');
@@ -436,9 +417,33 @@
     setStatus('s2', go && go.value, go && go.value ? 'Complete' : 'In progress');
     setStatus('s3', true, 'Complete');
     setStatus('s4', false, 'In progress');
-    updateRail();
   }
-  document.addEventListener('DOMContentLoaded', updateStatuses);
+  function setRailActive(id) {
+    document.querySelectorAll('.ks-rail a').forEach(a => a.classList.remove('on'));
+    const link = document.querySelector('.ks-rail a[data-s="' + id + '"]');
+    if (link) link.classList.add('on');
+  }
+  function initScrollRail() {
+    const sections = ['s1','s2','s3','s4']
+      .map(id => document.getElementById(id))
+      .filter(Boolean);
+    if (!sections.length || !('IntersectionObserver' in window)) return;
+    const observer = new IntersectionObserver(function (entries) {
+      let best = null, bestRatio = -1;
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting && entry.intersectionRatio > bestRatio) {
+          bestRatio = entry.intersectionRatio;
+          best = entry.target;
+        }
+      });
+      if (best) setRailActive(best.id);
+    }, { rootMargin: '-20% 0px -55% 0px', threshold: [0, 0.25, 0.5, 0.75, 1] });
+    sections.forEach(s => observer.observe(s));
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    updateStatuses();
+    initScrollRail();
+  });
   document.addEventListener('change', function (e) {
     if (['organism','taxid','go_term','go_term_name'].indexOf(e.target.id) >= 0) updateStatuses();
   });
