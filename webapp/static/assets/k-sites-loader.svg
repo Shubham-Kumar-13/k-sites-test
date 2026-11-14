@@ -16,7 +16,7 @@
       <canvas id="gk" style="width:960px;height:480px;display:block" aria-hidden="true"></canvas>
     </div>
   </foreignObject>
-  <text id="cap" x="480" y="462" text-anchor="middle" class="cap"></text>
+  <text id="cap" x="480" y="462" text-anchor="middle" class="cap" style="display:none"></text>
   <script><![CDATA[
 (function(){
 var r=document.documentElement;
