@@ -49,10 +49,10 @@
                         <div class="ks-formtext">Type at least 2 characters to search NCBI Taxonomy directly.</div>
                     </div>
 
-                    <div class="ks-divider">or browse by category</div>
+                    <div class="ks-divider" id="organismCategoryDivider">or browse by category</div>
 
                     <!-- Kingdom Selection -->
-                    <div class="ks-block">
+                    <div class="ks-block" id="kingdomBlock">
                         <div class="ks-lab"><span class="ks-k">A</span>Choose Kingdom/Category</div>
                         <div id="kingdomContainer" class="ks-tiles">
                             <!-- Kingdoms loaded dynamically -->
@@ -113,7 +113,7 @@
                 </div>
                 <div class="ks-pb">
                     <!-- GO Category Selection -->
-                    <div class="ks-block">
+                    <div class="ks-block" id="goCategoryBlock">
                         <div class="ks-lab"><span class="ks-k">A</span>Choose GO Category</div>
                         <div id="goCategoryContainer" class="ks-tiles">
                             <!-- Categories loaded dynamically -->

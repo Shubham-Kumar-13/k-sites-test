@@ -404,7 +404,7 @@ html[data-bs-theme="dark"] .ks-hero::after {
 .ks-hero .ks-wrap {
   position:relative;
   z-index:2;
-  padding-block:56px 64px;
+  padding-block:44px 52px;
   display:grid;
   grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);
   gap:32px;
@@ -456,7 +456,7 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
 @media (max-width:900px) {
   .ks-hero .ks-wrap {
     grid-template-columns:1fr;
-    padding-block:40px 44px;
+    padding-block:32px 36px;
   }
 }
 
@@ -681,8 +681,14 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
 .kingdom-card:hover,
 .go-category-card:hover {
   border-color:var(--ks-cyan);
-  transform:translateY(-2px);
-  box-shadow:0 8px 18px -10px rgba(0,168,204,.6);
+  background:rgba(0,168,204,.06);
+  transform:none;
+  box-shadow:none;
+}
+html[data-bs-theme="dark"] .ks-tile:hover,
+html[data-bs-theme="dark"] .kingdom-card:hover,
+html[data-bs-theme="dark"] .go-category-card:hover {
+  background:rgba(79,216,242,.09);
 }
 .ks-tile.sel,
 .kingdom-card.selected,
@@ -797,7 +803,11 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
 .ks-list .li:hover,
 .list-group-item:hover,
 #speciesList .list-group-item:hover,
-#organismDirectResults .list-group-item:hover { background:var(--ks-well); }
+#organismDirectResults .list-group-item:hover { background:rgba(0,168,204,.06); }
+html[data-bs-theme="dark"] .ks-list .li:hover,
+html[data-bs-theme="dark"] .list-group-item:hover,
+html[data-bs-theme="dark"] #speciesList .list-group-item:hover,
+html[data-bs-theme="dark"] #organismDirectResults .list-group-item:hover { background:rgba(79,216,242,.09); }
 .ks-list .li.sel,
 #speciesList .list-group-item.active,
 #organismDirectResults .list-group-item.active {

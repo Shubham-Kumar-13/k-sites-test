@@ -9,6 +9,7 @@ let selectedOrganism = null;
 let selectedCategory = null;
 let selectedGoTerm = null;
 let kingdomOptions = [];
+let goCategoryOptions = [];
 let geneCountCheckTimeout = null;
 let geneCountAbortController = null;
 
@@ -126,15 +127,14 @@ async function selectKingdom(kingdom) {
         if (card.dataset.kingdom === kingdom) {
             card.classList.add('ks-loading');
             card.setAttribute('aria-busy', 'true');
-        } else {
-            card.style.opacity = '0.5';
-            card.style.pointerEvents = 'none';
         }
     });
 
     document.getElementById('selectedKingdomName').textContent = kingdom;
-    document.getElementById('selectedKingdomDisplay').style.display = '';
-    document.getElementById('kingdomContainer').style.display = 'none';
+    document.getElementById('selectedKingdomDisplay').style.display = 'none';
+    document.getElementById('organismDirectSection').style.display = 'none';
+    document.getElementById('organismCategoryDivider').style.display = 'none';
+    document.getElementById('kingdomBlock').style.display = 'block';
     document.getElementById('speciesSection').style.display = 'block';
 
     document.getElementById('speciesSearch').value = '';
@@ -144,8 +144,11 @@ async function selectKingdom(kingdom) {
     cards.forEach(card => {
         card.classList.remove('ks-loading');
         card.removeAttribute('aria-busy');
-        card.style.opacity = '1';
-        card.style.pointerEvents = 'auto';
+        if (card.dataset.kingdom === kingdom) {
+            card.classList.add('selected');
+        } else {
+            card.classList.remove('selected');
+        }
     });
 }
 
@@ -153,11 +156,12 @@ function resetKingdomSelection() {
     selectedKingdom = null;
     selectedOrganism = null;
     renderKingdoms(kingdomOptions);
-    document.getElementById('kingdomContainer').style.display = '';
+    document.getElementById('organismDirectSection').style.display = 'block';
+    document.getElementById('organismCategoryDivider').style.display = 'block';
+    document.getElementById('kingdomBlock').style.display = 'block';
     document.getElementById('speciesSection').style.display = 'none';
     document.getElementById('selectedKingdomDisplay').style.display = 'none';
     document.getElementById('selectedOrganismDisplay').style.display = 'none';
-    document.getElementById('organismDirectSection').style.display = 'block';
     document.getElementById('evidenceCoverageNote').style.display = 'none';
     document.getElementById('organism').value = '';
     document.getElementById('taxid').value = '';
@@ -220,7 +224,8 @@ function selectOrganism(name, taxid, commonName, fromCategory = false) {
     document.getElementById('selectedOrganismDisplay').style.display = '';
     document.getElementById('speciesSection').style.display = 'none';
     document.getElementById('organismDirectSection').style.display = 'none';
-    document.getElementById('kingdomContainer').style.display = 'none';
+    document.getElementById('organismCategoryDivider').style.display = 'none';
+    document.getElementById('kingdomBlock').style.display = 'none';
 
     // Say what is known about knockouts in this organism, and check the gene count
     showEvidenceCoverage(taxid);
@@ -283,22 +288,25 @@ async function resetOrganismSelection() {
     const coverageNote = document.getElementById('evidenceCoverageNote');
     if (coverageNote) coverageNote.style.display = 'none';
     document.getElementById('selectedOrganismDisplay').style.display = 'none';
-    document.getElementById('organismDirectSection').style.display = 'block';
     document.getElementById('organismDirectSearch').value = '';
     document.getElementById('organismDirectResults').innerHTML = '';
     document.getElementById('organism').value = '';
     document.getElementById('taxid').value = '';
 
     if (selectedKingdom) {
-        document.getElementById('kingdomContainer').style.display = 'none';
+        document.getElementById('organismDirectSection').style.display = 'none';
+        document.getElementById('organismCategoryDivider').style.display = 'none';
+        document.getElementById('kingdomBlock').style.display = 'block';
         document.getElementById('speciesSection').style.display = 'block';
         document.getElementById('speciesSearch').value = '';
         await loadSpecies(selectedKingdom, '');
         document.getElementById('speciesSearch').focus();
     } else {
         renderKingdoms(kingdomOptions);
+        document.getElementById('organismDirectSection').style.display = 'block';
+        document.getElementById('organismCategoryDivider').style.display = 'block';
+        document.getElementById('kingdomBlock').style.display = 'block';
         document.getElementById('speciesSection').style.display = 'none';
-        document.getElementById('kingdomContainer').style.display = '';
     }
 }
 
@@ -397,10 +405,15 @@ async function loadGoCategories() {
     try {
         const response = await ksFetch('/api/go-terms/categories');
         const data = await response.json();
+        goCategoryOptions = data.categories;
         renderGoCategories(data.categories);
     } catch (error) {
         console.error('Error loading GO categories:', error);
     }
+}
+
+function goCategorySelectedIcon() {
+    return `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/></svg>`;
 }
 
 function renderGoCategories(categories) {
@@ -409,6 +422,7 @@ function renderGoCategories(categories) {
         <button type="button" class="ks-tile go-category-card"
              data-category="${c.name}"
              onclick="selectGoCategory('${c.name}')">
+            <i class="ki" aria-hidden="true">${goCategorySelectedIcon()}</i>
             <b>${c.name}</b>
             <span>${c.description}</span>
         </button>
@@ -424,17 +438,14 @@ async function selectGoCategory(category) {
         if (card.dataset.category === category) {
             card.classList.add('ks-loading');
             card.setAttribute('aria-busy', 'true');
-        } else {
-            card.style.opacity = '0.5';
-            card.style.pointerEvents = 'none';
         }
     });
 
     // Update UI
     document.getElementById('selectedCategoryName').textContent = category;
-    document.getElementById('selectedCategoryDisplay').style.display = '';
-    document.getElementById('goCategoryContainer').style.display = 'none';
+    document.getElementById('selectedCategoryDisplay').style.display = 'none';
     document.getElementById('goDirectInputSection').style.display = 'none';
+    document.getElementById('goCategoryBlock').style.display = 'block';
     document.getElementById('goTermsSection').style.display = 'block';
 
     // Clear direct input
@@ -444,12 +455,15 @@ async function selectGoCategory(category) {
     document.getElementById('goTermSearch').value = '';
     await loadGoTerms(category, '');
 
-    // Reset cards state
+    // Reset cards state and mark selection
     cards.forEach(card => {
         card.classList.remove('ks-loading');
         card.removeAttribute('aria-busy');
-        card.style.opacity = '1';
-        card.style.pointerEvents = 'auto';
+        if (card.dataset.category === category) {
+            card.classList.add('selected');
+        } else {
+            card.classList.remove('selected');
+        }
     });
 
     // Focus on search input
@@ -459,7 +473,8 @@ async function selectGoCategory(category) {
 function resetCategorySelection() {
     selectedCategory = null;
     selectedGoTerm = null;
-    document.getElementById('goCategoryContainer').style.display = '';
+    renderGoCategories(goCategoryOptions);
+    document.getElementById('goCategoryBlock').style.display = 'block';
     document.getElementById('selectedCategoryDisplay').style.display = 'none';
     document.getElementById('goDirectInputSection').style.display = 'block';
     document.getElementById('goTermsSection').style.display = 'none';
@@ -521,6 +536,8 @@ function selectGoTerm(id, name) {
     document.getElementById('selectedGoTermName').textContent = name;
     document.getElementById('selectedGoTermDisplay').style.display = '';
     document.getElementById('goTermsSection').style.display = 'none';
+    document.getElementById('goDirectInputSection').style.display = 'none';
+    document.getElementById('goCategoryBlock').style.display = 'none';
     
     // Check gene count
     checkGeneCount();
@@ -533,11 +550,13 @@ function resetGoTermSelection() {
     document.getElementById('go_term_name').value = '';
     if (selectedCategory) {
         // Came from the category/Step B flow: go back to Step B
+        document.getElementById('goDirectInputSection').style.display = 'none';
+        document.getElementById('goCategoryBlock').style.display = 'block';
         document.getElementById('goTermsSection').style.display = 'block';
         loadGoTerms(selectedCategory, document.getElementById('goTermSearch').value);
     } else {
         // Came from direct entry: go back to the initial category + direct input view
-        document.getElementById('goCategoryContainer').style.display = '';
+        document.getElementById('goCategoryBlock').style.display = 'block';
         document.getElementById('goDirectInputSection').style.display = 'block';
         document.getElementById('goTermsSection').style.display = 'none';
     }
