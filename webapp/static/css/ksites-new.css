@@ -447,6 +447,7 @@ html[data-bs-theme="dark"] .ks-kicker::before {
 html[data-bs-theme="dark"] .ks-hero h1 {
   color:#fff;
 }
+.ks-hero h1 i { font-family:inherit; }
 .ks-hero .ks-lede {
   margin-top:16px;
   max-width:52ch;
@@ -1408,9 +1409,10 @@ html[data-bs-theme="dark"] .ks-hero .ks-chip {
   margin-bottom:8px;
 }
 .ks-kpi b {
-  font:600 32px var(--ks-f-sans);
+  font:600 clamp(32px,4.4vw,46px)/1 var(--ks-f-mono);
+  letter-spacing:-2px;
+  font-variant-numeric:tabular-nums;
   color:var(--ks-fg);
-  line-height:1;
 }
 .ks-dist {
   display:flex;
@@ -1429,10 +1431,14 @@ html[data-bs-theme="dark"] .ks-hero .ks-chip {
 .ks-acts {
   display:flex;
   flex-wrap:wrap;
-  gap:10px;
+  gap:8px;
   margin:22px 0;
+  align-items:center;
 }
 .ks-acts .sp { flex:1; }
+.ks-acts .ks-btn.sm { padding:9px 16px; font-size:14px; }
+.ks-acts .ks-btn.ok { background:var(--ks-safe); color:#fff; border-color:var(--ks-safe); }
+.ks-acts .ks-btn.amber { background:#f0b429; color:#2a1e00; border-color:#f0b429; }
 .ks-btn {
   border:0;
   background:var(--ks-cyan);
@@ -1463,27 +1469,24 @@ html[data-bs-theme="dark"] .ks-hero .ks-chip {
 /* parameter grid */
 .ks-pgrid {
   display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:12px 28px;
+  grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+  gap:14px 28px;
   margin:0;
 }
-.ks-pgrid > div {
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-  padding:10px 0;
-  border-bottom:1px solid var(--ks-line2);
-}
+.ks-pgrid > div { min-width:0; }
 .ks-pgrid dt {
-  font:500 12.5px var(--ks-f-sans);
+  font:500 11px var(--ks-f-mono);
+  letter-spacing:1px;
+  text-transform:uppercase;
   color:var(--ks-muted);
   margin:0;
 }
 .ks-pgrid dd {
-  font:500 14px var(--ks-f-sans);
+  font-weight:600;
+  font-size:14.5px;
   color:var(--ks-fg);
-  margin:0;
-  text-align:right;
+  margin:3px 0 0;
+  overflow-wrap:anywhere;
 }
 .ks-pgrid code {
   font-family:var(--ks-f-mono);
@@ -1507,6 +1510,22 @@ html[data-bs-theme="dark"] .ks-hero .ks-chip {
 .ks-alert.ks-bad { background:var(--ks-bad-bg); border-color:var(--ks-bad); color:var(--ks-bad); }
 .ks-alert.ks-info { background:var(--ks-info-bg); border-color:var(--ks-info); color:var(--ks-info); }
 .ks-alert.ks-warn { background:var(--ks-warn-bg); border-color:var(--ks-warn); color:var(--ks-warn); }
+.ks-results-alert {
+  margin-top:28px;
+  margin-bottom:20px;
+  padding:12px 18px;
+}
+.ks-results-alert .ks-tick {
+  width:22px;
+  height:22px;
+  flex:none;
+  stroke:currentColor;
+  stroke-width:3;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  fill:none;
+}
+.ks-results-alert span { color:var(--ks-fg); }
 
 /* --------------------------------------------------------------------------
    Analysis loading / progress screen
@@ -1810,34 +1829,48 @@ html[data-bs-theme="dark"] .ks-status-pill.status-running {
 .ks-landscape {
   width:100%;
 }
-.ks-landscape .bar {
+.ks-dist2 {
   display:flex;
+  gap:3px;
+  margin-top:14px;
+}
+.ks-dcol {
+  flex:var(--n) 1 0;
+  min-width:54px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+  text-align:center;
+}
+.ks-dbar {
+  height:14px;
   width:100%;
-  height:10px;
-  border-radius:5px;
-  overflow:hidden;
-  background:var(--ks-line);
+  border-radius:3px;
+  background:var(--c);
+  transform-origin:left;
+  animation:ks-grow 1s cubic-bezier(.2,.8,.2,1) both;
+  animation-delay:calc(var(--i) * .1s);
 }
-.ks-landscape .bar i {
-  display:block;
-  height:100%;
-  min-width:2px;
-}
-.ks-landscape .bar i + i { border-left:1px solid var(--ks-panel); }
-.ks-landscape .leg {
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  justify-content:center;
-  font:500 11px var(--ks-f-sans);
+.ks-dnm {
+  font-size:13px;
   color:var(--ks-muted);
-  margin-top:8px;
+  line-height:1.2;
 }
-.ks-landscape .leg span { display:inline-flex; align-items:center; gap:5px; }
-.ks-landscape .leg b {
-  width:8px;
-  height:8px;
-  border-radius:50%;
+.ks-dct {
+  font:600 16px var(--ks-f-mono);
+  color:var(--ks-fg);
+  line-height:1;
+}
+.ks-dct small {
+  display:block;
+  font:400 11.5px var(--ks-f-mono);
+  color:var(--ks-muted);
+  margin-top:3px;
+}
+@keyframes ks-grow {
+  0% { transform:scaleX(0); }
+  100% { transform:scaleX(1); }
 }
 
 /* gene landscape scatter plot */

@@ -133,9 +133,9 @@
 
     <div class="ks-wrap ks-wrap-results">
     <!-- Success Notification -->
-    <div class="ks-alert ks-ok">
-        <i class="fas fa-check-circle"></i>
-        <span><b>Analysis Complete!</b> {% if job.user_email %}Results have been emailed to {{ job.user_email }}.{% endif %}</span>
+    <div class="ks-alert ks-ok ks-results-alert">
+        <svg class="ks-tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        <span><b>Analysis Complete!</b> Your ranked genes are below.</span>
     </div>
 
     <!-- KPIs -->
@@ -276,7 +276,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/results.js') }}?v=1.4.2"></script>
+<script src="{{ url_for('static', filename='js/results.js') }}?v=1.4.3"></script>
 <script>
 (function () {
     const tabs = document.querySelectorAll('#resultsTabs [role="tab"]');

@@ -340,31 +340,31 @@ function renderSafetyDist(genes) {
         container.innerHTML = '<span style="color:var(--ks-muted);font-size:12px;">No data</span>';
         return;
     }
-    const order = ['SAFE', 'CAUTION', 'MODERATE_CONCERN', 'HIGH_CONCERN', 'AVOID'];
-    const colors = {
-        SAFE: 'var(--v-safe)',
-        CAUTION: 'var(--v-info)',
-        MODERATE_CONCERN: 'var(--v-warn)',
-        HIGH_CONCERN: 'var(--v-bad)',
-        AVOID: '#9e0059'
-    };
+    const groups = [
+        { key: 'SAFE', label: 'Safe', color: 'var(--v-safe)' },
+        { key: 'CAUTION', label: 'Caution', color: 'var(--v-info)' },
+        { key: 'MODERATE_CONCERN', label: 'Moderate', color: 'var(--v-warn)' },
+        { key: 'HIGH_AVOID', label: 'High / Avoid', color: 'var(--v-bad)' }
+    ];
     const counts = {};
     genes.forEach(g => {
         const level = (g.safety_recommendation || {}).safety_level || 'UNKNOWN';
         counts[level] = (counts[level] || 0) + 1;
     });
+    counts.HIGH_AVOID = (counts.HIGH_CONCERN || 0) + (counts.AVOID || 0);
     const total = genes.length;
-    const segments = order
-        .filter(level => counts[level])
-        .map(level => {
-            const pct = (counts[level] / total) * 100;
-            return `<i style="width:${pct.toFixed(2)}%;background:${colors[level]};" title="${esc(safetyLabel(level))}: ${counts[level]}"></i>`;
+    const cols = groups
+        .filter(g => counts[g.key])
+        .map((g, i) => {
+            const n = counts[g.key];
+            const pct = (n / total) * 100;
+            return `<div class="ks-dcol" style="--n:${pct.toFixed(2)};--c:${g.color};--i:${i}">
+                <div class="ks-dbar" aria-hidden="true"></div>
+                <div class="ks-dnm">${esc(g.label)}</div>
+                <div class="ks-dct">${n}<small>${Math.round(pct)}%</small></div>
+            </div>`;
         }).join('');
-    const legend = order
-        .filter(level => counts[level])
-        .map(level => `<span><b style="background:${colors[level]}"></b>${esc(safetyLabel(level))} ${counts[level]}</span>`)
-        .join('');
-    container.innerHTML = `<div class="bar">${segments}</div><div class="leg">${legend}</div>`;
+    container.innerHTML = `<div class="ks-dist2">${cols}</div>`;
 }
 
 function renderLandscape(genes, cutoff) {
