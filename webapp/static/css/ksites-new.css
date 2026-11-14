@@ -838,7 +838,14 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   width:100%;
   box-sizing:border-box;
 }
-.ks-note .ks-grow { flex:1; min-width:0; }
+.ks-note .ks-grow {
+  flex:1 1 0%;
+  min-width:0;
+  display:block;
+}
+.ks-note .ks-btn-s {
+  margin-left:auto;
+}
 .ks-note .ks-grow > b,
 .ks-note .ks-grow > span { word-break:break-word; }
 .ks-note small { color:var(--ks-muted); }
