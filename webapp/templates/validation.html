@@ -3,6 +3,17 @@
 {% block title %}Validation - K-Sites{% endblock %}
 
 {% block content %}
+<header class="ks-hero ks-compact">
+    <canvas class="netc" aria-hidden="true"></canvas>
+    <div class="ks-wrap" style="grid-template-columns:1fr;">
+        <div>
+            <div class="ks-kicker">Validation report</div>
+            <h1><i class="fas fa-check-double me-3"></i>Validation of the measured knockout evidence</h1>
+            <p style="font-size:17px;max-width:70ch;">How the data behind K-Sites verdicts were checked against published knockouts.</p>
+        </div>
+    </div>
+</header>
+
 <div class="ks-help">
     <nav class="ks-help-nav ks-panel" style="padding:16px;">
         <div style="font:600 14px var(--ks-f-sans);margin-bottom:10px;color:var(--ks-fg);">Contents</div>
@@ -10,12 +21,6 @@
     </nav>
 
     <div>
-        <div style="margin-bottom:24px;">
-            <div class="ks-kicker" style="margin-bottom:10px;">Quality control</div>
-            <h1><i class="fas fa-check-double me-3"></i>Validation of the measured knockout evidence</h1>
-            <p style="font-size:17px;">How the data behind K-Sites verdicts were checked against published knockouts.</p>
-        </div>
-
         <section id="validation-report" class="ks-panel ks-report">
             <div class="ks-pb">
                 {{ validation_html|safe }}

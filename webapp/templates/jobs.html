@@ -3,16 +3,20 @@
 {% block title %}Job History - K-Sites{% endblock %}
 
 {% block content %}
-<section class="ks-panel" style="margin-bottom:20px;">
-    <div class="ks-ph">
+<header class="ks-hero ks-compact">
+    <canvas class="netc" aria-hidden="true"></canvas>
+    <div class="ks-wrap" style="grid-template-columns:1fr auto;align-items:center;">
         <div>
-            <div class="ks-tag">History</div>
-            <h2><i class="fas fa-list me-2"></i>Analysis Job History</h2>
+            <div class="ks-kicker">Stored jobs</div>
+            <h1>Analysis Job History</h1>
         </div>
-        <a href="/" class="ks-btn">
+        <a href="/" class="ks-btn" style="justify-self:end;">
             <i class="fas fa-plus"></i>New Analysis
         </a>
     </div>
+</header>
+
+<section class="ks-panel" style="margin-bottom:20px;">
     <div class="ks-pb">
         <div class="ks-note ks-info" data-hosted-note style="display: none;">
             <i class="fas fa-database"></i>
