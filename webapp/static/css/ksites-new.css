@@ -92,7 +92,7 @@ body {
   padding-right:max(16px,env(safe-area-inset-right,0px));
 }
 .ks-wrap-results {
-  max-width:980px;
+  max-width:1160px;
 }
 
 /* --------------------------------------------------------------------------
@@ -1374,6 +1374,10 @@ html[data-bs-theme="dark"] #organismDirectResults .list-group-item:hover { backg
   border:1px solid var(--ks-line);
   padding:4px 12px;
   border-radius:6px;
+  color:var(--ks-fg);
+}
+.ks-hero .ks-chip {
+  color:var(--ks-fg);
 }
 
 /* KPIs */

@@ -288,6 +288,7 @@ function showResults(job) {
     const cancelledState = document.getElementById('cancelledState');
     if (cancelledState) cancelledState.style.display = 'none';
     document.getElementById('resultsContent').style.display = 'block';
+    if (window.initKsHeroNetworks) window.initKsHeroNetworks();
 
     // Setup download links
     ksBindDownload('downloadHtml', job.id, 'html');
