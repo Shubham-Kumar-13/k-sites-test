@@ -1567,6 +1567,122 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   border-radius:50%;
 }
 
+/* gene landscape scatter plot */
+.ks-land {
+  border:1px solid var(--ks-line);
+  border-radius:10px;
+  background:var(--ks-well);
+  padding:16px 18px;
+  margin-bottom:16px;
+}
+.ks-lhead {
+  display:flex;
+  justify-content:space-between;
+  gap:10px 20px;
+  flex-wrap:wrap;
+  align-items:flex-end;
+}
+.ks-lhead .ks-tag {
+  font:500 11px var(--ks-f-mono);
+  letter-spacing:1.1px;
+  text-transform:uppercase;
+  color:var(--ks-muted);
+}
+.ks-lhead h3 {
+  font:600 17px var(--ks-f-sans);
+  margin:2px 0 0;
+}
+.ks-lkey {
+  display:flex;
+  gap:6px 16px;
+  flex-wrap:wrap;
+  font-size:12.5px;
+  color:var(--ks-muted);
+}
+.ks-lkey span {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.ks-lwrap {
+  position:relative;
+  margin-top:10px;
+}
+#geneLandscapeSvg {
+  width:100%;
+  height:auto;
+  display:block;
+  overflow:visible;
+}
+#geneLandscapeSvg text {
+  font:11px var(--ks-f-mono);
+  fill:var(--ks-muted);
+}
+#geneLandscapeSvg .ks-ttl {
+  font:12px var(--ks-f-sans);
+  fill:var(--ks-fg);
+}
+#geneLandscapeSvg .ks-gr {
+  stroke:var(--ks-line2);
+  stroke-width:1;
+}
+#geneLandscapeSvg .ks-ax {
+  stroke:var(--ks-muted);
+  stroke-width:1;
+}
+#geneLandscapeSvg .ks-ex {
+  fill:rgba(120,140,170,.12);
+}
+#geneLandscapeSvg .ks-cut {
+  stroke:var(--ks-magenta,#e83e8c);
+  stroke-dasharray:4 4;
+  stroke-width:1.5;
+}
+#geneLandscapeSvg .ks-pin {
+  font:600 11px var(--ks-f-mono);
+  fill:var(--ks-fg);
+  font-style:italic;
+  paint-order:stroke;
+  stroke:var(--ks-well);
+  stroke-width:4px;
+  stroke-linejoin:round;
+}
+#geneLandscapeSvg .ks-pt {
+  transform-box:fill-box;
+  transform-origin:center;
+  stroke:var(--ks-panel);
+  stroke-width:.8;
+  opacity:.92;
+  cursor:crosshair;
+}
+#geneLandscapeSvg .ks-pt:hover {
+  opacity:1;
+  stroke:var(--ks-fg);
+  stroke-width:1.6;
+}
+#geneLandscapeSvg .ks-pt.s { fill:var(--ks-safe); }
+#geneLandscapeSvg .ks-pt.c { fill:var(--ks-info); }
+#geneLandscapeSvg .ks-pt.m { fill:var(--ks-warn); }
+#geneLandscapeSvg .ks-pt.h { fill:var(--ks-bad); }
+.ks-ltip {
+  position:absolute;
+  pointer-events:none;
+  z-index:5;
+  background:var(--ks-ink,#0a0f1e);
+  color:#fff;
+  font:12px/1.5 var(--ks-f-mono);
+  padding:6px 10px;
+  border-radius:6px;
+  white-space:nowrap;
+  transform:translate(-50%,-130%);
+  box-shadow:0 8px 20px -8px rgba(0,0,0,.6);
+}
+.ks-lnote {
+  font-size:12.5px;
+  color:var(--ks-muted);
+  margin:6px 0 0;
+}
+
 /* clean data tables */
 .ks-table {
   width:100%;

@@ -288,6 +288,118 @@ function renderSafetyDist(genes) {
     container.innerHTML = `<div class="bar">${segments}</div><div class="leg">${legend}</div>`;
 }
 
+function renderLandscape(genes, cutoff) {
+    const section = document.getElementById('geneLandscape');
+    const svg = document.getElementById('geneLandscapeSvg');
+    if (!section || !svg) return;
+    if (!genes || genes.length === 0) {
+        section.hidden = true;
+        return;
+    }
+    const valid = genes.filter(g =>
+        typeof g.pleiotropy_score === 'number' &&
+        typeof g.composite_score === 'number' &&
+        !isNaN(g.pleiotropy_score) &&
+        !isNaN(g.composite_score)
+    );
+    if (valid.length === 0) {
+        section.hidden = true;
+        return;
+    }
+    section.hidden = false;
+
+    const W = 680, H = 320, L = 50, R = 14, T = 12, B = 46;
+    const pw = W - L - R, ph = H - T - B;
+    const maxP = 10;
+    const pleio = cutoff ?? 5;
+
+    function X(v) { return L + (v / maxP) * pw; }
+    function Y(v) { return T + (1 - v) * ph; }
+
+    const levelClass = {
+        SAFE: 's',
+        CAUTION: 'c',
+        MODERATE_CONCERN: 'm',
+        HIGH_CONCERN: 'h',
+        AVOID: 'h'
+    };
+    const levelName = {
+        SAFE: 'Safe',
+        CAUTION: 'Caution',
+        MODERATE_CONCERN: 'Moderate concern',
+        HIGH_CONCERN: 'High concern',
+        AVOID: 'Avoid'
+    };
+    const shapes = {
+        s: '<circle r="4.2"',
+        c: '<rect x="-3.6" y="-3.6" width="7.2" height="7.2"',
+        m: '<path d="M0-5.2L5.2 0 0 5.2-5.2 0z"',
+        h: '<path d="M0-5.2L5 4h-10z"'
+    };
+
+    const pts = valid.map(g => ({
+        x: Math.max(0.05, Math.min(maxP - 0.05, g.pleiotropy_score)),
+        y: Math.max(0.02, Math.min(0.99, g.composite_score)),
+        symbol: g.symbol,
+        level: (g.safety_recommendation || {}).safety_level || 'UNKNOWN',
+        cls: levelClass[(g.safety_recommendation || {}).safety_level] || 'h'
+    }));
+
+    pts.sort((a, b) => b.y - a.y);
+    pts.forEach((p, i) => { p.rank = i + 1; });
+
+    const rank1 = pts[0];
+    const passing = pts.filter(p => p.x <= pleio);
+    const lastPass = passing.length ? passing[passing.length - 1] : null;
+    const lastOverall = pts[pts.length - 1];
+    [rank1, lastPass, lastOverall].forEach(p => { if (p) p.label = `${p.symbol} (#${p.rank})`; });
+
+    pts.sort((a, b) => a.x - b.x);
+
+    let o = `<rect class="ks-ex" x="${X(pleio)}" y="${T}" width="${X(maxP) - X(pleio)}" height="${ph}"/>`;
+    [0, 0.25, 0.5, 0.75, 1].forEach(v => {
+        o += `<line class="ks-gr" x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}"/>`;
+        o += `<text x="${L - 8}" y="${Y(v) + 4}" text-anchor="end">${v.toFixed(2)}</text>`;
+    });
+    for (let v = 0; v <= maxP; v++) {
+        const y2 = T + ph + (v % 2 === 0 ? 6 : 3);
+        o += `<line class="ks-ax" x1="${X(v)}" x2="${X(v)}" y1="${T + ph}" y2="${y2}"/>`;
+        if (v % 2 === 0) o += `<text x="${X(v)}" y="${T + ph + 19}" text-anchor="middle">${v}</text>`;
+    }
+    o += `<line class="ks-ax" x1="${L}" x2="${W - R}" y1="${T + ph}" y2="${T + ph}"/>`;
+    o += `<line class="ks-ax" x1="${L}" x2="${L}" y1="${T}" y2="${T + ph}"/>`;
+    o += `<line class="ks-cut" x1="${X(pleio)}" x2="${X(pleio)}" y1="${T}" y2="${T + ph}"/>`;
+    o += `<text x="${X(pleio) + 6}" y="${T + 12}" style="fill:var(--ks-magenta,#e83e8c)">cutoff ${pleio}</text>`;
+    o += `<text class="ks-ttl" x="${L + pw / 2}" y="${H - 6}" text-anchor="middle">Pleiotropy score (0 to 10)</text>`;
+    o += `<text class="ks-ttl" transform="translate(12 ${T + ph / 2}) rotate(-90)" text-anchor="middle">Composite score (0 to 1)</text>`;
+
+    pts.forEach((p, i) => {
+        const labelRing = p.label ? `<circle r="9" fill="none" stroke="var(--ks-fg)" stroke-width="1.5"/>` : '';
+        const aria = `${p.symbol} rank ${p.rank}: pleiotropy ${p.x.toFixed(2)}, composite ${p.y.toFixed(2)}, ${levelName[p.level] || 'unknown'}`;
+        o += `<g transform="translate(${X(p.x).toFixed(1)} ${Y(p.y).toFixed(1)})">${labelRing}${shapes[p.cls]} class="ks-pt ${p.cls}" data-n="${esc(p.symbol)}" data-rank="${p.rank}" data-x="${p.x.toFixed(2)}" data-y="${p.y.toFixed(2)}" role="img" aria-label="${esc(aria)}"/></g>`;
+    });
+    pts.forEach(p => {
+        if (p.label) o += `<text class="ks-pin" x="${X(p.x) + 9}" y="${Y(p.y) + 4}">${esc(p.label)}</text>`;
+    });
+    svg.innerHTML = o;
+
+    const tip = document.getElementById('geneLandscapeTip');
+    const wrap = svg.parentNode;
+    svg.onmouseover = function (e) {
+        const t = e.target.closest && e.target.closest('.ks-pt');
+        if (!t || !tip) return;
+        const a = t.getBoundingClientRect();
+        const w = wrap.getBoundingClientRect();
+        tip.innerHTML = `<b>${t.getAttribute('data-n')} (#${t.getAttribute('data-rank')})</b><br>Pleiotropy ${t.getAttribute('data-x')}<br>Composite ${t.getAttribute('data-y')}`;
+        tip.style.left = (a.left + a.width / 2 - w.left) + 'px';
+        tip.style.top = (a.top - w.top) + 'px';
+        tip.hidden = false;
+    };
+    svg.onmouseout = function (e) {
+        if (e.target.closest && e.target.closest('.ks-pt') && tip) tip.hidden = true;
+    };
+}
+
 function renderPotentialCandidates(data) {
     const container = document.getElementById('potentialContainer');
     if (!container) return;
@@ -348,6 +460,7 @@ async function loadResults(jobId) {
 
         renderGenes(resultsData.genes);
         renderSafetyDist(resultsData.genes);
+        renderLandscape(resultsData.genes, currentJob?.max_pleiotropy ?? 5);
         renderExcluded(resultsData.excluded_genes);
         renderInsufficientData(resultsData.insufficient_data_genes);
         renderSources(resultsData.metadata);

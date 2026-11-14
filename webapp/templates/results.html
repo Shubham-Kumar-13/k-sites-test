@@ -163,6 +163,26 @@
         </div>
 
         <div class="ks-tp show" data-tab="genes" id="genes" role="tabpanel">
+            <section class="ks-land" id="geneLandscape" aria-label="Gene landscape" hidden>
+                <div class="ks-lhead">
+                    <div>
+                        <div class="ks-tag">Gene landscape</div>
+                        <h3>All genes at a glance</h3>
+                    </div>
+                    <div class="ks-lkey">
+                        <span><svg width="12" height="12" viewBox="-6 -6 12 12"><circle r="4.6" fill="var(--ks-safe)"/></svg>Safe</span>
+                        <span><svg width="12" height="12" viewBox="-6 -6 12 12"><rect x="-4.2" y="-4.2" width="8.4" height="8.4" fill="var(--ks-info)"/></svg>Caution</span>
+                        <span><svg width="12" height="12" viewBox="-6 -6 12 12"><path d="M0-5.6L5.6 0 0 5.6-5.6 0z" fill="var(--ks-warn)"/></svg>Moderate</span>
+                        <span><svg width="12" height="12" viewBox="-6 -6 12 12"><path d="M0-5.4L5.2 4.2h-10.4z" fill="var(--ks-bad)"/></svg>High / Avoid</span>
+                    </div>
+                </div>
+                <div class="ks-lwrap">
+                    <svg id="geneLandscapeSvg" viewBox="0 0 680 320" role="img" aria-label="Scatter plot of composite score against pleiotropy score for every gene"></svg>
+                    <div class="ks-ltip" id="geneLandscapeTip" hidden></div>
+                </div>
+                <p class="ks-lnote">Each mark is one gene. Marks left of the dashed line pass your pleiotropy cutoff.</p>
+            </section>
+
             <div id="genesContainer">
                 <div class="text-center py-5" style="color:var(--ks-muted);">
                     <div class="spinner-border mb-3" role="status">
