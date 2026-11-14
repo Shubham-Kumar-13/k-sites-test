@@ -1014,8 +1014,6 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   background:var(--ks-safe-bg);
 }
 .provider-option strong { display:block; font-weight:600; }
-.provider-option .small { font-size:12.5px; color:var(--ks-muted); }
-
 /* Gene count preview */
 .ks-gcount {
   background:var(--ks-info-bg);
@@ -1087,6 +1085,42 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
   .ks-provs { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
 
+
+/* --------------------------------------------------------------------------
+   Loaders
+   -------------------------------------------------------------------------- */
+.ks-spin {
+  display:inline-block;
+  width:18px;
+  height:18px;
+  border:2px solid var(--ks-line);
+  border-top-color:var(--ks-cyan);
+  border-radius:50%;
+  animation:ks-spin 1s linear infinite;
+}
+@keyframes ks-spin { to { transform:rotate(360deg); } }
+.ks-loading-overlay {
+  position:fixed;
+  inset:0;
+  z-index:200;
+  background:var(--ks-bg);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:16px;
+}
+.ks-loading-overlay .ks-spin {
+  width:48px;
+  height:48px;
+  border-width:4px;
+}
+.ks-loading-overlay h4 {
+  color:var(--ks-link);
+  font:600 18px var(--ks-f-sans);
+  margin:0;
+}
+.ks-hide { display:none !important; }
 
 /* --------------------------------------------------------------------------
    Fixed bottom dock / Start Analysis button

@@ -708,12 +708,12 @@ function initializeEventListeners() {
         }
         const section = document.getElementById('llmKeySection');
         if (section) {
-            if (this.checked) {
-                const bsCollapse = bootstrap.Collapse.getOrCreateInstance(section, { toggle: false });
-                bsCollapse.show();
-            } else {
-                const bsCollapse = bootstrap.Collapse.getInstance(section);
-                if (bsCollapse) bsCollapse.hide();
+            section.classList.toggle('ks-hide', !this.checked);
+            if (!this.checked) {
+                const apiKeyWrapper = document.getElementById('llmApiKeyWrapper');
+                const options = document.getElementById('llmProviderOptions');
+                if (apiKeyWrapper) apiKeyWrapper.classList.add('ks-hide');
+                if (options) options.classList.add('ks-hide');
             }
         }
     });
@@ -938,14 +938,11 @@ function toggleLlmProviderPanel() {
     const trigger = document.getElementById('llmProviderTrigger');
     const apiKeyWrapper = document.getElementById('llmApiKeyWrapper');
     if (!options || !trigger) return;
-    const isOpen = !options.classList.contains('d-none');
-    options.classList.toggle('d-none', isOpen);
+    const isOpen = !options.classList.contains('ks-hide');
+    options.classList.toggle('ks-hide', isOpen);
     trigger.classList.toggle('open', !isOpen);
     // Hide the key field while the user is choosing a provider; it reappears after selection.
-    if (!isOpen && apiKeyWrapper) {
-        const bsKey = bootstrap.Collapse.getInstance(apiKeyWrapper);
-        if (bsKey) bsKey.hide();
-    }
+    if (!isOpen && apiKeyWrapper) apiKeyWrapper.classList.add('ks-hide');
 }
 
 function selectLlmProvider(provider, save = true) {
@@ -961,15 +958,12 @@ function selectLlmProvider(provider, save = true) {
         card.classList.toggle('selected', card.dataset.provider === provider);
     });
 
-    // Hide the provider grid and slide out the API key field
+    // Hide the provider grid and show the API key field
     const options = document.getElementById('llmProviderOptions');
     const trigger = document.getElementById('llmProviderTrigger');
-    if (options) options.classList.add('d-none');
+    if (options) options.classList.add('ks-hide');
     if (trigger) trigger.classList.remove('open');
-    if (apiKeyWrapper) {
-        const bsKey = bootstrap.Collapse.getOrCreateInstance(apiKeyWrapper, { toggle: false });
-        bsKey.show();
-    }
+    if (apiKeyWrapper) apiKeyWrapper.classList.remove('ks-hide');
 
     updateLlmKeyPlaceholder(provider);
     if (save) localStorage.setItem('ksites.llmProvider', provider);

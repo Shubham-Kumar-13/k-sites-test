@@ -14,10 +14,8 @@
     </div>
 </header>
 
-<div class="row">
-    <div class="col-lg-11 mx-auto ks-form-wrap">
-        
-        <form id="analysisForm" class="needs-validation" novalidate>
+<div class="ks-form-wrap" style="max-width:980px;margin-left:auto;margin-right:auto;">
+    <form id="analysisForm" novalidate>
             
             
             <!-- Step 1: Organism Selection -->
@@ -50,9 +48,9 @@
                         <div class="ks-lab"><span class="ks-k">A</span>Choose Kingdom/Category</div>
                         <div id="kingdomContainer" class="ks-tiles">
                             <!-- Kingdoms loaded dynamically -->
-                            <div class="text-center py-3 text-muted">
-                                <span class="spinner-border spinner-border-sm text-primary"></span>
-                                <span class="ms-2">Loading categories...</span>
+                            <div style="grid-column:1 / -1;text-align:center;padding:16px;color:var(--ks-muted);font-size:13.5px;">
+                                <span class="ks-spin" style="margin-right:8px;vertical-align:middle;"></span>
+                                Loading categories...
                             </div>
                         </div>
                     </div>
@@ -112,9 +110,9 @@
                         <div class="ks-lab"><span class="ks-k">A</span>Choose GO Category</div>
                         <div id="goCategoryContainer" class="ks-tiles">
                             <!-- Categories loaded dynamically -->
-                            <div class="text-center py-3 text-muted">
-                                <span class="spinner-border spinner-border-sm text-primary"></span>
-                                <span class="ms-2">Loading categories...</span>
+                            <div style="grid-column:1 / -1;text-align:center;padding:16px;color:var(--ks-muted);font-size:13.5px;">
+                                <span class="ks-spin" style="margin-right:8px;vertical-align:middle;"></span>
+                                Loading categories...
                             </div>
                         </div>
                     </div>
@@ -272,11 +270,11 @@
                         <div class="ks-formtext">
                             Guess phenotypes from PubMed abstracts for unmeasured genes only. Each unmeasured gene takes about 1 minute to read and is capped at 25 genes per run to keep the analysis manageable. Literature-derived predictions are advisory only and do not elevate the overall recommendation above CAUTION.
                         </div>
-                        <div id="llmKeySection" class="collapse">
+                        <div id="llmKeySection" class="ks-hide">
                             <div class="ks-keycard">
                                 <h6>
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="8" r="3.5"/><path d="M8.5 8H15M13 8v3M11 8v2"/></svg>
-                                    Enhance with a hosted AI model <small>(your own API key)</small>
+                                    Enhance with a hosted AI model <small style="color:var(--ks-muted);font-weight:400;">(your own API key)</small>
                                 </h6>
 
                                 <input type="hidden" id="llm_provider" name="llm_provider" value="kimi">
@@ -286,36 +284,36 @@
                                     <i class="fas fa-chevron-down" id="llmProviderTriggerIcon"></i>
                                 </button>
 
-                                <div id="llmProviderOptions" class="d-none">
+                                <div id="llmProviderOptions" class="ks-hide">
                                     <div class="ks-provs">
                                         <div class="provider-option" data-provider="kimi" onclick="selectLlmProvider('kimi')">
                                             <strong>Kimi</strong>
-                                            <span class="small text-muted">Moonshot</span>
+                                            <span style="font-size:12.5px;color:var(--ks-muted);">Moonshot</span>
                                         </div>
                                         <div class="provider-option" data-provider="openai" onclick="selectLlmProvider('openai')">
                                             <strong>OpenAI</strong>
-                                            <span class="small text-muted">GPT</span>
+                                            <span style="font-size:12.5px;color:var(--ks-muted);">GPT</span>
                                         </div>
                                         <div class="provider-option" data-provider="anthropic" onclick="selectLlmProvider('anthropic')">
                                             <strong>Anthropic</strong>
-                                            <span class="small text-muted">Claude</span>
+                                            <span style="font-size:12.5px;color:var(--ks-muted);">Claude</span>
                                         </div>
                                         <div class="provider-option" data-provider="qwen" onclick="selectLlmProvider('qwen')">
                                             <strong>Qwen</strong>
-                                            <span class="small text-muted">Alibaba</span>
+                                            <span style="font-size:12.5px;color:var(--ks-muted);">Alibaba</span>
                                         </div>
                                         <div class="provider-option" data-provider="deepseek" onclick="selectLlmProvider('deepseek')">
                                             <strong>DeepSeek</strong>
-                                            <span class="small text-muted">Chat</span>
+                                            <span style="font-size:12.5px;color:var(--ks-muted);">Chat</span>
                                         </div>
                                         <div class="provider-option" data-provider="grok" onclick="selectLlmProvider('grok')">
                                             <strong>Grok</strong>
-                                            <span class="small text-muted">xAI</span>
+                                            <span style="font-size:12.5px;color:var(--ks-muted);">xAI</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div id="llmApiKeyWrapper" class="collapse">
+                                <div id="llmApiKeyWrapper" class="ks-hide">
                                     <label class="ks-formtext" for="llm_api_key" style="display:block;margin:16px 0 6px;">
                                         API key for <span id="llmSelectedProviderName">Kimi (Moonshot)</span>
                                     </label>
@@ -358,7 +356,6 @@
             <div id="validationAlerts"></div>
         </form>
     </div>
-</div>
 
 <!-- Fixed bottom dock -->
 <div class="ks-dock">
@@ -373,13 +370,9 @@
 </div>
 
 <!-- Loading Overlay -->
-<div class="spinner-overlay" id="loadingOverlay" style="display: none;">
-    <div class="text-center">
-        <div class="spinner-border text-primary mb-3" style="width: 4rem; height: 4rem;" role="status">
-            <span class="visually-hidden">Loading...</span>
-        </div>
-        <h4 class="text-primary" id="loadingText">Validating parameters...</h4>
-    </div>
+<div class="ks-loading-overlay" id="loadingOverlay" style="display: none;">
+    <span class="ks-spin" role="status" aria-label="Loading"></span>
+    <h4 id="loadingText">Validating parameters...</h4>
 </div>
 {% endblock %}
 
@@ -396,7 +389,6 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/main.js') }}?v=1.3.2"></script>
-<script src="{{ url_for('static', filename='js/ksites-hero.js') }}?v=1.0.0"></script>
 <script>
 (function () {
   function setStatus(id, ok, text) {
