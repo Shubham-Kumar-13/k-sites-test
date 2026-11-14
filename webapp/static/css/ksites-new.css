@@ -1958,10 +1958,10 @@ html[data-bs-theme="dark"] .ks-status-pill.status-running {
   stroke:var(--ks-fg);
   stroke-width:1.6;
 }
-#geneLandscapeSvg .ks-pt.s { fill:var(--ks-safe); }
-#geneLandscapeSvg .ks-pt.c { fill:var(--ks-info); }
-#geneLandscapeSvg .ks-pt.m { fill:var(--ks-warn); }
-#geneLandscapeSvg .ks-pt.h { fill:var(--ks-bad); }
+#geneLandscapeSvg .ks-pt.s { fill:var(--v-safe); }
+#geneLandscapeSvg .ks-pt.c { fill:var(--v-info); }
+#geneLandscapeSvg .ks-pt.m { fill:var(--v-warn); }
+#geneLandscapeSvg .ks-pt.h { fill:var(--v-bad); }
 .ks-ltip {
   position:absolute;
   pointer-events:none;
@@ -2111,9 +2111,9 @@ html[data-bs-theme="dark"] .ks-status-pill.status-running {
   transform-origin:left;
   animation:ks-grow 1.1s .15s cubic-bezier(.2,.8,.2,1) both;
 }
-.ks-gauge .f.lo { background:var(--ks-safe); }
-.ks-gauge .f.mid { background:var(--ks-warn); }
-.ks-gauge .f.hi { background:var(--ks-bad); }
+.ks-gauge .f.lo { background:var(--v-safe); }
+.ks-gauge .f.mid { background:var(--v-warn); }
+.ks-gauge .f.hi { background:var(--v-bad); }
 .ks-gauge b { font:600 16px var(--ks-f-mono); color:var(--ks-fg); }
 .ks-b {
   display:inline-flex;
@@ -2377,6 +2377,14 @@ html[data-bs-theme="dark"] .ks-status-pill.status-running {
 .ks-ichip b { display:block; font-weight:600; font-size:12.5px; }
 .ks-ichip span { color:var(--ks-muted); }
 
+.ks-warn-panel {
+  background:var(--ks-warn-bg);
+  border-color:var(--ks-warn);
+}
+.ks-warn-panel .ks-ph {
+  background:transparent;
+  border-bottom-color:rgba(125,82,0,.12);
+}
 .ks-ragbox {
   margin-top:10px;
   border:1px solid var(--ks-warn);

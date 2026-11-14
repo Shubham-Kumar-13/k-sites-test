@@ -3,6 +3,16 @@
  */
 
 const CONTEXT_LABELS = { auto: 'Automatic', cells: 'Cultured cells', organism: 'Whole organism' };
+const DB_FORMAT = {
+    quickgo: 'QuickGO',
+    uniprot: 'UniProt',
+    mygene: 'MyGene.info',
+    ncbi: 'NCBI Gene'
+};
+function formatDatabases(dbs) {
+    if (!dbs || dbs.length === 0) return 'QuickGO';
+    return dbs.map(db => DB_FORMAT[db.toLowerCase()] || db).join(', ');
+}
 
 // Global state
 let currentJob = null;
@@ -54,7 +64,7 @@ function fillJobFields(job) {
         evidence_filter: job.evidence_filter,
         knockout_context: job.knockout_context === undefined ? undefined : (CONTEXT_LABELS[job.knockout_context] || job.knockout_context),
         predict_phenotypes: job.predict_phenotypes === undefined ? undefined : (job.predict_phenotypes ? 'Enabled' : 'Disabled'),
-        selected_databases: job.selected_databases === undefined ? undefined : ((job.selected_databases || []).join(', ') || 'QuickGO'),
+        selected_databases: job.selected_databases === undefined ? undefined : formatDatabases(job.selected_databases),
         total_genes_found: job.total_genes_found,
         genes_processed: job.genes_processed,
     };
@@ -872,10 +882,10 @@ function evidencePanel(gene) {
     }
 
     const taxid = String(currentJob?.taxid || '');
-    const details = `<details class="ks-mitigation detailed-evidence" data-taxid="${esc(currentJob.taxid)}" data-symbol="${esc(gene.symbol)}">
+    const details = !detailTaxids || detailTaxids.has(taxid) ? `<details class="ks-mitigation detailed-evidence" data-taxid="${esc(currentJob.taxid)}" data-symbol="${esc(gene.symbol)}">
         <summary>Detailed source records</summary>
         <div class="detailed-evidence-body" style="margin-top:10px;">Expand to load detailed mutant and publication records.</div>
-    </details>`;
+    </details>` : '';
 
     return `
         <div class="ks-evp">
@@ -912,7 +922,7 @@ function renderExcluded(entries) {
             <td>${lines.length ? lines.join('<br>') : '<span style="color:var(--ks-muted);">No measured knockout data</span>'}</td></tr>`;
     }).join('');
     container.insertAdjacentHTML('beforeend', `
-        <section class="ks-panel" style="margin-top:24px;">
+        <section class="ks-panel ks-warn-panel" style="margin-top:24px;">
             <div class="ks-ph"><div><div class="ks-tag">Assessed but not ranked</div><h2><i class="fas fa-eye-slash me-2"></i>${entries.length} gene(s) not shown</h2></div></div>
             <div class="ks-pb">
                 <p style="color:var(--ks-muted);font-size:13.5px;margin-bottom:14px;">These genes were assessed too. They are not in the ranking above because their pleiotropy score is above the cutoff, or because they rank below the genes shown. Their measured knockout result is listed so that nothing is hidden.</p>
@@ -1077,7 +1087,7 @@ function renderInsufficientData(genes) {
     `).join('');
 
     container.insertAdjacentHTML('beforeend', `
-        <section class="ks-panel" style="margin-top:24px;">
+        <section class="ks-panel ks-warn-panel" style="margin-top:24px;">
             <div class="ks-ph"><div><div class="ks-tag">Could not score</div><h2><i class="fas fa-exclamation-triangle me-2"></i>${genes.length} gene(s) with insufficient data</h2></div></div>
             <div class="ks-pb">
                 <p style="color:var(--ks-muted);font-size:13.5px;margin-bottom:14px;">These genes are not ranked and have no safety level.</p>

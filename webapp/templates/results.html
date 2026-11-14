@@ -125,7 +125,7 @@
                 <div class="ks-chips">
                     <span class="ks-chip" data-job-field="go_term">{{ job.go_term }}</span>
                     <span class="ks-chip">TaxID <span data-job-field="taxid">{{ job.taxid }}</span></span>
-                    <span class="ks-chip" data-job-field="selected_databases">{{ job.selected_databases|join(', ') if job.selected_databases else 'QuickGO' }}</span>
+                    <span class="ks-chip" data-job-field="selected_databases">{% if job.selected_databases %}{% set db_map = {'quickgo': 'QuickGO', 'uniprot': 'UniProt', 'mygene': 'MyGene.info', 'ncbi': 'NCBI Gene'} %}{% for db in job.selected_databases %}{{ db_map.get(db.lower(), db) }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}QuickGO{% endif %}</span>
                 </div>
             </div>
         </div>
@@ -156,9 +156,9 @@
         <a id="downloadXlsx" class="ks-btn sm out" href="#" style="display:none;">Download Excel</a>
         <button class="ks-btn sm out" type="button" onclick="window.print()">Print Results</button>
         <span class="sp"></span>
-        <a href="/" class="ks-btn sm ok">New Analysis</a>
+        <a href="/" class="ks-btn sm ok"><i class="fas fa-plus"></i> New Analysis</a>
         {% set rerun_databases = job.selected_databases|join(',') if job.selected_databases else 'quickgo' %}
-        <a id="rerunAnalysisButton" class="ks-btn sm amber" href="/?rerun=1&amp;taxid={{ job.taxid|urlencode }}&amp;organism={{ job.organism|urlencode }}&amp;go_term={{ job.go_term|urlencode }}&amp;go_term_name={{ (job.go_term_name or '')|urlencode }}&amp;max_genes={{ job.max_genes }}&amp;max_pleiotropy={{ job.max_pleiotropy }}&amp;evidence_filter={{ job.evidence_filter|urlencode }}&amp;knockout_context={{ (job.knockout_context or 'auto')|urlencode }}&amp;predict_phenotypes={{ 'true' if job.predict_phenotypes else 'false' }}&amp;databases={{ rerun_databases|urlencode }}">Rerun Analysis</a>
+        <a id="rerunAnalysisButton" class="ks-btn sm amber" href="/?rerun=1&amp;taxid={{ job.taxid|urlencode }}&amp;organism={{ job.organism|urlencode }}&amp;go_term={{ job.go_term|urlencode }}&amp;go_term_name={{ (job.go_term_name or '')|urlencode }}&amp;max_genes={{ job.max_genes }}&amp;max_pleiotropy={{ job.max_pleiotropy }}&amp;evidence_filter={{ job.evidence_filter|urlencode }}&amp;knockout_context={{ (job.knockout_context or 'auto')|urlencode }}&amp;predict_phenotypes={{ 'true' if job.predict_phenotypes else 'false' }}&amp;databases={{ rerun_databases|urlencode }}"><i class="fas fa-redo"></i> Rerun Analysis</a>
     </div>
 
     <!-- Parameters Summary -->
@@ -175,7 +175,7 @@
                 <div><dt>Evidence Filter</dt><dd data-job-field="evidence_filter">{{ job.evidence_filter }}</dd></div>
                 <div><dt>Knockout Context</dt><dd data-job-field="knockout_context">{{ job.knockout_context or 'auto' }}</dd></div>
                 <div><dt>Phenotype Prediction</dt><dd data-job-field="predict_phenotypes">{{ 'Enabled' if job.predict_phenotypes else 'Disabled' }}</dd></div>
-                <div><dt>Databases</dt><dd data-job-field="selected_databases">{{ job.selected_databases|join(', ') if job.selected_databases else 'QuickGO' }}</dd></div>
+                <div><dt>Databases</dt><dd data-job-field="selected_databases">{% if job.selected_databases %}{% set db_map = {'quickgo': 'QuickGO', 'uniprot': 'UniProt', 'mygene': 'MyGene.info', 'ncbi': 'NCBI Gene'} %}{% for db in job.selected_databases %}{{ db_map.get(db.lower(), db) }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}QuickGO{% endif %}</dd></div>
             </dl>
         </div>
     </section>
@@ -276,7 +276,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/results.js') }}?v=1.4.5"></script>
+<script src="{{ url_for('static', filename='js/results.js') }}?v=1.4.6"></script>
 <script>
 (function () {
     const tabs = document.querySelectorAll('#resultsTabs [role="tab"]');
