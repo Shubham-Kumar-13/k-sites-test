@@ -38,7 +38,7 @@ def _table(lines):
     rows = ["<thead><tr>" + "".join(f"<th>{inline(c)}</th>" for c in header) + "</tr></thead>", "<tbody>"]
     rows += ["<tr>" + "".join(f"<td>{inline(c)}</td>" for c in row) + "</tr>" for row in body]
     rows.append("</tbody>")
-    return '<div class="table-responsive"><table class="table table-sm table-bordered align-middle">' + "".join(rows) + "</table></div>"
+    return '<div style="overflow-x:auto;"><table class="ks-table">' + "".join(rows) + "</table></div>"
 
 
 def render(markdown):

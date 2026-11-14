@@ -1796,6 +1796,43 @@ html[data-bs-theme="dark"] .ks-hero .ks-lede {
 .ks-help section {
   margin-bottom:40px;
 }
+
+/* validation / markdown report */
+.ks-report h1,
+.ks-report h2,
+.ks-report h3,
+.ks-report h4 {
+  color:var(--ks-fg);
+  margin:0 0 12px;
+}
+.ks-report h1 { font:600 24px var(--ks-f-sans); }
+.ks-report h2 { font:600 20px var(--ks-f-sans); margin-top:28px; padding-bottom:8px; border-bottom:1px solid var(--ks-line2); }
+.ks-report h3 { font:600 17px var(--ks-f-sans); margin-top:20px; }
+.ks-report p { color:var(--ks-muted); margin:0 0 12px; line-height:1.6; }
+.ks-report ul { margin:0 0 16px; padding-left:20px; color:var(--ks-muted); }
+.ks-report li { margin-bottom:6px; }
+.ks-report strong { color:var(--ks-fg); }
+.ks-report a { color:var(--ks-link); }
+.ks-report code {
+  font-family:var(--ks-f-mono);
+  font-size:13px;
+  background:var(--ks-well);
+  padding:2px 5px;
+  border-radius:4px;
+  color:var(--ks-fg);
+}
+.ks-report pre {
+  background:var(--ks-well);
+  border:1px solid var(--ks-line);
+  border-radius:8px;
+  padding:14px;
+  overflow-x:auto;
+  font-size:13px;
+  margin:0 0 16px;
+}
+.ks-report pre code { background:transparent; padding:0; }
+.ks-report .ks-table { margin-bottom:16px; }
+.ks-report .ks-table th { white-space:nowrap; }
 .ks-mstep {
   display:flex;
   gap:16px;
