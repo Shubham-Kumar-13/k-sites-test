@@ -1497,89 +1497,84 @@ html[data-bs-theme="dark"] #organismDirectResults .list-group-item:hover { backg
 /* --------------------------------------------------------------------------
    Analysis loading / progress screen
    -------------------------------------------------------------------------- */
-.ks-results-header {
-  padding:16px 24px;
+.ks-loading-card {
+  max-width: 760px;
+  margin: 0 auto;
+  overflow: hidden;
 }
-.ks-rh-body {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:16px;
+.ks-loading-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--ks-line2);
+  background: linear-gradient(var(--ks-well), var(--ks-panel));
 }
-.ks-rh-body .ks-tag {
-  font:500 11.5px var(--ks-f-mono);
-  letter-spacing:1.2px;
-  text-transform:uppercase;
-  color:var(--ks-muted);
+.ks-loading-header .ks-tag {
+  font: 500 11.5px var(--ks-f-mono);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--ks-muted);
 }
 .ks-rh-id {
-  font:500 13px var(--ks-f-mono);
-  color:var(--ks-fg);
-  margin-top:4px;
+  font: 500 13px var(--ks-f-mono);
+  color: var(--ks-fg);
+  margin-top: 4px;
 }
-.ks-rh-id span { color:var(--ks-muted); }
+.ks-rh-id span { color: var(--ks-muted); }
 .ks-status-pill.status-running {
-  color:var(--ks-cyan);
-  background:var(--ks-cyan-ink);
-  border-color:var(--ks-cyan);
+  color: var(--ks-cyan);
+  background: var(--ks-cyan-ink);
+  border-color: var(--ks-cyan);
+  margin-bottom: 0;
 }
 .ks-status-pill.status-running span {
-  width:8px;
-  height:8px;
-  border-radius:50%;
-  background:var(--ks-cyan);
-  animation:ks-pulse 1.4s infinite;
-}
-
-/* DNA stage */
-.ks-dna-stage {
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:10px;
-}
-.ks-dna-helix {
-  width:min(360px, 90%);
-  height:auto;
-  display:block;
-}
-.ks-dna-wave {
-  stroke-linecap:round;
-}
-.ks-dna-back {
-  opacity:0.55;
-  animation:ks-dna-shift 2.4s linear infinite;
-}
-.ks-dna-front {
-  animation:ks-dna-shift 2.4s linear infinite reverse;
-}
-.ks-dna-rungs {
-  animation:ks-dna-fade 2.4s ease-in-out infinite;
-}
-.ks-dna-cut {
-  animation:ks-dna-cut 2.4s ease-in-out infinite;
-}
-.ks-dna-tagline {
-  font:500 11px var(--ks-f-mono);
-  letter-spacing:2px;
-  text-transform:uppercase;
-  color:var(--ks-cyan);
-}
-@keyframes ks-dna-shift {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-60px); }
-}
-@keyframes ks-dna-fade {
-  0%, 100% { opacity:0.35; }
-  50% { opacity:0.8; }
-}
-@keyframes ks-dna-cut {
-  0%, 100% { opacity:0.7; transform: translate(170px, 60px) scale(0.98); }
-  50% { opacity:1; transform: translate(170px, 60px) scale(1.02); }
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ks-cyan);
+  animation: ks-pulse 1.4s infinite;
 }
 @keyframes ks-pulse {
-  0%, 100% { opacity:1; }
-  50% { opacity:0.35; }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.ks-loading-body {
+  padding: 36px 24px 42px;
+  text-align: center;
+}
+
+/* Canvas loader inside the card */
+.ks-loading-body .gk-loader {
+  width: 100%;
+  max-width: 520px;
+  aspect-ratio: 2 / 1;
+  margin: 0 auto 12px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: transparent;
+}
+.ks-loading-body .gk-loader canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.ks-dna-tagline {
+  font: 500 11px var(--ks-f-mono);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--ks-cyan);
+  margin-bottom: 24px;
+}
+.ks-cursor {
+  animation: ks-blink 1s step-end infinite;
+}
+@keyframes ks-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
 /* Progress bar */

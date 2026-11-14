@@ -8,6 +8,7 @@ const CONTEXT_LABELS = { auto: 'Automatic', cells: 'Cultured cells', organism: '
 let currentJob = null;
 let resultsData = null;
 let statusCheckInterval = null;
+let elapsedTickerInterval = null;
 let detailTaxids = null;   // taxids that have a built detailed-evidence file
 
 // DOM Ready
@@ -81,6 +82,27 @@ function stopStatusPolling() {
     }
 }
 
+function startElapsedTicker(job) {
+    stopElapsedTicker();
+    if (!job || !job.created_at) return;
+    const created = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(job.created_at) ? job.created_at : job.created_at + 'Z');
+    const tick = () => {
+        const elapsedTime = document.getElementById('elapsedTime');
+        if (!elapsedTime) return;
+        const seconds = Math.max(0, Math.round((Date.now() - created.getTime()) / 1000));
+        elapsedTime.textContent = formatElapsed(seconds);
+    };
+    tick();
+    elapsedTickerInterval = setInterval(tick, 1000);
+}
+
+function stopElapsedTicker() {
+    if (elapsedTickerInterval) {
+        clearInterval(elapsedTickerInterval);
+        elapsedTickerInterval = null;
+    }
+}
+
 async function cancelJob(jobId) {
     if (!confirm('Stop this analysis? It cannot be resumed; you would start a new one.')) return;
     const btn = document.getElementById('cancelJobButton');
@@ -127,14 +149,19 @@ async function checkJobStatus(jobId) {
         
         if (data.status === 'completed') {
             stopStatusPolling();
+            stopElapsedTicker();
             showResults(data);
             loadResults(jobId);
         } else if (data.status === 'failed') {
             stopStatusPolling();
+            stopElapsedTicker();
             showError(data.error_message);
         } else if (data.status === 'cancelled' || data.status === 'cancelling') {
             stopStatusPolling();
+            stopElapsedTicker();
             showCancelled(data);
+        } else {
+            startElapsedTicker(data);
         }
         
     } catch (error) {
@@ -255,10 +282,7 @@ function showCancelled(job) {
     const cancelledState = document.getElementById('cancelledState');
     if (cancelledState) {
         cancelledState.style.display = 'block';
-        const msg = job.status === 'cancelling'
-            ? 'Cancelling the analysis... The page will update once it stops.'
-            : 'You cancelled this job mid-analysis.';
-        document.getElementById('cancelledMessage').textContent = msg;
+        document.getElementById('cancelledMessage').textContent = 'You cancelled the analysis mid-run.';
     }
 }
 

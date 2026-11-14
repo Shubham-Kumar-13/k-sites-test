@@ -1028,6 +1028,7 @@ def _execute_analysis_job(job_id: str):
                 base, span = progress_ranges.get(stage, (30, 0))
                 percent = int(base + span * (done / total if total else 1))
                 job.current_step = f"{stage} ({done}/{total})"
+                job.genes_processed = done
                 if percent != last_reported['percent']:
                     job.progress_percent = percent
                     last_reported['percent'] = percent

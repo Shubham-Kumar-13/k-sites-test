@@ -7,55 +7,23 @@
 
 <!-- Loading State with Progress -->
 <div id="loadingState" class="py-4" style="display: {{ 'block' if job.status in ['pending', 'running'] else 'none' }};">
-    <!-- Header card -->
-    <section class="ks-panel ks-results-header mb-3">
-        <div class="ks-rh-body">
+    <section class="ks-panel ks-loading-card">
+        <!-- Card header -->
+        <div class="ks-loading-header">
             <div>
                 <div class="ks-tag">Analysis Results</div>
                 <div class="ks-rh-id">Job ID: <span id="loadingJobId">{{ job.id }}</span></div>
             </div>
             <div class="ks-status-pill status-running" id="runningBadge"><span></span>RUNNING</div>
         </div>
-    </section>
 
-    <!-- Progress card -->
-    <section class="ks-panel ks-progress-card">
-        <div class="ks-pb text-center py-5">
-            <!-- DNA / scissors animation -->
-            <div class="mb-4 ks-dna-stage" aria-label="Analysis in progress">
-                <svg class="ks-dna-helix" viewBox="0 0 360 120" aria-hidden="true">
-                    <defs>
-                        <linearGradient id="dnaCyan" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stop-color="#22d3ee"/>
-                            <stop offset="100%" stop-color="#0891b2"/>
-                        </linearGradient>
-                        <linearGradient id="dnaMagenta" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stop-color="#e879f9"/>
-                            <stop offset="100%" stop-color="#c026d3"/>
-                        </linearGradient>
-                    </defs>
-                    <!-- Back helix (magenta) -->
-                    <path class="ks-dna-wave ks-dna-back" d="M20,60 C50,10 80,10 110,60 C140,110 170,110 200,60 C230,10 260,10 290,60 C320,110 350,110 380,60" fill="none" stroke="url(#dnaMagenta)" stroke-width="3"/>
-                    <!-- Rungs -->
-                    <g class="ks-dna-rungs">
-                        <line x1="65" y1="35" x2="65" y2="85" stroke="#94a3b8" stroke-width="2" opacity="0.5"/>
-                        <line x1="125" y1="85" x2="125" y2="35" stroke="#94a3b8" stroke-width="2" opacity="0.5"/>
-                        <line x1="185" y1="35" x2="185" y2="85" stroke="#94a3b8" stroke-width="2" opacity="0.5"/>
-                        <line x1="245" y1="85" x2="245" y2="35" stroke="#94a3b8" stroke-width="2" opacity="0.5"/>
-                        <line x1="305" y1="35" x2="305" y2="85" stroke="#94a3b8" stroke-width="2" opacity="0.5"/>
-                    </g>
-                    <!-- Front helix (cyan) -->
-                    <path class="ks-dna-wave ks-dna-front" d="M20,60 C50,110 80,110 110,60 C140,10 170,10 200,60 C230,110 260,110 290,60 C320,10 350,10 380,60" fill="none" stroke="url(#dnaCyan)" stroke-width="3"/>
-                    <!-- Scissors motif -->
-                    <g class="ks-dna-cut" transform="translate(170,60)">
-                        <rect x="-20" y="-35" width="40" height="70" rx="6" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4 3"/>
-                        <text x="0" y="-18" text-anchor="middle" fill="#f59e0b" font-size="10" font-family="var(--ks-f-mono)">A T T</text>
-                        <path d="M-12,0 L12,0 M0,-8 L0,8" stroke="#f59e0b" stroke-width="2"/>
-                        <text x="0" y="22" text-anchor="middle" fill="#f59e0b" font-size="10" font-family="var(--ks-f-mono)">A T A</text>
-                    </g>
-                </svg>
-                <div class="ks-dna-tagline">MOLECULAR SCISSORS CUTTING BOTH FLANKS</div>
+        <!-- Card body -->
+        <div class="ks-loading-body">
+            <!-- Molecular scissors canvas animation -->
+            <div class="mb-3 gk-loader" aria-label="Analysis in progress">
+                <canvas id="gl-canvas" aria-hidden="true"></canvas>
             </div>
+            <div class="ks-dna-tagline">MOLECULAR SCISSORS CUTTING BOTH FLANKS<span class="ks-cursor">_</span></div>
 
             <h3 class="mb-2" style="color:var(--ks-link);">Analysis in Progress</h3>
             <p class="mb-4" style="color:var(--ks-muted);" id="currentStep">{{ job.current_step or 'Initializing...' }}</p>
@@ -135,7 +103,7 @@
 <div id="cancelledState" class="ks-alert ks-warn" style="display: {{ 'block' if job.status == 'cancelled' else 'none' }};">
     <div>
         <h5><i class="fas fa-ban me-2"></i>Analysis Cancelled</h5>
-        <p id="cancelledMessage">{% if job.status == 'cancelled' %}You cancelled this job mid-analysis.{% else %}This analysis was cancelled.{% endif %}</p>
+        <p id="cancelledMessage">You cancelled the analysis mid-run.</p>
         <a href="/" class="ks-btn">Start New Analysis</a>
     </div>
 </div>
@@ -324,7 +292,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/results.js') }}?v=1.3.3"></script>
+<script src="{{ url_for('static', filename='js/results.js') }}?v=1.3.4"></script>
 <script src="{{ url_for('static', filename='js/gene-loader-scissors.js') }}?v=2.0.1"></script>
 <script>
 (function () {
